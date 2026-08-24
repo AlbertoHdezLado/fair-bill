@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-/** Global banner warning that live selection/realtime updates won't sync while offline. */
-export function OfflineBanner() {
+/** Warns that the room can't be read or updated while the device is offline. */
+export function OfflineBanner({ message }: { readonly message: string }) {
   const [online, setOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -23,8 +23,7 @@ export function OfflineBanner() {
 
   return (
     <div className="bg-gold px-4 py-2 text-center text-xs font-medium text-gold-foreground">
-      Sin conexión — tu selección se sincronizará cuando vuelvas a estar en
-      línea.
+      {message}
     </div>
   );
 }

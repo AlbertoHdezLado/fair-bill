@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import { ownChoice } from "@/lib/local-claims";
+import { toLocalClaims } from "./claims";
+
+describe("toLocalClaims", () => {
+  it("keeps a solo choice as a group of one", () => {
+    const claims = toLocalClaims([
+      {
+        itemId: "i1",
+        participantId: "p1",
+        ownerId: "p1",
+        units: 2,
+        groupIds: [],
+      },
+    ]);
+
+    expect(ownChoice(claims, "p1", "i1")).toEqual({ mode: "units", count: 2 });
+  });
+
+  it("copies a shared choice to every member, tagged with its author", () => {
+    const claims = toLocalClaims([
+      {
+        itemId: "i1",
+        participantId: "p1",
+        ownerId: "p1",
+        units: 1,
+        groupIds: ["p1", "p2"],
+      },
+      {
+        itemId: "i1",
+        participantId: "p2",
+        ownerId: "p1",
+        units: 1,
+        groupIds: ["p1", "p2"],
+      },
+    ]);
+
+    expect(ownChoice(claims, "p1", "i1")).toEqual({
+      mode: "units",
+      count: 1,
+      group: ["p1", "p2"],
+    });
+    // p2 did not create it, so it is not theirs to edit.
+    expect(ownChoice(claims, "p2", "i1")).toBeNull();
+    expect(claims.p2.i1).toHaveLength(1);
+  });
+
+  it("stacks a person's own choice with one shared with them", () => {
+    const claims = toLocalClaims([
+      {
+        itemId: "i1",
+        participantId: "p2",
+        ownerId: "p2",
+        units: 1,
+        groupIds: [],
+      },
+      {
+        itemId: "i1",
+        participantId: "p2",
+        ownerId: "p1",
+        units: 2,
+        groupIds: ["p1", "p2"],
+      },
+    ]);
+
+    expect(claims.p2.i1).toHaveLength(2);
+    expect(ownChoice(claims, "p2", "i1")).toEqual({ mode: "units", count: 1 });
+  });
+});

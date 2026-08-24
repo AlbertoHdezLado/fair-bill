@@ -1,11 +1,10 @@
 // Minimal service worker: only enough app-shell precaching for installability
 // (Lighthouse's PWA checks) plus a stale-while-revalidate cache for static assets.
-// The app has no backend and works fully offline; API routes (OCR) are still
-// excluded below since OCR results depend on the request body, not caching.
-const CACHE_NAME = "pers-shell-v3";
+// Room data lives on the server, so API routes are excluded below: they must
+// always hit the network.
+const CACHE_NAME = "pers-shell-v4";
 const APP_SHELL = [
-  "/es",
-  "/en",
+  "/",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",

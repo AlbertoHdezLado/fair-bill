@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { notFound } from "next/navigation";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
-import { hasLocale, messages } from "@/i18n";
-import "../globals.css";
+import { getRequestLocale, getRequestMessages } from "@/lib/server-locale";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,15 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata({
-  params,
-}: LayoutProps<"/[locale]">): Promise<Metadata> {
-  const { locale } = await params;
-  if (!hasLocale(locale)) return {};
+export async function generateMetadata(): Promise<Metadata> {
+  const messages = await getRequestMessages();
 
   return {
     title: "fairBill",
-    description: messages[locale].metadata.description,
+    description: messages.metadata.description,
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
@@ -42,12 +39,11 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function LocaleLayout({
+export default async function RootLayout({
   children,
-  params,
-}: LayoutProps<"/[locale]">) {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
+}: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getRequestLocale();
+  const messages = await getRequestMessages();
 
   return (
     <html
@@ -56,6 +52,7 @@ export default async function LocaleLayout({
     >
       <body className="min-h-full flex flex-col">
         <ServiceWorkerRegister />
+        <OfflineBanner message={messages.room.offline} />
         {children}
       </body>
     </html>

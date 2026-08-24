@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { buildSummaryShareUrl } from "./CaptureFlow";
 import { PersonTotals } from "./PersonTotals";
 
 describe("PersonTotals", () => {
@@ -38,13 +37,5 @@ describe("PersonTotals", () => {
     expect(itemRow).not.toBeNull();
     expect(itemRow?.className).toContain("font-medium");
     expect(itemRow?.className).toContain("text-gold");
-  });
-
-  it("builds a shareable URL with the final totals summary", () => {
-    const summary = "Ana: 12,00 €\nLuis: 8,00 €";
-    const url = buildSummaryShareUrl(summary);
-    const params = new URL(url).searchParams;
-
-    expect(params.get("summary")).toBe(summary);
   });
 });
