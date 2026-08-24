@@ -1,0 +1,21 @@
+public/icon.svg
+  s_7c8257952893a7::t_f0bb98475cef06 4-5,7-8
+public/logo.svg
+  s_7c8257952893a7::t_7551e6c545866e 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f88e280cd6be219e5ad32ac5ccbd855149b38f4e",
+  "prompts": {},
+  "sessions": {
+    "s_7c8257952893a7": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "45b1a81d-8512-474e-9419-6f3daa6926ea",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
