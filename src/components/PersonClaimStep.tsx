@@ -20,7 +20,7 @@ import {
   entriesFor,
   isItemFullyClaimedByOthers,
   ownChoice,
-  unitsTakenByOthers,
+  unitsTakenExcludingOwner,
   type ClaimEntry,
   type ClaimChoice,
   type LocalClaims,
@@ -83,6 +83,11 @@ export function PersonClaimStep({
           <ItemCard
             key={item.id}
             item={item}
+            availableUnits={availableUnitsForOwner(
+              item,
+              claims,
+              participantKey,
+            )}
             entries={entriesFor(claims, participantKey, item.id)}
             onClick={() => setOpenItemId(item.id)}
             messages={messages}
@@ -120,7 +125,11 @@ export function PersonClaimStep({
           item={openItem}
           choice={ownChoice(claims, participantKey, openItem.id)}
           others={others}
-          remainingUnits={unitsTakenByOthers(openItem, claims, participantKey)}
+          availableUnits={availableUnitsForOwner(
+            openItem,
+            claims,
+            participantKey,
+          )}
           selfKey={participantKey}
           onClose={() => setOpenItemId(null)}
           onApply={(participantKeys, choice) => {
@@ -146,12 +155,19 @@ export function PersonClaimStep({
 
 interface ItemCardProps {
   readonly item: EditableItem;
+  readonly availableUnits: number;
   readonly entries: readonly ClaimEntry[];
   readonly onClick: () => void;
   readonly messages: Messages["claim"];
 }
 
-function ItemCard({ item, entries, onClick, messages }: ItemCardProps) {
+function ItemCard({
+  item,
+  availableUnits,
+  entries,
+  onClick,
+  messages,
+}: ItemCardProps) {
   const hasChoice = entries.length > 0;
   const label = hasChoice
     ? `${entries.map((entry) => formatEntryUnits(item, entry)).join(" + ")} ${messages.unitsAbbr}`
@@ -173,7 +189,7 @@ function ItemCard({ item, entries, onClick, messages }: ItemCardProps) {
         </span>
       </span>
       <span className="tabular-nums text-xs text-zinc-500">
-        {formatUnits(item.quantity)} × {formatCents(item.unitPriceCents)}
+        {formatUnits(availableUnits)} × {formatCents(item.unitPriceCents)}
       </span>
       <span
         className={`mt-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -205,8 +221,7 @@ interface ItemClaimModalProps {
   readonly item: EditableItem;
   readonly choice: ClaimChoice | null;
   readonly others: readonly Participant[];
-  /** Unidades ya tomadas por el resto de participantes (no disponibles para esta persona). */
-  readonly remainingUnits: number;
+  readonly availableUnits: number;
   readonly selfKey: string;
   readonly onClose: () => void;
   readonly onApply: (
@@ -220,7 +235,7 @@ function ItemClaimModal({
   item,
   choice,
   others,
-  remainingUnits,
+  availableUnits,
   selfKey,
   onClose,
   onApply,
@@ -232,18 +247,8 @@ function ItemClaimModal({
   const [stage, setStage] = useState<ModalStage>("units");
   const [sharedWith, setSharedWith] = useState<string[]>(existingGroup);
 
-  const takenByOthers = remainingUnits;
-  // Unidades que ya tenía el resto del grupo (si esta elección era compartida):
-  // hay que "liberarlas" también, porque al reeditar se puede rehacer el grupo.
-  const currentPersonUnits = choice ? choiceUnits(item, choice) : 0;
   const currentGroupUnits = choice ? choiceTotalUnits(item, choice) : 0;
-  const otherGroupMembersUnits = currentGroupUnits - currentPersonUnits;
-  // Máximo que esta persona puede llegar a marcar: lo que aún no ha cogido
-  // nadie más (fuera de su propio grupo), más lo que su grupo ya tenía marcado.
-  const available = Math.max(
-    item.quantity - takenByOthers + otherGroupMembersUnits,
-    0,
-  );
+  const available = availableUnits;
   const minimumUnits = available > 0 ? 1 : 0;
 
   const [text, setText] = useState(() => {
@@ -464,6 +469,14 @@ function parseUnitsInput(text: string): number | null {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function availableUnitsForOwner(
+  item: EditableItem,
+  claims: LocalClaims,
+  ownerKey: string,
+): number {
+  return Math.max(item.quantity - unitsTakenExcludingOwner(item, claims, ownerKey), 0);
 }
 
 /** Aproxima un decimal a la fracción n/d más sencilla con d <= maxDenominator. */

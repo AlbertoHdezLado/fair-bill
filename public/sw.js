@@ -2,9 +2,10 @@
 // (Lighthouse's PWA checks) plus a stale-while-revalidate cache for static assets.
 // The app has no backend and works fully offline; API routes (OCR) are still
 // excluded below since OCR results depend on the request body, not caching.
-const CACHE_NAME = "pers-shell-v2";
+const CACHE_NAME = "pers-shell-v3";
 const APP_SHELL = [
-  "/",
+  "/es",
+  "/en",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
@@ -40,6 +41,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === "/") return;
   // Never intercept API routes or Next's internal data/RSC requests.
   if (url.pathname.startsWith("/api/")) return;
   // Scripts/workers/wasm (e.g. tesseract.js's OCR worker + core) must be left
@@ -53,7 +55,7 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cached) => {
       const network = fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && !response.redirected) {
             try {
               const copy = response.clone();
               caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));

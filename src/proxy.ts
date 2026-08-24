@@ -6,17 +6,22 @@ const locales = ["es", "en"] as const;
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (locales.some((locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`))) {
+  if (
+    locales.some(
+      (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
+    )
+  ) {
     return NextResponse.next();
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = `/${preferredLocaleFromAcceptLanguage(
+  const locale = preferredLocaleFromAcceptLanguage(
     request.headers.get("accept-language"),
-  )}${pathname}`;
+  );
+  url.pathname = pathname === "/" ? `/${locale}` : `/${locale}${pathname}`;
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|.*[.].*).*)"],
+  matcher: ["/", "/((?!api|_next/static|_next/image|.*[.].*).*)"],
 };
