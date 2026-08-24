@@ -1,5 +1,7 @@
 "use client";
 
+import { defaultMessages, type Messages } from "@/i18n";
+
 // Pantalla "pasa el móvil": lista de participantes. En verde los que ya han
 // marcado lo suyo (se puede volver a entrar para editarlo). Solo se puede
 // terminar cuando todos están en verde.
@@ -17,6 +19,7 @@ interface ParticipantRosterProps {
   readonly onEditNames: () => void;
   readonly showBill: boolean;
   readonly onToggleBill: () => void;
+  readonly messages?: Messages["roster"];
 }
 
 export function ParticipantRoster({
@@ -27,6 +30,7 @@ export function ParticipantRoster({
   onEditNames,
   showBill,
   onToggleBill,
+  messages = defaultMessages.roster,
 }: ParticipantRosterProps) {
   const doneCount = participants.filter((p) =>
     confirmedKeys.includes(p.key),
@@ -39,7 +43,7 @@ export function ParticipantRoster({
         <>
           <div className="flex flex-col gap-1">
             <p className="text-center text-xl font-bold text-accent">
-              Selecciona participante
+              {messages.title}
             </p>
           </div>
 
@@ -72,7 +76,7 @@ export function ParticipantRoster({
             disabled={!allDone}
             className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
           >
-            Continuar
+            {messages.continue}
           </button>
         </>
       )}
@@ -83,7 +87,7 @@ export function ParticipantRoster({
           onClick={onEditNames}
           className="self-start text-xs text-accent underline"
         >
-          Editar los nombres
+          {messages.editNames}
         </button>
 
         <button
@@ -91,7 +95,7 @@ export function ParticipantRoster({
           onClick={onToggleBill}
           className="self-start text-xs text-accent underline"
         >
-          {showBill ? "Ocultar la cuenta" : "Ver/editar la cuenta"}
+          {showBill ? messages.hideBill : messages.editBill}
         </button>
       </div>
     </div>

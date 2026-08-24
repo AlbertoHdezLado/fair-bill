@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import type { Messages } from "@/i18n";
 import { getOcrProvider, preprocessReceiptImage } from "@/lib/ocr";
 import { warpToRectangle, type Quad } from "@/lib/ocr/perspective";
 import { parseReceipt } from "@/lib/receipt/parser";
@@ -37,7 +38,11 @@ type ScanStatus =
 
 type LocalStage = "bill" | "names" | "roster" | "claim" | "results";
 
-export function CaptureFlow() {
+interface CaptureFlowProps {
+  readonly messages: Messages;
+}
+
+export function CaptureFlow({ messages }: CaptureFlowProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const participantInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -85,9 +90,11 @@ export function CaptureFlow() {
     hydrated.current = true;
 
     if (summaryFromUrl) {
+      /* eslint-disable react-hooks/set-state-in-effect -- rehidratacion puntual al montar */
       setLocalResult(summaryFromUrl);
       setLocalStage("results");
       setShowEditor(true);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
 
@@ -222,7 +229,7 @@ export function CaptureFlow() {
     } catch (err) {
       setStatus("error");
       setScanError(
-        err instanceof Error ? err.message : "Error al leer el ticket",
+        err instanceof Error ? err.message : messages.capture.readReceiptError,
       );
     }
   }
@@ -265,7 +272,7 @@ export function CaptureFlow() {
 
   async function copyResultToClipboard() {
     if (!localResult) return;
-    const text = buildSummaryText(localResult);
+    const text = buildSummaryText(localResult, messages);
 
     try {
       await navigator.clipboard.writeText(text);
@@ -276,13 +283,13 @@ export function CaptureFlow() {
 
   async function shareResultSummary() {
     if (!localResult) return;
-    const text = buildSummaryText(localResult);
+    const text = buildSummaryText(localResult, messages);
     const shareUrl = buildSummaryShareUrl(text);
 
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "Cuenta de fairBill",
+          title: messages.capture.shareTitle,
           text,
           url: shareUrl,
         });
@@ -446,7 +453,7 @@ export function CaptureFlow() {
           onClick={() => {
             if (hasProgress) setShowResetConfirm(true);
           }}
-          aria-label="Volver al inicio"
+          aria-label={messages.capture.resetToStartLabel}
           className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <img src="/logo.svg" alt="fairBill" className="h-16 w-auto" />
@@ -456,7 +463,7 @@ export function CaptureFlow() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <button
               type="button"
-              aria-label="Cerrar"
+              aria-label={messages.capture.closeLabel}
               onClick={() => setShowResetConfirm(false)}
               className="absolute inset-0 bg-black/70"
             />
@@ -469,11 +476,11 @@ export function CaptureFlow() {
                   className="shrink-0"
                 />
                 <p className="text-center text-lg font-bold">
-                  ¿Volver al inicio?
+                  {messages.capture.resetTitle}
                 </p>
               </div>
               <p className="text-center text-sm text-warning-foreground">
-                Se perderán el ticket y el reparto que tengas en curso.
+                {messages.capture.resetDescription}
               </p>
               <div className="flex flex-col gap-2">
                 <button
@@ -481,14 +488,14 @@ export function CaptureFlow() {
                   onClick={() => setShowResetConfirm(false)}
                   className="rounded-full border border-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:bg-warning-solid/10"
                 >
-                  Seguir aquí
+                  {messages.capture.stayHere}
                 </button>
                 <button
                   type="button"
                   onClick={resetToStart}
-                  className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:brightness-95"
+                  className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-solid-foreground hover:brightness-95"
                 >
-                  Empezar de nuevo
+                  {messages.capture.startAgain}
                 </button>
               </div>
             </div>
@@ -500,7 +507,7 @@ export function CaptureFlow() {
           !showProcessingPreview && (
           <>
             <p className="text-xl font-bold text-accent">
-              Selecciona una opción
+              {messages.capture.selectOption}
             </p>
             <div className="flex items-start gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-left dark:border-accent/40">
               <svg
@@ -516,8 +523,7 @@ export function CaptureFlow() {
                 <path strokeLinecap="round" d="M12 8h.01" />
               </svg>
               <p className="text-sm text-accent">
-                Sube la foto del ticket lo más recta y centrada posible, o añade
-                las líneas a mano.
+                {messages.capture.uploadHint}
               </p>
             </div>
           </>
@@ -541,14 +547,14 @@ export function CaptureFlow() {
       {showProcessingPreview && processedPreviewUrl && (
         <div className="flex flex-col gap-4">
           <p className="text-center text-xl font-bold text-accent">
-            Revisa cómo se procesará la imagen
+            {messages.capture.reviewProcessedImage}
           </p>
 
           <div className="rounded-lg border border-zinc-300/70 p-2 dark:border-zinc-700">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={warpedPreviewUrl ?? processedPreviewUrl}
-              alt="Recorte enderezado del ticket"
+              alt={messages.capture.straightenedReceiptAlt}
               className="w-full rounded"
             />
           </div>
@@ -563,7 +569,7 @@ export function CaptureFlow() {
               }}
               className="flex-1 rounded-full border border-zinc-400 px-5 py-2 text-sm font-medium"
             >
-              Ajustar recorte
+              {messages.capture.adjustCrop}
             </button>
             <button
               type="button"
@@ -574,7 +580,7 @@ export function CaptureFlow() {
               disabled={!processedForOcr}
               className="flex-1 rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
             >
-              Continuar
+              {messages.capture.continue}
             </button>
           </div>
         </div>
@@ -616,7 +622,7 @@ export function CaptureFlow() {
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               disabled={isScanning}
-              aria-label="Hacer foto del ticket"
+              aria-label={messages.capture.takePhotoLabel}
               className="flex flex-col items-center gap-3 rounded-2xl border border-primary/25 bg-primary/20 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md disabled:pointer-events-none disabled:opacity-50 dark:border-primary/40 dark:bg-primary/15"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
@@ -641,7 +647,7 @@ export function CaptureFlow() {
                 </svg>
               </span>
               <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                Hacer foto
+                {messages.capture.takePhoto}
               </span>
             </button>
 
@@ -649,7 +655,7 @@ export function CaptureFlow() {
               type="button"
               onClick={() => galleryInputRef.current?.click()}
               disabled={isScanning}
-              aria-label="Subir imagen del ticket"
+              aria-label={messages.capture.uploadImageLabel}
               className="flex flex-col items-center gap-3 rounded-2xl border border-accent/25 bg-accent/20 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md disabled:pointer-events-none disabled:opacity-50 dark:border-accent/40 dark:bg-accent/15"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
@@ -669,7 +675,7 @@ export function CaptureFlow() {
                 </svg>
               </span>
               <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                Subir imagen
+                {messages.capture.uploadImage}
               </span>
             </button>
           </div>
@@ -680,7 +686,7 @@ export function CaptureFlow() {
             disabled={isScanning}
             className="rounded-full border border-accent bg-accent-soft px-5 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
           >
-            Introducir manualmente
+            {messages.capture.manualEntry}
           </button>
 
           {scanError && (
@@ -698,13 +704,13 @@ export function CaptureFlow() {
           <div className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border-t-4 border-t-primary bg-background p-6 text-center shadow-xl">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent-soft border-t-primary" />
             <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-              Leyendo ticket…
+              {messages.capture.readingReceipt}
             </p>
             <p className="text-xs text-zinc-500">
               {status === "preprocessing" &&
-                "Enderezando y preparando la imagen…"}
-              {status === "recognizing" && "Reconociendo texto…"}
-              {status === "parsing" && "Interpretando las líneas…"}
+                messages.capture.preprocessing}
+              {status === "recognizing" && messages.capture.recognizing}
+              {status === "parsing" && messages.capture.parsing}
             </p>
             {status === "recognizing" && (
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
@@ -726,6 +732,8 @@ export function CaptureFlow() {
               extras={extras}
               onItemsChange={setItems}
               onExtrasChange={setExtras}
+              messages={messages.receiptEditor}
+              itemRowMessages={messages.itemRow}
             />
           )}
 
@@ -736,14 +744,14 @@ export function CaptureFlow() {
               disabled={items.filter((item) => item.name.trim()).length === 0}
               className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
             >
-              Continuar
+              {messages.capture.continue}
             </button>
           )}
 
           {localStage === "names" && (
             <div className="flex flex-col gap-3">
               <p className="text-center text-xl font-bold text-accent">
-                Introduce participantes
+                {messages.capture.enterParticipants}
               </p>
               {participants.map((participant, index) => {
                 // El último hueco vacío es solo un anticipo del siguiente
@@ -785,7 +793,10 @@ export function CaptureFlow() {
                           participantInputRefs.current[index + 1]?.focus();
                         }, 0);
                       }}
-                      placeholder={`Participante ${index + 1}`}
+                      placeholder={messages.capture.participantPlaceholder.replace(
+                        "{{number}}",
+                        String(index + 1),
+                      )}
                       enterKeyHint="next"
                       className={`min-w-0 flex-1 rounded border-2 bg-transparent px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 ${
                         duplicateNames.has(
@@ -799,7 +810,7 @@ export function CaptureFlow() {
                       <button
                         type="button"
                         onClick={() => removeParticipant(index)}
-                        aria-label="Quitar participante"
+                        aria-label={messages.capture.removeParticipantLabel}
                         className="rounded px-2 py-1 text-sm text-accent/70 hover:bg-error-bg hover:text-error-foreground"
                       >
                         ✕
@@ -814,11 +825,11 @@ export function CaptureFlow() {
                 disabled={!canContinueFromNames}
                 className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
               >
-                Continuar
+                {messages.capture.continue}
               </button>
               {hasDuplicateNames && (
                 <p className="text-center text-sm text-error-foreground">
-                  No se puede introducir el mismo nombre dos veces.
+                  {messages.capture.duplicateNames}
                 </p>
               )}
             </div>
@@ -836,6 +847,7 @@ export function CaptureFlow() {
               onEditNames={() => setLocalStage("names")}
               showBill={showBillInRoster}
               onToggleBill={() => setShowBillInRoster((prev) => !prev)}
+              messages={messages.roster}
             />
           )}
 
@@ -843,7 +855,7 @@ export function CaptureFlow() {
             <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
               <button
                 type="button"
-                aria-label="Cerrar"
+                aria-label={messages.capture.closeLabel}
                 onClick={() => setShowUnclaimedPrompt(false)}
                 className="absolute inset-0 bg-black/70"
               />
@@ -856,7 +868,7 @@ export function CaptureFlow() {
                     className="shrink-0"
                   />
                   <p className="text-center text-lg font-bold">
-                    Productos sin asignar
+                    {messages.capture.unclaimedTitle}
                   </p>
                 </div>
                 <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 text-sm text-warning-foreground">
@@ -890,14 +902,14 @@ export function CaptureFlow() {
                         className="rounded border border-warning-solid/40 px-2 py-1.5"
                       >
                         <p className="font-medium">
-                          {item.name || "Producto sin nombre"} x
+                          {item.name || messages.capture.unnamedProduct} x
                           {roundUnits(missing)}
                         </p>
                         {assignments.length > 0 && (
                           <ul className="mt-1 list-disc pl-4 text-xs opacity-80">
                             {assignments.map((assignment) => (
                               <li key={assignment.ownerKey}>
-                                {roundUnits(assignment.units)} ud. —{" "}
+                                {roundUnits(assignment.units)} {messages.capture.unitsAbbr} —{" "}
                                 {assignment.names}
                               </li>
                             ))}
@@ -913,14 +925,14 @@ export function CaptureFlow() {
                     onClick={computeLocalResult}
                     className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-solid-foreground hover:brightness-95"
                   >
-                    Dividir entre todos
+                    {messages.capture.splitBetweenEveryone}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowUnclaimedPrompt(false)}
                     className="rounded-full border border-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:bg-warning-solid/10"
                   >
-                    Revisar
+                    {messages.capture.review}
                   </button>
                 </div>
               </div>
@@ -945,6 +957,7 @@ export function CaptureFlow() {
                 setActiveKey(null);
                 setLocalStage("roster");
               }}
+              messages={messages.claim}
             />
           )}
 
@@ -957,6 +970,7 @@ export function CaptureFlow() {
                   currency="EUR"
                   hasPaid={false}
                   isOwn={false}
+                  messages={messages.totals}
                 />
               ))}
               <button
@@ -966,11 +980,11 @@ export function CaptureFlow() {
                 }}
                 className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground"
               >
-                Compartir
+                {messages.capture.share}
               </button>
               {copyStatus === "error" && (
                 <p className="text-xs text-error-foreground">
-                  No se pudo copiar el contenido.
+                  {messages.capture.copyError}
                 </p>
               )}
               <button
@@ -978,7 +992,7 @@ export function CaptureFlow() {
                 onClick={() => setLocalStage("roster")}
                 className="rounded-full border border-accent px-5 py-2 text-sm font-medium text-accent hover:bg-accent/10"
               >
-                Volver a repartir
+                {messages.capture.backToSplit}
               </button>
             </div>
           )}
@@ -988,13 +1002,13 @@ export function CaptureFlow() {
   );
 }
 
-function buildSummaryText(localResult: SplitResult): string {
+function buildSummaryText(localResult: SplitResult, messages: Messages): string {
   return localResult.people
     .map((person) => {
       const items = person.items.map(
         (item) => {
           const sharedMark = item.hasUnclaimedShare
-            ? " [dividido entre todos]"
+            ? ` [${messages.capture.splitAcrossEveryoneMark}]`
             : "";
           return `- ${item.itemName} x${item.effectiveUnits}: ${formatCents(item.shareCents, "EUR")}${sharedMark}`;
         },
@@ -1006,6 +1020,8 @@ function buildSummaryText(localResult: SplitResult): string {
     })
     .join("\n");
 }
+
+const sharedSummaryMarks = ["dividido entre todos", "split between everyone"];
 
 function parseSharedSummaryFromLocation(): SplitResult | null {
   if (typeof window === "undefined") return null;
@@ -1023,35 +1039,16 @@ function parseSharedSummaryFromLocation(): SplitResult | null {
   const people: SplitResult["people"] = [];
   for (const line of lines) {
     if (line.startsWith("- ")) {
-      const hasUnclaimedShare = line.endsWith(" [dividido entre todos]");
-      const itemLine = hasUnclaimedShare
-        ? line.slice(0, -" [dividido entre todos]".length)
-        : line;
-      const itemMatch = itemLine.match(/^-\s+(.+?)\s+x([\d.,]+):\s+(.+)$/);
       const currentPerson = people.at(-1);
-      if (!itemMatch || !currentPerson) continue;
-
-      const [, itemName, rawUnits, rawItemAmount] = itemMatch;
-      const shareCents = parseSharedAmountToCents(rawItemAmount);
-      const effectiveUnits = Number.parseFloat(rawUnits.replace(",", "."));
-      if (Number.isNaN(shareCents) || Number.isNaN(effectiveUnits)) continue;
-
-      currentPerson.items.push({
-        itemId: `${currentPerson.participantId}-item-${currentPerson.items.length}`,
-        itemName: itemName.trim(),
-        claimedUnits: effectiveUnits,
-        effectiveUnits,
-        hasUnclaimedShare,
-        shareCents,
-        itemTotalCents: shareCents,
-      });
+      if (currentPerson) addSharedItemLine(currentPerson, line);
       continue;
     }
 
-    const match = line.match(/^(.+?)\s*:\s*(.+)$/);
-    if (!match) continue;
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex <= 0) continue;
 
-    const [, rawName, rawAmount] = match;
+    const rawName = line.slice(0, separatorIndex);
+    const rawAmount = line.slice(separatorIndex + 1);
     const totalCents = parseSharedAmountToCents(rawAmount);
     if (Number.isNaN(totalCents)) continue;
 
@@ -1077,6 +1074,56 @@ function parseSharedSummaryFromLocation(): SplitResult | null {
     grandTotalCents: subtotalTotalCents,
     subtotalTotalCents,
   };
+}
+
+function addSharedItemLine(person: SplitResult["people"][number], line: string) {
+  const { hasUnclaimedShare, itemLine } = stripSharedSummaryMark(line);
+  const itemDetails = parseSharedItemDetails(itemLine);
+  if (!itemDetails) return;
+
+  person.items.push({
+    itemId: `${person.participantId}-item-${person.items.length}`,
+    itemName: itemDetails.itemName,
+    claimedUnits: itemDetails.effectiveUnits,
+    effectiveUnits: itemDetails.effectiveUnits,
+    hasUnclaimedShare,
+    shareCents: itemDetails.shareCents,
+    itemTotalCents: itemDetails.shareCents,
+  });
+}
+
+function stripSharedSummaryMark(line: string): {
+  readonly hasUnclaimedShare: boolean;
+  readonly itemLine: string;
+} {
+  for (const mark of sharedSummaryMarks) {
+    const suffix = ` [${mark}]`;
+    if (line.endsWith(suffix)) {
+      return { hasUnclaimedShare: true, itemLine: line.slice(0, -suffix.length) };
+    }
+  }
+
+  return { hasUnclaimedShare: false, itemLine: line };
+}
+
+function parseSharedItemDetails(
+  itemLine: string,
+): { readonly itemName: string; readonly effectiveUnits: number; readonly shareCents: number } | null {
+  const quantityMarker = itemLine.lastIndexOf(" x");
+  const amountMarker = itemLine.lastIndexOf(":");
+  if (quantityMarker < 2 || amountMarker <= quantityMarker + 2) return null;
+
+  const itemName = itemLine.slice(2, quantityMarker).trim();
+  const rawUnits = itemLine.slice(quantityMarker + 2, amountMarker).trim();
+  const rawItemAmount = itemLine.slice(amountMarker + 1).trim();
+  const effectiveUnits = Number.parseFloat(rawUnits.replace(",", "."));
+  const shareCents = parseSharedAmountToCents(rawItemAmount);
+
+  if (!itemName || Number.isNaN(effectiveUnits) || Number.isNaN(shareCents)) {
+    return null;
+  }
+
+  return { itemName, effectiveUnits, shareCents };
 }
 
 function parseSharedAmountToCents(rawAmount: string): number {

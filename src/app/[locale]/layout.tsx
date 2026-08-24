@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { notFound } from "next/navigation";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
-import "./globals.css";
+import { hasLocale, messages } from "@/i18n";
+import "../globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,15 +15,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "fairBill",
-  description: "Escanea el ticket y que cada uno marque lo que ha consumido.",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
+export async function generateMetadata({
+  params,
+}: LayoutProps<"/[locale]">): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(locale)) return {};
+
+  return {
     title: "fairBill",
-  },
-};
+    description: messages[locale].metadata.description,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "fairBill",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -33,10 +42,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function LocaleLayout({
+  children,
+  params,
+}: LayoutProps<"/[locale]">) {
+  const { locale } = await params;
+  if (!hasLocale(locale)) notFound();
+
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

@@ -7,11 +7,13 @@ import {
   type EditableItem,
   type ItemState,
 } from "@/lib/receipt/editable";
+import { defaultMessages, type Messages } from "@/i18n";
 
 interface ItemRowProps {
   readonly item: EditableItem;
   readonly onChange: (item: EditableItem) => void;
   readonly onRemove: () => void;
+  readonly messages?: Messages["itemRow"];
 }
 
 // Estilos de tarjeta por estado del item:
@@ -40,7 +42,12 @@ const STATE_REMOVE_BUTTON_CLASS: Record<ItemState, string> = {
   editado: "text-info-foreground/60",
 };
 
-export function ItemRow({ item, onChange, onRemove }: ItemRowProps) {
+export function ItemRow({
+  item,
+  onChange,
+  onRemove,
+  messages = defaultMessages.itemRow,
+}: ItemRowProps) {
   // When user edits, transition the item to "editado" state
   function edit(patch: Partial<EditableItem>) {
     onChange({
@@ -107,7 +114,7 @@ export function ItemRow({ item, onChange, onRemove }: ItemRowProps) {
         type="text"
         value={item.name}
         onChange={(e) => edit({ name: e.target.value.toUpperCase() })}
-        placeholder="DESCRIPCIÓN"
+        placeholder={messages.descriptionPlaceholder}
         className={`min-w-0 flex-1 rounded border px-2 py-2 text-base uppercase bg-transparent sm:py-1 sm:text-sm ${nameInputBorder}`}
       />
 
@@ -163,7 +170,7 @@ export function ItemRow({ item, onChange, onRemove }: ItemRowProps) {
         <button
           type="button"
           onClick={onRemove}
-          aria-label="Eliminar línea"
+          aria-label={messages.removeLineLabel}
           className={`shrink-0 rounded px-2 py-1 text-lg font-semibold hover:bg-error-bg hover:text-error-foreground ${removeButtonClasses}`}
         >
           ✕

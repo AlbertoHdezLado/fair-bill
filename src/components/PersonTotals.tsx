@@ -2,6 +2,7 @@
 
 import type { PersonSplit } from "@/lib/split";
 import { formatCents } from "@/lib/money";
+import { defaultMessages, type Messages } from "@/i18n";
 
 interface PersonTotalsProps {
   readonly person: PersonSplit;
@@ -10,6 +11,7 @@ interface PersonTotalsProps {
   readonly isOwn: boolean;
   readonly disabled?: boolean;
   readonly onTogglePaid?: () => void;
+  readonly messages?: Messages["totals"];
 }
 
 export function PersonTotals({
@@ -19,13 +21,14 @@ export function PersonTotals({
   isOwn,
   disabled,
   onTogglePaid,
+  messages = defaultMessages.totals,
 }: PersonTotalsProps) {
   return (
     <details className="group rounded-xl border border-primary/20 bg-primary/15 p-3 dark:border-primary/25 dark:bg-primary/10">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <span className="text-base font-bold">
           {person.name}
-          {isOwn && <span className="text-zinc-400"> (tú)</span>}
+          {isOwn && <span className="text-zinc-400"> ({messages.you})</span>}
         </span>
         <span className="flex items-center gap-3">
           <span className="text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
@@ -33,7 +36,7 @@ export function PersonTotals({
           </span>
           {hasPaid && (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">
-              Pagado
+              {messages.paid}
             </span>
           )}
         </span>
@@ -60,10 +63,10 @@ export function PersonTotals({
             </span>
           </div>
         ))}
-        {person.items.length === 0 && <p>No ha reclamado ninguna línea.</p>}
+        {person.items.length === 0 && <p>{messages.noItems}</p>}
         {person.taxCents > 0 && (
           <div className="flex justify-between gap-2">
-            <span>IVA</span>
+            <span>{messages.tax}</span>
             <span className="tabular-nums">
               {formatCents(person.taxCents, currency)}
             </span>
@@ -71,7 +74,7 @@ export function PersonTotals({
         )}
         {person.tipCents > 0 && (
           <div className="flex justify-between gap-2">
-            <span>Propina / servicio</span>
+            <span>{messages.tipService}</span>
             <span className="tabular-nums">
               {formatCents(person.tipCents, currency)}
             </span>
@@ -79,7 +82,7 @@ export function PersonTotals({
         )}
         {person.discountCents > 0 && (
           <div className="flex justify-between gap-2">
-            <span>Descuento</span>
+            <span>{messages.discount}</span>
             <span className="tabular-nums">
               -{formatCents(person.discountCents, currency)}
             </span>
@@ -94,7 +97,7 @@ export function PersonTotals({
           disabled={disabled}
           className="mt-3 w-full rounded-full border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
         >
-          {hasPaid ? "Marcar como no pagado" : "He pagado"}
+          {hasPaid ? messages.markUnpaid : messages.markPaid}
         </button>
       )}
     </details>

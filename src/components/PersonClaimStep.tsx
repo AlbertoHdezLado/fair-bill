@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Users } from "lucide-react";
 import { formatCents } from "@/lib/money";
+import { defaultMessages, type Messages } from "@/i18n";
 import type { EditableItem } from "@/lib/receipt/editable";
 import {
   claimedUnits,
@@ -43,6 +44,7 @@ interface PersonClaimStepProps {
   ) => void;
   readonly onConfirm: () => void;
   readonly onBack: () => void;
+  readonly messages?: Messages["claim"];
 }
 
 export function PersonClaimStep({
@@ -54,6 +56,7 @@ export function PersonClaimStep({
   onChange,
   onConfirm,
   onBack,
+  messages = defaultMessages.claim,
 }: PersonClaimStepProps) {
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
@@ -82,24 +85,25 @@ export function PersonClaimStep({
             item={item}
             entries={entriesFor(claims, participantKey, item.id)}
             onClick={() => setOpenItemId(item.id)}
+            messages={messages}
           />
         ))}
       </div>
 
       {visibleItems.length === 0 && (
         <p className="text-xs text-zinc-500">
-          No quedan líneas por marcar: todas están ya cubiertas.
+          {messages.noItemsLeft}
         </p>
       )}
 
       <p className="text-sm">
-        Tu selección:{" "}
+        {messages.yourSelection}{" "}
         <span className="font-semibold tabular-nums">
           {formatCents(selectedCents)}
         </span>
         <span className="text-xs text-zinc-500">
           {" "}
-          (sin impuestos ni propina)
+          {messages.withoutExtras}
         </span>
       </p>
 
@@ -108,7 +112,7 @@ export function PersonClaimStep({
         onClick={onConfirm}
         className="mt-2 rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
       >
-        Confirmar
+        {messages.confirm}
       </button>
 
       {openItem && (
@@ -133,6 +137,7 @@ export function PersonClaimStep({
             onChange(openItem.id, participantKeys, choice);
             setOpenItemId(null);
           }}
+          messages={messages}
         />
       )}
     </div>
@@ -143,13 +148,14 @@ interface ItemCardProps {
   readonly item: EditableItem;
   readonly entries: readonly ClaimEntry[];
   readonly onClick: () => void;
+  readonly messages: Messages["claim"];
 }
 
-function ItemCard({ item, entries, onClick }: ItemCardProps) {
+function ItemCard({ item, entries, onClick, messages }: ItemCardProps) {
   const hasChoice = entries.length > 0;
   const label = hasChoice
-    ? `${entries.map((entry) => formatEntryUnits(item, entry)).join(" + ")} uds.`
-    : "Seleccionar";
+    ? `${entries.map((entry) => formatEntryUnits(item, entry)).join(" + ")} ${messages.unitsAbbr}`
+    : messages.select;
 
   return (
     <button
@@ -163,7 +169,7 @@ function ItemCard({ item, entries, onClick }: ItemCardProps) {
     >
       <span className="flex min-h-10 w-full items-center justify-center">
         <span className="line-clamp-2 text-sm font-medium">
-          {item.name || "(sin nombre)"}
+          {item.name || messages.unnamedItem}
         </span>
       </span>
       <span className="tabular-nums text-xs text-zinc-500">
@@ -207,6 +213,7 @@ interface ItemClaimModalProps {
     participantKeys: readonly string[],
     choice: ClaimChoice | null,
   ) => void;
+  readonly messages: Messages["claim"];
 }
 
 function ItemClaimModal({
@@ -217,6 +224,7 @@ function ItemClaimModal({
   selfKey,
   onClose,
   onApply,
+  messages,
 }: ItemClaimModalProps) {
   const existingGroup = choiceGroup(selfKey, choice).filter(
     (key) => key !== selfKey,
@@ -268,7 +276,7 @@ function ItemClaimModal({
       <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-accent/30 bg-background p-4 pt-16 shadow-2xl">
         <button
           type="button"
-          aria-label="Cancelar"
+          aria-label={messages.cancelLabel}
           onClick={onClose}
           className="absolute right-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full text-3xl leading-none text-accent hover:bg-accent/10 hover:text-accent-hover"
         >
@@ -276,7 +284,7 @@ function ItemClaimModal({
         </button>
         <div className="flex flex-col items-center gap-0.5 text-center">
           <p className="text-lg font-bold text-accent">
-            {item.name || "(sin nombre)"}
+            {item.name || messages.unnamedItem}
           </p>
         </div>
 
@@ -338,7 +346,7 @@ function ItemClaimModal({
               onClick={() => setUnits(available)}
               className="self-center rounded-full border border-success-solid px-3 py-1 text-xs text-success-foreground disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Seleccionar todo
+              {messages.selectAll}
             </button>
 
             {others.length > 0 && (
@@ -349,7 +357,7 @@ function ItemClaimModal({
                 className="mt-3 inline-flex self-center items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
                 <Users aria-hidden="true" size={18} strokeWidth={2} />
-                Compartir
+                {messages.share}
               </button>
             )}
 
@@ -361,7 +369,7 @@ function ItemClaimModal({
               }
               className="mt-2 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground disabled:opacity-50"
             >
-              Confirmar
+              {messages.confirm}
             </button>
 
             {choice && (
@@ -370,7 +378,7 @@ function ItemClaimModal({
                 onClick={() => onApply([selfKey], null)}
                 className="rounded-full border border-red-500/60 px-4 py-2 text-sm text-red-700 hover:bg-red-500/10 dark:border-red-400/60 dark:text-red-300"
               >
-                Quitar mi selección
+                {messages.removeSelection}
               </button>
             )}
           </div>
@@ -379,7 +387,7 @@ function ItemClaimModal({
         {stage === "shared-people" && (
           <div className="flex flex-col gap-2">
             <p className="text-center text-xs text-zinc-500">
-              ¿Con quién has compartido?
+              {messages.sharedWith}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {others.map((person) => {
@@ -395,7 +403,7 @@ function ItemClaimModal({
                         : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
                     }`}
                   >
-                    {person.name || "(sin nombre)"}
+                    {person.name || messages.unnamedItem}
                   </button>
                 );
               })}
@@ -406,7 +414,7 @@ function ItemClaimModal({
               onClick={() => setSharedWith(others.map((p) => p.key))}
               className="self-center rounded-full border border-success-solid px-3 py-1 text-xs text-success-foreground disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Seleccionar todos
+              {messages.selectEveryone}
             </button>
             <button
               type="button"
@@ -420,14 +428,14 @@ function ItemClaimModal({
               }
               className="mt-2 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground disabled:opacity-50"
             >
-              Confirmar
+              {messages.confirm}
             </button>
             <button
               type="button"
               onClick={() => setStage("units")}
               className="rounded-full px-4 py-2 text-sm text-zinc-500"
             >
-              Atrás
+              {messages.back}
             </button>
           </div>
         )}
@@ -441,7 +449,7 @@ function parseUnitsInput(text: string): number | null {
   if (trimmed === "") return null;
 
   // Fracción mixta o simple: "1 1/2", "3/4"...
-  const fractionMatch = trimmed.match(/^(\d+\s+)?(\d+)\/(\d+)$/);
+  const fractionMatch = /^(\d+\s+)?(\d+)\/(\d+)$/.exec(trimmed);
   if (fractionMatch) {
     const whole = fractionMatch[1] ? Number.parseInt(fractionMatch[1], 10) : 0;
     const numerator = Number.parseInt(fractionMatch[2], 10);
