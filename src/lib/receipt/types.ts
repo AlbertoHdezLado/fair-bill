@@ -4,9 +4,6 @@
 export type ReceiptLineKind =
   "item" | "subtotal" | "total" | "tax" | "tip" | "service" | "discount";
 
-/** How confident the parser is that an item line was read/interpreted correctly. */
-export type ItemParseConfidence = "high" | "medium" | "low" | "very-low";
-
 export interface ParsedItemLine {
   id: string;
   kind: "item";
@@ -15,7 +12,6 @@ export interface ParsedItemLine {
   quantity: number;
   unitPriceCents: number;
   totalCents: number;
-  confidence: ItemParseConfidence;
 }
 
 export interface ParsedSummaryLine {

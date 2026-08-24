@@ -63,25 +63,6 @@ describe("parseReceipt", () => {
     });
   });
 
-  it("assigns confidence from each line's absolute score", () => {
-    const words = receiptWords([
-      "1 Cerveza 2,50",
-      "1 Patatas 4,00",
-      "Vino 8,00",
-      "999 3,00 9,00",
-    ]);
-    words.at(-1)!.confidence = 60;
-
-    const result = parseReceipt(words);
-
-    expect(result.items.map((item) => item.confidence)).toEqual([
-      "high",
-      "high",
-      "medium",
-      "very-low",
-    ]);
-  });
-
   it("flags a mismatch against the detected total", () => {
     const words = receiptWords([
       "1 Cafe 1,50",

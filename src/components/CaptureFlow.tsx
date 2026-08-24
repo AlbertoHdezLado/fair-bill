@@ -2,17 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import type { Messages } from "@/i18n";
 import { getOcrProvider, preprocessReceiptImage } from "@/lib/ocr";
-import { warpToRectangle, type Quad } from "@/lib/ocr/perspective";
 import { parseReceipt } from "@/lib/receipt/parser";
 import { computeSplit, type SplitResult } from "@/lib/split";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
-import { CropStep, DEFAULT_CORNERS } from "@/components/CropStep";
 import { ParticipantRoster } from "@/components/ParticipantRoster";
 import { PersonClaimStep } from "@/components/PersonClaimStep";
 import { PersonTotals } from "@/components/PersonTotals";
 import { formatCents } from "@/lib/money";
+import { defaultMessages, type Messages } from "@/i18n";
 import {
   buildSplitClaims,
   choiceGroup,
@@ -26,7 +24,6 @@ import {
 } from "@/lib/local-claims";
 import {
   EMPTY_EXTRAS,
-  getItemState,
   newItemId,
   type EditableExtras,
   type EditableItem,
@@ -39,24 +36,16 @@ type ScanStatus =
 type LocalStage = "bill" | "names" | "roster" | "claim" | "results";
 
 interface CaptureFlowProps {
-  readonly messages: Messages;
+  readonly messages?: Messages;
 }
 
-export function CaptureFlow({ messages }: CaptureFlowProps) {
+export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
+  const t = messages.capture;
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const participantInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const [rawFile, setRawFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [cropCorners, setCropCorners] = useState<Quad>(DEFAULT_CORNERS);
-  const [showCrop, setShowCrop] = useState(false);
-  const [showProcessingPreview, setShowProcessingPreview] = useState(false);
-  const [warpedPreviewUrl, setWarpedPreviewUrl] = useState<string | null>(null);
-  const [processedPreviewUrl, setProcessedPreviewUrl] = useState<string | null>(
-    null,
-  );
-  const [processedForOcr, setProcessedForOcr] = useState<Blob | null>(null);
   const [status, setStatus] = useState<ScanStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -89,17 +78,15 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
     const summaryFromUrl = parseSharedSummaryFromLocation();
     hydrated.current = true;
 
+    /* eslint-disable react-hooks/set-state-in-effect -- rehidratacion puntual al montar */
     if (summaryFromUrl) {
-      /* eslint-disable react-hooks/set-state-in-effect -- rehidratacion puntual al montar */
       setLocalResult(summaryFromUrl);
       setLocalStage("results");
       setShowEditor(true);
-      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
 
     if (!saved) return;
-    /* eslint-disable react-hooks/set-state-in-effect -- rehidratacion puntual al montar */
     setItems(saved.items);
     setExtras(saved.extras);
     setShowEditor(saved.showEditor);
@@ -159,18 +146,6 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
     };
   }, [previewUrl]);
 
-  useEffect(() => {
-    return () => {
-      if (warpedPreviewUrl) URL.revokeObjectURL(warpedPreviewUrl);
-    };
-  }, [warpedPreviewUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (processedPreviewUrl) URL.revokeObjectURL(processedPreviewUrl);
-    };
-  }, [processedPreviewUrl]);
-
   // Once diners start picking their items, the global bill is only reachable
   // through the "edit bill" toggle in the names roster, not shown by default.
   const showReceiptEditor =
@@ -178,24 +153,18 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
 
   function handleFileSelected(file: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    if (warpedPreviewUrl) URL.revokeObjectURL(warpedPreviewUrl);
-    if (processedPreviewUrl) URL.revokeObjectURL(processedPreviewUrl);
-    setRawFile(file);
     setPreviewUrl(URL.createObjectURL(file));
-    setWarpedPreviewUrl(null);
-    setProcessedPreviewUrl(null);
-    setProcessedForOcr(null);
-    setShowProcessingPreview(false);
     setScanError(null);
     setShowEditor(false);
-    setCropCorners(DEFAULT_CORNERS);
-    setShowCrop(true);
+    void scanReceipt(file);
   }
 
-  async function recognizeFromProcessedImage(processed: Blob) {
-    setShowProcessingPreview(false);
+  async function scanReceipt(file: File) {
     setScanError(null);
     try {
+      setStatus("preprocessing");
+      const processed = await preprocessReceiptImage(file);
+
       setStatus("recognizing");
       setProgress(0);
       const provider = getOcrProvider();
@@ -212,8 +181,7 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
           name: item.name,
           quantity: item.quantity,
           unitPriceCents: item.unitPriceCents,
-          state: getItemState(item.confidence),
-          confidence: item.confidence,
+          state: "leido",
         })),
       );
       setExtras({
@@ -228,51 +196,13 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
       setShowEditor(true);
     } catch (err) {
       setStatus("error");
-      setScanError(
-        err instanceof Error ? err.message : messages.capture.readReceiptError,
-      );
-    }
-  }
-
-  async function handleCropConfirmed(
-    fractionalQuad: Quad,
-    naturalWidth: number,
-    naturalHeight: number,
-  ) {
-    if (!rawFile) return;
-    setCropCorners(fractionalQuad);
-    setShowCrop(false);
-
-    // CropStep reports corners as fractions (0-1) of the displayed image;
-    // warpToRectangle needs actual pixel coordinates in the source image.
-    const quad = fractionalQuad.map((point) => ({
-      x: point.x * naturalWidth,
-      y: point.y * naturalHeight,
-    })) as Quad;
-
-    try {
-      setStatus("preprocessing");
-      const warped = await warpToRectangle(rawFile, quad);
-      const processed = await preprocessReceiptImage(warped);
-
-      if (warpedPreviewUrl) URL.revokeObjectURL(warpedPreviewUrl);
-      if (processedPreviewUrl) URL.revokeObjectURL(processedPreviewUrl);
-      setWarpedPreviewUrl(URL.createObjectURL(warped));
-      setProcessedPreviewUrl(URL.createObjectURL(processed));
-      setProcessedForOcr(processed);
-      setShowProcessingPreview(true);
-      setStatus("idle");
-    } catch (err) {
-      setStatus("error");
-      setScanError(
-        err instanceof Error ? err.message : "Error al leer el ticket",
-      );
+      setScanError(err instanceof Error ? err.message : t.readReceiptError);
     }
   }
 
   async function copyResultToClipboard() {
     if (!localResult) return;
-    const text = buildSummaryText(localResult, messages);
+    const text = buildSummaryText(localResult);
 
     try {
       await navigator.clipboard.writeText(text);
@@ -283,13 +213,13 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
 
   async function shareResultSummary() {
     if (!localResult) return;
-    const text = buildSummaryText(localResult, messages);
+    const text = buildSummaryText(localResult);
     const shareUrl = buildSummaryShareUrl(text);
 
     try {
       if (navigator.share) {
         await navigator.share({
-          title: messages.capture.shareTitle,
+          title: t.shareTitle,
           text,
           url: shareUrl,
         });
@@ -304,16 +234,7 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
 
   function resetToStart() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    if (warpedPreviewUrl) URL.revokeObjectURL(warpedPreviewUrl);
-    if (processedPreviewUrl) URL.revokeObjectURL(processedPreviewUrl);
-    setRawFile(null);
     setPreviewUrl(null);
-    setWarpedPreviewUrl(null);
-    setProcessedPreviewUrl(null);
-    setProcessedForOcr(null);
-    setCropCorners(DEFAULT_CORNERS);
-    setShowCrop(false);
-    setShowProcessingPreview(false);
     setStatus("idle");
     setProgress(0);
     setScanError(null);
@@ -337,12 +258,9 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
   }
 
   function startManualEntry() {
-    setShowProcessingPreview(false);
-    setProcessedForOcr(null);
     setItems([]);
     setExtras(EMPTY_EXTRAS);
     setShowEditor(true);
-    setShowCrop(false);
     setStatus("idle");
     setScanError(null);
   }
@@ -353,12 +271,6 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
     if (!key) return;
     setClaims((prev) => removeParticipantClaims(prev, key));
     setConfirmedKeys((prev) => prev.filter((k) => k !== key));
-  }
-
-  function removeEmptyParticipant(index: number) {
-    if (!participants[index]?.name.trim() && participants.length > 2) {
-      removeParticipant(index);
-    }
   }
 
   function handleClaimChange(
@@ -448,8 +360,7 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
   const unclaimedItems = items.filter(
     (item) => unitsTakenByAll(item, claims) < item.quantity,
   );
-  const hasProgress =
-    showEditor || showCrop || showProcessingPreview || items.length > 0;
+  const hasProgress = showEditor || isScanning || items.length > 0;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
@@ -459,9 +370,10 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
           onClick={() => {
             if (hasProgress) setShowResetConfirm(true);
           }}
-          aria-label={messages.capture.resetToStartLabel}
-          className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          aria-label={t.resetToStartLabel}
+          className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="fairBill" className="h-16 w-auto" />
         </button>
 
@@ -469,133 +381,65 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <button
               type="button"
-              aria-label={messages.capture.closeLabel}
+              aria-label={t.closeLabel}
               onClick={() => setShowResetConfirm(false)}
-              className="absolute inset-0 bg-black/70"
+              className="absolute inset-0 bg-ink/70"
             />
-            <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-warning-solid bg-warning-bg p-4 shadow-2xl">
-              <div className="flex items-center justify-center gap-2 text-warning-foreground">
+            <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-gold bg-background p-4 shadow-2xl">
+              <div className="flex items-center justify-center gap-2 text-gold">
                 <AlertTriangle
                   aria-hidden="true"
                   size={20}
                   strokeWidth={2}
                   className="shrink-0"
                 />
-                <p className="text-center text-lg font-bold">
-                  {messages.capture.resetTitle}
-                </p>
+                <p className="text-center text-lg font-bold">{t.resetTitle}</p>
               </div>
-              <p className="text-center text-sm text-warning-foreground">
-                {messages.capture.resetDescription}
+              <p className="text-center text-sm text-muted-foreground">
+                {t.resetDescription}
               </p>
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => setShowResetConfirm(false)}
-                  className="rounded-full border border-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:bg-warning-solid/10"
+                  className="rounded-full border border-primary px-5 py-3 text-sm font-medium text-primary hover:bg-primary/10"
                 >
-                  {messages.capture.stayHere}
+                  {t.stayHere}
                 </button>
                 <button
                   type="button"
                   onClick={resetToStart}
-                  className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-solid-foreground hover:brightness-95"
+                  className="rounded-full bg-gold px-5 py-3 text-sm font-medium text-gold-foreground hover:bg-gold-hover"
                 >
-                  {messages.capture.startAgain}
+                  {t.startAgain}
                 </button>
               </div>
             </div>
           </div>
         )}
-        {localStage === "bill" &&
-          !showEditor &&
-          !showCrop &&
-          !showProcessingPreview && (
+        {localStage === "bill" && !showEditor && !isScanning && (
           <>
-            <p className="text-xl font-bold text-accent">
-              {messages.capture.selectOption}
-            </p>
-            <div className="flex items-start gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-left dark:border-accent/40">
+            <p className="text-xl font-bold text-primary">{t.selectOption}</p>
+            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-surface px-3 py-2 text-left">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={1.5}
-                className="mt-0.5 h-5 w-5 shrink-0 text-accent"
+                className="mt-0.5 h-5 w-5 shrink-0 text-primary"
                 aria-hidden="true"
               >
                 <circle cx="12" cy="12" r="9" />
                 <path strokeLinecap="round" d="M12 11v5" />
                 <path strokeLinecap="round" d="M12 8h.01" />
               </svg>
-              <p className="text-sm text-accent">
-                {messages.capture.uploadHint}
-              </p>
+              <p className="text-sm text-foreground">{t.uploadHint}</p>
             </div>
           </>
         )}
       </div>
 
-      {showCrop && previewUrl && (
-        <CropStep
-          imageUrl={previewUrl}
-          initialCorners={cropCorners}
-          onCancel={() => {
-            setShowCrop(false);
-            cameraInputRef.current?.click();
-          }}
-          onConfirm={(quad, naturalWidth, naturalHeight) =>
-            void handleCropConfirmed(quad, naturalWidth, naturalHeight)
-          }
-        />
-      )}
-
-      {showProcessingPreview && processedPreviewUrl && (
-        <div className="flex flex-col gap-4">
-          <p className="text-center text-xl font-bold text-accent">
-            {messages.capture.reviewProcessedImage}
-          </p>
-
-          <div className="rounded-lg border border-zinc-300/70 p-2 dark:border-zinc-700">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={warpedPreviewUrl ?? processedPreviewUrl}
-              alt={messages.capture.straightenedReceiptAlt}
-              className="w-full rounded"
-            />
-          </div>
-
-          <div className="flex w-full gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProcessingPreview(false);
-                setCropCorners((prev) => prev);
-                setShowCrop(true);
-              }}
-              className="flex-1 rounded-full border border-zinc-400 px-5 py-2 text-sm font-medium"
-            >
-              {messages.capture.adjustCrop}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!processedForOcr) return;
-                void recognizeFromProcessedImage(processedForOcr);
-              }}
-              disabled={!processedForOcr}
-              className="flex-1 rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
-            >
-              {messages.capture.continue}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {localStage === "bill" &&
-        !showEditor &&
-        !showCrop &&
-        !showProcessingPreview && (
+      {localStage === "bill" && !showEditor && !isScanning && (
         <div className="flex flex-col items-center gap-5 text-center">
           {/* Sin `capture`, para que el selector abra la galería en vez de la cámara */}
           <input
@@ -628,8 +472,8 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               disabled={isScanning}
-              aria-label={messages.capture.takePhotoLabel}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-primary/25 bg-primary/20 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md disabled:pointer-events-none disabled:opacity-50 dark:border-primary/40 dark:bg-primary/15"
+              aria-label={t.takePhotoLabel}
+              className="flex flex-col items-center gap-3 rounded-2xl border border-primary/40 bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
                 <svg
@@ -652,8 +496,8 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                   />
                 </svg>
               </span>
-              <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                {messages.capture.takePhoto}
+              <span className="text-sm font-semibold text-foreground">
+                {t.takePhoto}
               </span>
             </button>
 
@@ -661,10 +505,10 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
               type="button"
               onClick={() => galleryInputRef.current?.click()}
               disabled={isScanning}
-              aria-label={messages.capture.uploadImageLabel}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-accent/25 bg-accent/20 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md disabled:pointer-events-none disabled:opacity-50 dark:border-accent/40 dark:bg-accent/15"
+              aria-label={t.uploadImageLabel}
+              className="flex flex-col items-center gap-3 rounded-2xl border border-gold/50 bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/15 text-gold">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -680,8 +524,8 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                   />
                 </svg>
               </span>
-              <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                {messages.capture.uploadImage}
+              <span className="text-sm font-semibold text-foreground">
+                {t.uploadImage}
               </span>
             </button>
           </div>
@@ -690,14 +534,12 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
             type="button"
             onClick={startManualEntry}
             disabled={isScanning}
-            className="rounded-full border border-accent bg-accent-soft px-5 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+            className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
           >
-            {messages.capture.manualEntry}
+            {t.manualEntry}
           </button>
 
-          {scanError && (
-            <p className="text-sm text-error-foreground">{scanError}</p>
-          )}
+          {scanError && <p className="text-sm text-gold">{scanError}</p>}
         </div>
       )}
 
@@ -705,21 +547,34 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
         <div
           role="status"
           aria-live="polite"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4"
         >
-          <div className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border-t-4 border-t-primary bg-background p-6 text-center shadow-xl">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent-soft border-t-primary" />
-            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-              {messages.capture.readingReceipt}
+          <div className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border-t-4 border-t-gold bg-background p-6 text-center shadow-xl">
+            <div className="relative w-32 overflow-hidden rounded-lg border border-primary/40 bg-surface">
+              {previewUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={previewUrl}
+                  alt=""
+                  className="h-40 w-full object-cover opacity-80"
+                />
+              ) : (
+                <div className="h-40 w-full" />
+              )}
+              <div className="absolute inset-0">
+                <div className="animate-receipt-scan absolute inset-x-0 h-0.5 bg-gold shadow-[0_0_12px_2px_var(--gold)]" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              {t.readingReceipt}
             </p>
-            <p className="text-xs text-zinc-500">
-              {status === "preprocessing" &&
-                messages.capture.preprocessing}
-              {status === "recognizing" && messages.capture.recognizing}
-              {status === "parsing" && messages.capture.parsing}
+            <p className="text-xs text-muted-foreground">
+              {status === "preprocessing" && t.preprocessing}
+              {status === "recognizing" && t.recognizing}
+              {status === "parsing" && t.parsing}
             </p>
             {status === "recognizing" && (
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
                   style={{ width: `${Math.round(progress * 100)}%` }}
@@ -748,16 +603,16 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
               type="button"
               onClick={() => setLocalStage("names")}
               disabled={items.filter((item) => item.name.trim()).length === 0}
-              className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+              className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
-              {messages.capture.continue}
+              {t.continue}
             </button>
           )}
 
           {localStage === "names" && (
             <div className="flex flex-col gap-3">
-              <p className="text-center text-xl font-bold text-accent">
-                {messages.capture.enterParticipants}
+              <p className="text-center text-xl font-bold text-primary">
+                {t.enterParticipants}
               </p>
               {participants.map((participant, index) => {
                 // El último hueco vacío es solo un anticipo del siguiente
@@ -790,7 +645,6 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                           return next;
                         });
                       }}
-                      onBlur={() => removeEmptyParticipant(index)}
                       onKeyDown={(e) => {
                         if (e.key !== "Enter") return;
                         e.preventDefault();
@@ -800,7 +654,7 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                           participantInputRefs.current[index + 1]?.focus();
                         }, 0);
                       }}
-                      placeholder={messages.capture.participantPlaceholder.replace(
+                      placeholder={t.participantPlaceholder.replace(
                         "{{number}}",
                         String(index + 1),
                       )}
@@ -809,23 +663,16 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                         duplicateNames.has(
                           normalizeParticipantName(participant.name),
                         )
-                          ? "border-red-500/85 text-red-700 shadow-[0_0_0_1px_rgba(239,68,68,0.22)] focus:border-red-500 focus:ring-red-500/35 dark:border-red-400/85 dark:text-red-300"
-                          : "border-primary/75 shadow-[0_0_0_1px_rgba(34,197,94,0.18)] focus:border-primary focus:ring-primary/35 dark:border-primary/80"
+                          ? "border-gold text-gold focus:ring-gold/40"
+                          : "border-primary/70 focus:border-primary focus:ring-primary/35"
                       }`}
                     />
-                    {isPendingSlot ? (
-                      <span
-                        aria-hidden="true"
-                        className="rounded px-2 py-1 text-sm invisible"
-                      >
-                        ✕
-                      </span>
-                    ) : (
+                    {!isPendingSlot && (
                       <button
                         type="button"
                         onClick={() => removeParticipant(index)}
-                        aria-label={messages.capture.removeParticipantLabel}
-                        className="rounded px-2 py-1 text-sm text-accent/70 hover:bg-error-bg hover:text-error-foreground"
+                        aria-label={t.removeParticipantLabel}
+                        className="rounded px-2 py-1 text-sm text-primary/70 hover:bg-primary/10 hover:text-primary"
                       >
                         ✕
                       </button>
@@ -837,13 +684,13 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                 type="button"
                 onClick={() => setLocalStage("roster")}
                 disabled={!canContinueFromNames}
-                className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+                className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
-                {messages.capture.continue}
+                {t.continue}
               </button>
               {hasDuplicateNames && (
-                <p className="text-center text-sm text-error-foreground">
-                  {messages.capture.duplicateNames}
+                <p className="text-center text-sm text-gold">
+                  {t.duplicateNames}
                 </p>
               )}
             </div>
@@ -869,12 +716,12 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
             <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
               <button
                 type="button"
-                aria-label={messages.capture.closeLabel}
+                aria-label={t.closeLabel}
                 onClick={() => setShowUnclaimedPrompt(false)}
-                className="absolute inset-0 bg-black/70"
+                className="absolute inset-0 bg-ink/70"
               />
-              <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-warning-solid bg-warning-bg p-4 shadow-2xl">
-                <div className="flex items-center justify-center gap-2 text-warning-foreground">
+              <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-gold bg-background p-4 shadow-2xl">
+                <div className="flex items-center justify-center gap-2 text-gold">
                   <AlertTriangle
                     aria-hidden="true"
                     size={20}
@@ -882,10 +729,10 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                     className="shrink-0"
                   />
                   <p className="text-center text-lg font-bold">
-                    {messages.capture.unclaimedTitle}
+                    {t.unclaimedTitle}
                   </p>
                 </div>
-                <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 text-sm text-warning-foreground">
+                <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 text-sm text-foreground">
                   {unclaimedItems.map((item) => {
                     const missing =
                       item.quantity - unitsTakenByAll(item, claims);
@@ -913,17 +760,17 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                     return (
                       <li
                         key={item.id}
-                        className="rounded border border-warning-solid/40 px-2 py-1.5"
+                        className="rounded border border-gold/40 px-2 py-1.5"
                       >
                         <p className="font-medium">
-                          {item.name || messages.capture.unnamedProduct} x
+                          {item.name || t.unnamedProduct} x
                           {roundUnits(missing)}
                         </p>
                         {assignments.length > 0 && (
                           <ul className="mt-1 list-disc pl-4 text-xs opacity-80">
                             {assignments.map((assignment) => (
                               <li key={assignment.ownerKey}>
-                                {roundUnits(assignment.units)} {messages.capture.unitsAbbr} —{" "}
+                                {roundUnits(assignment.units)} {t.unitsAbbr} —{" "}
                                 {assignment.names}
                               </li>
                             ))}
@@ -937,16 +784,16 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                   <button
                     type="button"
                     onClick={computeLocalResult}
-                    className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-solid-foreground hover:brightness-95"
+                    className="rounded-full bg-gold px-5 py-3 text-sm font-medium text-gold-foreground hover:bg-gold-hover"
                   >
-                    {messages.capture.splitBetweenEveryone}
+                    {t.splitBetweenEveryone}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowUnclaimedPrompt(false)}
-                    className="rounded-full border border-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:bg-warning-solid/10"
+                    className="rounded-full border border-primary px-5 py-3 text-sm font-medium text-primary hover:bg-primary/10"
                   >
-                    {messages.capture.review}
+                    {t.review}
                   </button>
                 </div>
               </div>
@@ -992,21 +839,19 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                 onClick={() => {
                   void shareResultSummary();
                 }}
-                className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground"
+                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
               >
-                {messages.capture.share}
+                {t.share}
               </button>
               {copyStatus === "error" && (
-                <p className="text-xs text-error-foreground">
-                  {messages.capture.copyError}
-                </p>
+                <p className="text-xs text-gold">{t.copyError}</p>
               )}
               <button
                 type="button"
                 onClick={() => setLocalStage("roster")}
-                className="rounded-full border border-accent px-5 py-2 text-sm font-medium text-accent hover:bg-accent/10"
+                className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
               >
-                {messages.capture.backToSplit}
+                {t.backToSplit}
               </button>
             </div>
           )}
@@ -1016,13 +861,13 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
   );
 }
 
-function buildSummaryText(localResult: SplitResult, messages: Messages): string {
+function buildSummaryText(localResult: SplitResult): string {
   return localResult.people
     .map((person) => {
       const items = person.items.map(
         (item) => {
           const sharedMark = item.hasUnclaimedShare
-            ? ` [${messages.capture.splitAcrossEveryoneMark}]`
+            ? " [dividido entre todos]"
             : "";
           return `- ${item.itemName} x${item.effectiveUnits}: ${formatCents(item.shareCents, "EUR")}${sharedMark}`;
         },
@@ -1034,8 +879,6 @@ function buildSummaryText(localResult: SplitResult, messages: Messages): string 
     })
     .join("\n");
 }
-
-const sharedSummaryMarks = ["dividido entre todos", "split between everyone"];
 
 function parseSharedSummaryFromLocation(): SplitResult | null {
   if (typeof window === "undefined") return null;
@@ -1053,16 +896,35 @@ function parseSharedSummaryFromLocation(): SplitResult | null {
   const people: SplitResult["people"] = [];
   for (const line of lines) {
     if (line.startsWith("- ")) {
+      const hasUnclaimedShare = line.endsWith(" [dividido entre todos]");
+      const itemLine = hasUnclaimedShare
+        ? line.slice(0, -" [dividido entre todos]".length)
+        : line;
+      const itemMatch = itemLine.match(/^-\s+(.+?)\s+x([\d.,]+):\s+(.+)$/);
       const currentPerson = people.at(-1);
-      if (currentPerson) addSharedItemLine(currentPerson, line);
+      if (!itemMatch || !currentPerson) continue;
+
+      const [, itemName, rawUnits, rawItemAmount] = itemMatch;
+      const shareCents = parseSharedAmountToCents(rawItemAmount);
+      const effectiveUnits = Number.parseFloat(rawUnits.replace(",", "."));
+      if (Number.isNaN(shareCents) || Number.isNaN(effectiveUnits)) continue;
+
+      currentPerson.items.push({
+        itemId: `${currentPerson.participantId}-item-${currentPerson.items.length}`,
+        itemName: itemName.trim(),
+        claimedUnits: effectiveUnits,
+        effectiveUnits,
+        hasUnclaimedShare,
+        shareCents,
+        itemTotalCents: shareCents,
+      });
       continue;
     }
 
-    const separatorIndex = line.indexOf(":");
-    if (separatorIndex <= 0) continue;
+    const match = line.match(/^(.+?)\s*:\s*(.+)$/);
+    if (!match) continue;
 
-    const rawName = line.slice(0, separatorIndex);
-    const rawAmount = line.slice(separatorIndex + 1);
+    const [, rawName, rawAmount] = match;
     const totalCents = parseSharedAmountToCents(rawAmount);
     if (Number.isNaN(totalCents)) continue;
 
@@ -1088,56 +950,6 @@ function parseSharedSummaryFromLocation(): SplitResult | null {
     grandTotalCents: subtotalTotalCents,
     subtotalTotalCents,
   };
-}
-
-function addSharedItemLine(person: SplitResult["people"][number], line: string) {
-  const { hasUnclaimedShare, itemLine } = stripSharedSummaryMark(line);
-  const itemDetails = parseSharedItemDetails(itemLine);
-  if (!itemDetails) return;
-
-  person.items.push({
-    itemId: `${person.participantId}-item-${person.items.length}`,
-    itemName: itemDetails.itemName,
-    claimedUnits: itemDetails.effectiveUnits,
-    effectiveUnits: itemDetails.effectiveUnits,
-    hasUnclaimedShare,
-    shareCents: itemDetails.shareCents,
-    itemTotalCents: itemDetails.shareCents,
-  });
-}
-
-function stripSharedSummaryMark(line: string): {
-  readonly hasUnclaimedShare: boolean;
-  readonly itemLine: string;
-} {
-  for (const mark of sharedSummaryMarks) {
-    const suffix = ` [${mark}]`;
-    if (line.endsWith(suffix)) {
-      return { hasUnclaimedShare: true, itemLine: line.slice(0, -suffix.length) };
-    }
-  }
-
-  return { hasUnclaimedShare: false, itemLine: line };
-}
-
-function parseSharedItemDetails(
-  itemLine: string,
-): { readonly itemName: string; readonly effectiveUnits: number; readonly shareCents: number } | null {
-  const quantityMarker = itemLine.lastIndexOf(" x");
-  const amountMarker = itemLine.lastIndexOf(":");
-  if (quantityMarker < 2 || amountMarker <= quantityMarker + 2) return null;
-
-  const itemName = itemLine.slice(2, quantityMarker).trim();
-  const rawUnits = itemLine.slice(quantityMarker + 2, amountMarker).trim();
-  const rawItemAmount = itemLine.slice(amountMarker + 1).trim();
-  const effectiveUnits = Number.parseFloat(rawUnits.replace(",", "."));
-  const shareCents = parseSharedAmountToCents(rawItemAmount);
-
-  if (!itemName || Number.isNaN(effectiveUnits) || Number.isNaN(shareCents)) {
-    return null;
-  }
-
-  return { itemName, effectiveUnits, shareCents };
 }
 
 function parseSharedAmountToCents(rawAmount: string): number {

@@ -3,7 +3,6 @@ import {
   EMPTY_EXTRAS,
   editorGrandTotalCents,
   editorSubtotalCents,
-  getItemState,
   itemTotalCents,
   newItemId,
   type EditableItem,
@@ -44,22 +43,6 @@ describe("editorGrandTotalCents", () => {
       discountCents: 75,
     });
     expect(total).toBe(500 + 50 + 100 + 25 - 75);
-  });
-});
-
-describe("getItemState", () => {
-  it("treats missing confidence as manually edited", () => {
-    expect(getItemState(undefined)).toBe("editado");
-  });
-
-  it("treats high/medium confidence as probable", () => {
-    expect(getItemState("high")).toBe("probable");
-    expect(getItemState("medium")).toBe("probable");
-  });
-
-  it("treats low/very-low confidence as needing review", () => {
-    expect(getItemState("low")).toBe("revisa");
-    expect(getItemState("very-low")).toBe("revisa");
   });
 });
 

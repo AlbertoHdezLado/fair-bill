@@ -74,7 +74,7 @@ export function PersonClaimStep({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-center text-xl font-bold text-accent">
+      <p className="text-center text-xl font-bold text-primary">
         {participantName}
       </p>
 
@@ -96,7 +96,7 @@ export function PersonClaimStep({
       </div>
 
       {visibleItems.length === 0 && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           {messages.noItemsLeft}
         </p>
       )}
@@ -106,7 +106,7 @@ export function PersonClaimStep({
         <span className="font-semibold tabular-nums">
           {formatCents(selectedCents)}
         </span>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-muted-foreground">
           {" "}
           {messages.withoutExtras}
         </span>
@@ -115,7 +115,7 @@ export function PersonClaimStep({
       <button
         type="button"
         onClick={onConfirm}
-        className="mt-2 rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+        className="mt-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
       >
         {messages.confirm}
       </button>
@@ -179,8 +179,8 @@ function ItemCard({
       onClick={onClick}
       className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center ${
         hasChoice
-          ? "border-primary bg-primary/25"
-          : "border-primary/20 bg-primary/10 dark:border-primary/25"
+          ? "border-primary bg-primary/20"
+          : "border-border bg-surface"
       }`}
     >
       <span className="flex min-h-10 w-full items-center justify-center">
@@ -188,14 +188,14 @@ function ItemCard({
           {item.name || messages.unnamedItem}
         </span>
       </span>
-      <span className="tabular-nums text-xs text-zinc-500">
+      <span className="tabular-nums text-xs text-muted-foreground">
         {formatUnits(availableUnits)} × {formatCents(item.unitPriceCents)}
       </span>
       <span
         className={`mt-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
           hasChoice
             ? "bg-primary text-primary-foreground"
-            : "border border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-700"
+            : "border border-dashed border-border text-muted-foreground"
         }`}
       >
         {label}
@@ -276,19 +276,19 @@ function ItemClaimModal({
         type="button"
         aria-label="Cerrar"
         onClick={onClose}
-        className="absolute inset-0 bg-black/70"
+        className="absolute inset-0 bg-ink/70"
       />
-      <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-accent/30 bg-background p-4 pt-16 shadow-2xl">
+      <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-primary/40 bg-background p-4 pt-16 shadow-2xl">
         <button
           type="button"
           aria-label={messages.cancelLabel}
           onClick={onClose}
-          className="absolute right-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full text-3xl leading-none text-accent hover:bg-accent/10 hover:text-accent-hover"
+          className="absolute right-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full text-3xl leading-none text-primary hover:bg-primary/10 hover:text-primary-hover"
         >
           ×
         </button>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          <p className="text-lg font-bold text-accent">
+          <p className="text-lg font-bold text-primary">
             {item.name || messages.unnamedItem}
           </p>
         </div>
@@ -349,7 +349,7 @@ function ItemClaimModal({
               type="button"
               disabled={units === null || units >= available}
               onClick={() => setUnits(available)}
-              className="self-center rounded-full border border-success-solid px-3 py-1 text-xs text-success-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              className="self-center rounded-full border border-gold px-3 py-1 text-xs text-gold disabled:cursor-not-allowed disabled:opacity-40"
             >
               {messages.selectAll}
             </button>
@@ -359,7 +359,7 @@ function ItemClaimModal({
                 type="button"
                 disabled={units === null || units <= 0}
                 onClick={() => setStage("shared-people")}
-                className="mt-3 inline-flex self-center items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+                className="mt-3 inline-flex self-center items-center justify-center gap-2 rounded-full bg-gold px-4 py-2.5 text-sm font-medium text-gold-foreground hover:bg-gold-hover disabled:opacity-50"
               >
                 <Users aria-hidden="true" size={18} strokeWidth={2} />
                 {messages.share}
@@ -372,7 +372,7 @@ function ItemClaimModal({
               onClick={() =>
                 onApply([selfKey], { mode: "units", count: units ?? 0 })
               }
-              className="mt-2 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground disabled:opacity-50"
+              className="mt-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
               {messages.confirm}
             </button>
@@ -381,7 +381,7 @@ function ItemClaimModal({
               <button
                 type="button"
                 onClick={() => onApply([selfKey], null)}
-                className="rounded-full border border-red-500/60 px-4 py-2 text-sm text-red-700 hover:bg-red-500/10 dark:border-red-400/60 dark:text-red-300"
+                className="rounded-full border border-primary/50 px-4 py-2 text-sm text-primary hover:bg-primary/10"
               >
                 {messages.removeSelection}
               </button>
@@ -391,7 +391,7 @@ function ItemClaimModal({
 
         {stage === "shared-people" && (
           <div className="flex flex-col gap-2">
-            <p className="text-center text-xs text-zinc-500">
+            <p className="text-center text-xs text-muted-foreground">
               {messages.sharedWith}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
@@ -405,7 +405,7 @@ function ItemClaimModal({
                     className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                       isSelected
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+                        : "border-border text-foreground"
                     }`}
                   >
                     {person.name || messages.unnamedItem}
@@ -417,7 +417,7 @@ function ItemClaimModal({
               type="button"
               disabled={sharedWith.length === others.length}
               onClick={() => setSharedWith(others.map((p) => p.key))}
-              className="self-center rounded-full border border-success-solid px-3 py-1 text-xs text-success-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              className="self-center rounded-full border border-gold px-3 py-1 text-xs text-gold disabled:cursor-not-allowed disabled:opacity-40"
             >
               {messages.selectEveryone}
             </button>
@@ -431,14 +431,14 @@ function ItemClaimModal({
                   group: [selfKey, ...sharedWith],
                 })
               }
-              className="mt-2 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground disabled:opacity-50"
+              className="mt-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
               {messages.confirm}
             </button>
             <button
               type="button"
               onClick={() => setStage("units")}
-              className="rounded-full px-4 py-2 text-sm text-zinc-500"
+              className="rounded-full px-4 py-2 text-sm text-muted-foreground"
             >
               {messages.back}
             </button>

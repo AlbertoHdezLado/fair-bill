@@ -65,29 +65,12 @@ export function ReceiptEditor({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-center text-xl font-bold text-accent">
+      <p className="text-center text-xl font-bold text-primary">
         {messages.title}
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 py-1 text-xs text-zinc-500">
-        <Legend
-          color="bg-success-card-bg border-success-solid text-success-foreground"
-          icon="✓"
-          label={messages.highReliability}
-        />
-        <Legend
-          color="bg-warning-card-bg border-warning-solid text-warning-foreground"
-          icon="⚠"
-          label={messages.lowReliability}
-        />
-        <Legend
-          color="bg-info-card-bg border-info-solid text-info-foreground"
-          icon="✎"
-          label={messages.editedProduct}
-        />
-      </div>
       <div className="flex flex-col">
         {/* En móvil cada línea ya lleva sus propias etiquetas (Uds./Precio/Total) */}
-        <div className="hidden items-center gap-2 px-3 pb-1 text-xs font-medium text-zinc-500 sm:flex">
+        <div className="hidden items-center gap-2 px-3 pb-1 text-xs font-medium text-muted-foreground sm:flex">
           <span className="flex-1">{messages.product}</span>
           <span className="w-14 text-center">{messages.units}</span>
           <span className="w-20 text-right">{messages.price}</span>
@@ -106,13 +89,13 @@ export function ReceiptEditor({
         <button
           type="button"
           onClick={addItem}
-          className="mt-2 flex items-center justify-center gap-1 rounded border border-dashed border-zinc-300 py-2 text-sm text-zinc-500 hover:border-primary hover:text-primary dark:border-zinc-700"
+          className="mt-2 flex items-center justify-center gap-1 rounded border border-dashed border-primary/50 py-2 text-sm text-primary hover:border-primary hover:bg-primary/10"
         >
           + {messages.addProduct}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-primary/20 bg-primary/15 p-3 text-sm dark:border-primary/25 dark:bg-primary/10">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-primary/25 bg-primary/10 p-3 text-sm">
         <ExtraField
           label={messages.tax}
           cents={extras.taxCents}
@@ -141,14 +124,16 @@ export function ReceiptEditor({
 
       <div className="flex flex-col gap-1 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-zinc-500">{messages.subtotalProducts}</span>
+          <span className="text-muted-foreground">
+            {messages.subtotalProducts}
+          </span>
           <span className="flex items-center gap-1.5 tabular-nums">
             {hasMismatch && (
               <button
                 type="button"
                 onClick={() => setIsTotalWarningOpen(true)}
                 aria-label={messages.openMismatchWarning}
-                className="rounded text-warning-foreground hover:text-warning-solid"
+                className="rounded text-gold hover:text-gold-hover"
               >
                 <TriangleAlert aria-hidden="true" size={18} />
               </button>
@@ -172,13 +157,13 @@ export function ReceiptEditor({
         <dialog
           open
           aria-labelledby="total-warning-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/45 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
         >
-          <div className="w-full max-w-sm rounded-lg bg-background p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-lg border border-border bg-background p-5 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <h2
                 id="total-warning-title"
-                className="text-lg font-bold text-accent"
+                className="text-lg font-bold text-primary"
               >
                 {hasMismatch ? messages.mismatchTitle : messages.missingTotalTitle}
               </h2>
@@ -186,14 +171,14 @@ export function ReceiptEditor({
                 type="button"
                 onClick={() => setIsTotalWarningOpen(false)}
                 aria-label={messages.closeWarning}
-                className="-mr-1 -mt-1 rounded p-1 text-zinc-500 hover:bg-accent-soft hover:text-accent"
+                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
               >
                 <X aria-hidden="true" size={20} />
               </button>
             </div>
             <p
               className={`mt-3 text-sm ${
-                hasMismatch ? "text-warning-foreground" : "text-info-foreground"
+                hasMismatch ? "text-gold" : "text-muted-foreground"
               }`}
             >
               {hasMismatch
@@ -212,27 +197,6 @@ export function ReceiptEditor({
   );
 }
 
-function Legend({
-  color,
-  icon,
-  label,
-}: {
-  readonly color: string;
-  readonly icon: string;
-  readonly label: string;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${color}`}
-    >
-      <span aria-hidden="true" className="text-sm leading-none">
-        {icon}
-      </span>
-      {label}
-    </span>
-  );
-}
-
 function ExtraField({
   label,
   cents,
@@ -245,12 +209,12 @@ function ExtraField({
   const field = useMoneyField(cents, onChange);
   return (
     <label className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-      <span className="text-zinc-500">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <input
         type="text"
         inputMode="decimal"
         {...field}
-        className="w-20 self-end rounded border border-zinc-300 bg-transparent px-2 py-1 text-right sm:self-auto dark:border-zinc-700"
+        className="w-20 self-end rounded border border-border bg-transparent px-2 py-1 text-right sm:self-auto"
       />
     </label>
   );
@@ -269,7 +233,7 @@ function TotalField({
       type="text"
       inputMode="decimal"
       {...field}
-      className="w-24 rounded border border-zinc-300 bg-transparent px-2 py-1 text-right tabular-nums dark:border-zinc-700"
+      className="w-24 rounded border border-border bg-transparent px-2 py-1 text-right tabular-nums"
     />
   );
 }

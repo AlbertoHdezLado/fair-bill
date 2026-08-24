@@ -4,7 +4,7 @@ import { buildSummaryShareUrl } from "./CaptureFlow";
 import { PersonTotals } from "./PersonTotals";
 
 describe("PersonTotals", () => {
-  it("keeps unclaimed-share items visually subtle instead of prominent warning styling", () => {
+  it("marks unclaimed-share items with the gold accent", () => {
     render(
       <PersonTotals
         person={{
@@ -37,8 +37,7 @@ describe("PersonTotals", () => {
 
     expect(itemRow).not.toBeNull();
     expect(itemRow?.className).toContain("font-medium");
-    expect(itemRow?.className).toContain("text-warning-solid");
-    expect(itemRow?.className).not.toContain("text-warning-foreground/80");
+    expect(itemRow?.className).toContain("text-gold");
   });
 
   it("builds a shareable URL with the final totals summary", () => {

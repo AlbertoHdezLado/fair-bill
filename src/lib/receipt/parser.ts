@@ -1,6 +1,5 @@
 import type { OcrBoundingBox, OcrWord } from "@/lib/ocr/types";
 import type {
-  ItemParseConfidence,
   ParsedItemLine,
   ParsedReceipt,
   ParsedSummaryLine,
@@ -98,7 +97,6 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       items.push({
         ...itemFields,
         id: `item-${itemCounter++}`,
-        confidence: "medium",
       });
       itemScores.push(score);
       numericCandidates.push({
@@ -183,11 +181,6 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     }
   }
 
-  const confidences = assignConfidenceByScore(itemScores);
-  items.forEach((item, index) => {
-    item.confidence = confidences[index];
-  });
-
   return {
     items,
     summary,
@@ -203,7 +196,7 @@ function parseItemLine(
   line: string,
   priceTokens: number[],
   lineWords: OcrWord[],
-): (Omit<ParsedItemLine, "id" | "confidence"> & { score: number }) | null {
+): (Omit<ParsedItemLine, "id"> & { score: number }) | null {
   if (priceTokens.length === 0) return null;
 
   const qtyPriceMatch = QTY_PRICE_RE.exec(line);
@@ -283,11 +276,9 @@ function parseItemLine(
  * Scores how trustworthy a parsed item line is, from the shape of the match
  * (explicit "N x price"/"N Ud." quantity markers, a single unambiguous price
  * token, a description that isn't just leftover digits, exact quantity*price
- * reconciliation) plus the OCR engine's own average word confidence. Purely
- * heuristic — the raw score is later bucketed into fixed confidence levels
- * (see assignConfidenceByScore),
- * used to color-code lines in the editor so the user knows which ones are
- * worth double-checking, never to hide or auto-correct anything.
+ * reconciliation) plus the OCR engine's own average word confidence. Used
+ * only to pick which line to drop when the parsed lines don't reconcile with
+ * the receipt's total — never surfaced to the user.
  */
 function computeItemScore(params: {
   name: string;
@@ -322,20 +313,6 @@ function computeItemScore(params: {
   }
 
   return score;
-}
-
-/**
- * Maps absolute item scores (-3 through 6) to confidence levels. A receipt's
- * lines are evaluated independently, so a clean line stays reliable even if
- * the rest of the ticket was poorly recognized, and vice versa.
- */
-function assignConfidenceByScore(scores: number[]): ItemParseConfidence[] {
-  return scores.map((score) => {
-    if (score >= 5) return "high";
-    if (score >= 3) return "medium";
-    if (score >= 1) return "low";
-    return "very-low";
-  });
 }
 
 /** Parses a possibly-decimal quantity token like "2", "1,00" or "4.00". */

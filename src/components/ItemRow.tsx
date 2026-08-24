@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMoneyField } from "@/lib/money";
-import {
-  itemTotalCents,
-  type EditableItem,
-  type ItemState,
-} from "@/lib/receipt/editable";
+import { itemTotalCents, type EditableItem } from "@/lib/receipt/editable";
 import { defaultMessages, type Messages } from "@/i18n";
 
 interface ItemRowProps {
@@ -15,32 +11,6 @@ interface ItemRowProps {
   readonly onRemove: () => void;
   readonly messages?: Messages["itemRow"];
 }
-
-// Estilos de tarjeta por estado del item:
-// - "probable" (success): confianza media del parser
-// - "revisa" (warning): necesita revisión
-// - "editado" (info): editado manualmente por el usuario
-export const STATE_CARD_CLASS: Record<ItemState, string> = {
-  probable: "bg-success-card-bg border-success-solid",
-  revisa: "bg-warning-card-bg border-warning-solid",
-  editado: "bg-info-card-bg border-info-solid",
-};
-
-// Bordes de los inputs dentro de tarjetas por estado. Se incluye el color de
-// foco explícitamente para que no aparezca el amarillo del anillo de foco
-// por defecto del navegador al pulsar sobre el input.
-const STATE_INPUT_BORDER_CLASS: Record<ItemState, string> = {
-  probable: "border-success-foreground/60 focus:outline-success-foreground/60",
-  revisa: "border-warning-foreground/60 focus:outline-warning-foreground/60",
-  editado: "border-info-foreground/60 focus:outline-info-foreground/60",
-};
-
-// Mismo color que el borde de los inputs, para la cruz de borrar la línea
-const STATE_REMOVE_BUTTON_CLASS: Record<ItemState, string> = {
-  probable: "text-success-foreground/60",
-  revisa: "text-warning-foreground/60",
-  editado: "text-info-foreground/60",
-};
 
 export function ItemRow({
   item,
@@ -54,7 +24,6 @@ export function ItemRow({
       ...item,
       ...patch,
       state: "editado",
-      confidence: undefined,
     });
   }
 
@@ -78,30 +47,25 @@ export function ItemRow({
   });
 
   const isEmpty = item.name === "";
+  const isEdited = item.state === "editado";
 
-  let mutedClasses: string;
-  if (isEmpty) {
-    mutedClasses =
-      "border-zinc-100 text-zinc-300 focus:outline-zinc-300 dark:border-zinc-900 dark:text-zinc-600 dark:focus:outline-zinc-600";
-  } else {
-    mutedClasses = STATE_INPUT_BORDER_CLASS[item.state];
-  }
+  // Gold marks lines the user has touched; everything else stays blue.
+  const accentBorder = isEdited ? "border-gold" : "border-primary/45";
+  const inputBorder = isEmpty
+    ? "border-border text-muted-foreground focus:outline-primary/60"
+    : `${accentBorder} focus:outline-primary/70`;
 
   const cardClasses = isEmpty
-    ? "bg-background border-zinc-200 dark:border-zinc-800"
-    : STATE_CARD_CLASS[item.state];
+    ? "bg-surface border-border"
+    : `bg-surface ${isEdited ? "border-gold" : "border-primary/35"}`;
 
-  const removeButtonClasses = isEmpty
-    ? "text-zinc-300 dark:text-zinc-600"
-    : STATE_REMOVE_BUTTON_CLASS[item.state];
+  const removeButtonClasses = isEdited
+    ? "text-gold hover:bg-gold/15"
+    : "text-primary/70 hover:bg-primary/10";
 
-  let nameInputBorder: string;
-  if (isEmpty) {
-    nameInputBorder =
-      "border-zinc-100 text-zinc-300 placeholder:text-zinc-250 focus:outline-zinc-300 dark:border-zinc-900 dark:text-zinc-600 dark:placeholder:text-zinc-700 dark:focus:outline-zinc-600";
-  } else {
-    nameInputBorder = `${STATE_INPUT_BORDER_CLASS[item.state]} placeholder:text-zinc-400`;
-  }
+  const nameInputBorder = isEmpty
+    ? `${inputBorder} placeholder:text-muted-foreground/70`
+    : `${inputBorder} placeholder:text-muted-foreground`;
 
   return (
     <div
@@ -124,7 +88,9 @@ export function ItemRow({
           borrar quede a la altura de los inputs y no de sus etiquetas. */}
       <div className="flex items-end gap-2 sm:items-center">
         <div className="flex flex-1 flex-col items-center gap-0.5 sm:contents">
-          <span className="text-[10px] text-zinc-400 sm:hidden">Uds.</span>
+          <span className="text-[10px] text-muted-foreground sm:hidden">
+            Uds.
+          </span>
           <input
             type="number"
             inputMode="numeric"
@@ -146,32 +112,36 @@ export function ItemRow({
               setQuantityText(String(quantity));
               if (quantity !== item.quantity) edit({ quantity });
             }}
-            className={`w-full rounded border bg-transparent px-2 py-2 text-base sm:w-14 sm:py-1 sm:text-sm ${mutedClasses}`}
+            className={`w-full rounded border bg-transparent px-2 py-2 text-base sm:w-14 sm:py-1 sm:text-sm ${inputBorder}`}
           />
         </div>
         <div className="flex flex-1 flex-col items-center gap-0.5 sm:contents">
-          <span className="text-[10px] text-zinc-400 sm:hidden">Precio</span>
+          <span className="text-[10px] text-muted-foreground sm:hidden">
+            Precio
+          </span>
           <input
             type="text"
             inputMode="decimal"
             {...unitPriceField}
-            className={`w-full rounded border bg-transparent px-2 py-2 text-base sm:w-20 sm:py-1 sm:text-sm ${mutedClasses}`}
+            className={`w-full rounded border bg-transparent px-2 py-2 text-base sm:w-20 sm:py-1 sm:text-sm ${inputBorder}`}
           />
         </div>
         <div className="flex flex-1 flex-col items-center gap-0.5 sm:contents">
-          <span className="text-[10px] text-zinc-400 sm:hidden">Total</span>
+          <span className="text-[10px] text-muted-foreground sm:hidden">
+            Total
+          </span>
           <input
             type="text"
             inputMode="decimal"
             {...totalField}
-            className={`w-full shrink-0 rounded border bg-transparent px-2 py-2 text-right text-base tabular-nums sm:w-20 sm:py-1 sm:text-sm ${mutedClasses}`}
+            className={`w-full shrink-0 rounded border bg-transparent px-2 py-2 text-right text-base tabular-nums sm:w-20 sm:py-1 sm:text-sm ${inputBorder}`}
           />
         </div>
         <button
           type="button"
           onClick={onRemove}
           aria-label={messages.removeLineLabel}
-          className={`shrink-0 rounded px-2 py-1 text-lg font-semibold hover:bg-error-bg hover:text-error-foreground ${removeButtonClasses}`}
+          className={`shrink-0 rounded px-2 py-1 text-lg font-semibold ${removeButtonClasses}`}
         >
           ✕
         </button>

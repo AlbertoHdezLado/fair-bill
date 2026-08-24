@@ -42,7 +42,7 @@ export function ParticipantRoster({
       {!showBill && (
         <>
           <div className="flex flex-col gap-1">
-            <p className="text-center text-xl font-bold text-accent">
+            <p className="text-center text-xl font-bold text-primary">
               {messages.title}
             </p>
           </div>
@@ -58,7 +58,7 @@ export function ParticipantRoster({
                     className={`flex w-full min-h-16 items-center justify-center rounded-2xl border py-4 px-3 text-center text-sm font-medium transition-colors ${
                       isDone
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-primary/40 bg-primary/15 text-foreground"
+                        : "border-primary/40 bg-surface text-foreground"
                     }`}
                   >
                     <span className="min-w-0 truncate text-base font-bold">
@@ -74,7 +74,7 @@ export function ParticipantRoster({
             type="button"
             onClick={onFinish}
             disabled={!allDone}
-            className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+            className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
           >
             {messages.continue}
           </button>
@@ -85,7 +85,7 @@ export function ParticipantRoster({
         <button
           type="button"
           onClick={onEditNames}
-          className="self-start text-xs text-accent underline"
+          className="self-start text-xs text-primary underline"
         >
           {messages.editNames}
         </button>
@@ -93,7 +93,7 @@ export function ParticipantRoster({
         <button
           type="button"
           onClick={onToggleBill}
-          className="self-start text-xs text-accent underline"
+          className="self-start text-xs text-primary underline"
         >
           {showBill ? messages.hideBill : messages.editBill}
         </button>

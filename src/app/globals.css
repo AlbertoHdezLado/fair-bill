@@ -1,112 +1,73 @@
 @import "tailwindcss";
 
 /*
- * Brand palette: teal (#0faf8f) as the primary action color, navy
- * (#123b5d) as the secondary accent, with a soft navy tint for
- * highlights. Semantic state colors (success/warning/error/info) cover
- * confidence traffic-lights and banners; solid variants are mode-agnostic
- * per the palette, bg/foreground variants adapt per color scheme below.
+ * Brand palette: two colors only — a mid-dark blue (readable both on light
+ * surfaces and on black) and gold for accents/edited state. Everything else
+ * is a near-black ink or a near-white paper derived from the blue, so the UI
+ * reads as high-contrast monochrome with two brand hits.
  */
 :root {
-  --background: color-mix(in srgb, #0faf8f 10%, #ffffff);
-  --foreground: #151d23;
+  --primary: #1b4e8c;
+  --primary-hover: #163f73;
+  --primary-foreground: #f4f7fb;
 
-  --primary: #0faf8f;
-  --primary-hover: #0d9a7d;
-  --primary-foreground: #ffffff;
+  --gold: #9a7414;
+  --gold-hover: #7e5e0f;
+  --gold-foreground: #fdf8e9;
 
-  --accent: #123b5d;
-  --accent-hover: #0f3350;
-  --accent-foreground: #ffffff;
-  --accent-soft: #e8eef3;
+  --ink: #0b1b2e;
+  --paper: #f4f7fb;
 
-  --success-solid: #0faf8f;
-  --warning-solid: #e0a527;
-  --warning-solid-foreground: #3e2600;
-  --error-solid: #d64545;
-  --info-solid: #3d6788;
-
-  --success-bg: #e4f8f4;
-  --success-foreground: #08604f;
-  --warning-bg: #fdf1dc;
-  --warning-foreground: #8a5a10;
-  --error-bg: #fbe7e7;
-  --error-foreground: #a83030;
-  --info-bg: #e8eef3;
-  --info-foreground: #123b5d;
-
-  /* vivid tint of each state's solid palette color, distinct from the
-     page background so item cards visibly stand out instead of blending in */
-  --success-card-bg: color-mix(in srgb, var(--success-solid) 22%, #ffffff);
-  --warning-card-bg: color-mix(in srgb, var(--warning-solid) 22%, #ffffff);
-  --error-card-bg: color-mix(in srgb, var(--error-solid) 22%, #ffffff);
-  --info-card-bg: color-mix(in srgb, var(--info-solid) 22%, #ffffff);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent-soft: var(--accent-soft);
-
-  --color-success-solid: var(--success-solid);
-  --color-success-bg: var(--success-bg);
-  --color-success-foreground: var(--success-foreground);
-  --color-warning-solid: var(--warning-solid);
-  --color-warning-solid-foreground: var(--warning-solid-foreground);
-  --color-warning-bg: var(--warning-bg);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-error-solid: var(--error-solid);
-  --color-error-bg: var(--error-bg);
-  --color-error-foreground: var(--error-foreground);
-  --color-info-solid: var(--info-solid);
-  --color-info-bg: var(--info-bg);
-  --color-info-foreground: var(--info-foreground);
-
-  --color-success-card-bg: var(--success-card-bg);
-  --color-warning-card-bg: var(--warning-card-bg);
-  --color-error-card-bg: var(--error-card-bg);
-  --color-info-card-bg: var(--info-card-bg);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Surfaces are never pure white: always tinted with the brand blue. */
+  --background: color-mix(in srgb, var(--primary) 10%, #ffffff);
+  --surface: color-mix(in srgb, var(--primary) 4%, #ffffff);
+  --foreground: var(--ink);
+  --border: color-mix(in srgb, var(--primary) 30%, #ffffff);
+  --muted-foreground: color-mix(in srgb, var(--ink) 62%, var(--background));
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a1620;
-    --foreground: #f1f5f7;
+    /* Same hue, lightened so it keeps contrast against a near-black page. */
+    --primary: #5c9be0;
+    --primary-hover: #7db0e8;
+    --primary-foreground: #06121f;
 
-    --primary: #0faf8f;
-    --primary-hover: #2fbea3;
-    --primary-foreground: #04241d;
+    --gold: #e3c35a;
+    --gold-hover: #eed37a;
+    --gold-foreground: #1a1405;
 
-    /* navy loses contrast on dark backgrounds, so use a lighter tint here */
-    --accent: #5b9bc7;
-    --accent-hover: #6ea9d1;
-    --accent-foreground: #ffffff;
-    --accent-soft: #152a3d;
+    --ink: #06121f;
+    --paper: #eaf1f8;
 
-    --success-bg: #0d3830;
-    --success-foreground: #5dcdb8;
-    --warning-bg: #3d2c0c;
-    --warning-solid-foreground: #fff3d6;
-    --warning-foreground: #e6b95c;
-    --error-bg: #3d1414;
-    --error-foreground: #f19999;
-    --info-bg: #152a3d;
-    --info-foreground: #8fb4d1;
-
-    --success-card-bg: color-mix(in srgb, var(--success-solid) 32%, #0a1620);
-    --warning-card-bg: color-mix(in srgb, var(--warning-solid) 32%, #0a1620);
-    --error-card-bg: color-mix(in srgb, var(--error-solid) 32%, #0a1620);
-    --info-card-bg: color-mix(in srgb, var(--info-solid) 32%, #0a1620);
+    --background: color-mix(in srgb, var(--primary) 10%, var(--ink));
+    --surface: color-mix(in srgb, var(--primary) 16%, var(--ink));
+    --foreground: var(--paper);
+    --border: color-mix(in srgb, var(--primary) 36%, var(--ink));
+    --muted-foreground: color-mix(in srgb, var(--paper) 62%, var(--background));
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-gold: var(--gold);
+  --color-gold-hover: var(--gold-hover);
+  --color-gold-foreground: var(--gold-foreground);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
@@ -117,4 +78,24 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+}
+
+@keyframes receipt-scan {
+  from {
+    top: 0;
+  }
+  to {
+    top: 100%;
+  }
+}
+
+.animate-receipt-scan {
+  animation: receipt-scan 2s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-receipt-scan {
+    top: 50%;
+    animation: none;
+  }
 }
