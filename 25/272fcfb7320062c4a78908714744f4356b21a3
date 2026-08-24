@@ -1,0 +1,31 @@
+src/components/CaptureFlow.tsx
+  s_7c8257952893a7::t_3c60912f34447f 10-11,32,61,89,107,117,194,219,239,247-249,302-304,306-307,366-367,394-422,424-436,438-450,455,506,508-525,527-542,544-585,588-590,592,594,596-607,609-610,612-634,636-676,678-685,694-699,770-773
+src/components/board/AssignedBar.tsx
+  s_7c8257952893a7::t_e77519b8867c50 1-174
+src/components/board/BillProgress.tsx
+  s_7c8257952893a7::t_dfc05110f9a430 1-116
+src/components/board/ItemActionSheet.tsx
+  s_7c8257952893a7::t_0351860da6c837 4-5,7-11,18-27,31-33,36-37,40,43-60,62-63,68-69,71,74-75,77-86,90-93,96-117,120-122,124,126,128-145,147-167,169-171,173-187,189-197,202-212,214-247,249-268,270-278,281-299
+src/components/board/SplitBoard.test.tsx
+  s_7c8257952893a7::t_51af5b471975ac 1,3-4,6-52,54-57,59-112,114-117,119
+src/components/board/SplitBoard.tsx
+  s_7c8257952893a7::t_9665fecf50e62b 1-266
+src/i18n.ts
+  s_7c8257952893a7::t_9eb72aa782aaf2 14-15,23-24,89-129,206-246,251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "25272fcfb7320062c4a78908714744f4356b21a3",
+  "prompts": {},
+  "sessions": {
+    "s_7c8257952893a7": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "45b1a81d-8512-474e-9419-6f3daa6926ea",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
