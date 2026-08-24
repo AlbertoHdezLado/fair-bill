@@ -1,0 +1,22 @@
+README.md
+  h_16f4373190dfe3 1
+src/app/layout.tsx
+  h_16f4373190dfe3 17,22
+src/app/manifest.ts
+  h_16f4373190dfe3 5-6
+src/components/CaptureFlow.tsx
+  h_16f4373190dfe3 285,452
+src/lib/session-storage.ts
+  h_16f4373190dfe3 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "fa05cb548f7e431e4cda29208829ff2af36b34b6",
+  "prompts": {},
+  "humans": {
+    "h_16f4373190dfe3": {
+      "author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    }
+  }
+}
