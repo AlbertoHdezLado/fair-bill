@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "myTab",
+  title: "fairBill",
   description: "Escanea el ticket y que cada uno marque lo que ha consumido.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "myTab",
+    title: "fairBill",
   },
 };
 

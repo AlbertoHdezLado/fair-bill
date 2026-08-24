@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "myTab",
-    short_name: "myTab",
+    name: "fairBill",
+    short_name: "fairBill",
     description: "Escanea el ticket y que cada uno marque lo que ha consumido.",
     start_url: "/",
     display: "standalone",

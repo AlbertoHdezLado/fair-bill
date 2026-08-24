@@ -282,7 +282,7 @@ export function CaptureFlow() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "Cuenta de myTab",
+          title: "Cuenta de fairBill",
           text,
           url: shareUrl,
         });
@@ -449,7 +449,7 @@ export function CaptureFlow() {
           aria-label="Volver al inicio"
           className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          <img src="/logo-light.svg" alt="myTab" className="h-16 w-auto" />
+          <img src="/fair-bill.svg" alt="fairBill" className="h-16 w-auto" />
         </button>
 
         {showResetConfirm && (
