@@ -449,7 +449,7 @@ export function CaptureFlow() {
           aria-label="Volver al inicio"
           className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          <img src="/fair-bill.svg" alt="fairBill" className="h-16 w-auto" />
+          <img src="/logo.svg" alt="fairBill" className="h-16 w-auto" />
         </button>
 
         {showResetConfirm && (
