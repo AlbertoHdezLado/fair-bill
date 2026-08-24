@@ -1,0 +1,20 @@
+src/components/CaptureFlow.tsx
+  h_fed6a40af368f7 188-190
+src/lib/receipt/parser.test.ts
+  h_fed6a40af368f7 217-288
+src/lib/receipt/parser.ts
+  h_fed6a40af368f7 9-15,22-46,74-80,97-98,101,105,107,118,121,126,132-148,151,161,165,172,200-203,205-219,262,484-492
+src/lib/receipt/types.ts
+  h_fed6a40af368f7 35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e6cee9a06d860588b75b64cf91ab73b1e1971dd1",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
