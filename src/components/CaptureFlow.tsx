@@ -355,6 +355,12 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
     setConfirmedKeys((prev) => prev.filter((k) => k !== key));
   }
 
+  function removeEmptyParticipant(index: number) {
+    if (!participants[index]?.name.trim() && participants.length > 2) {
+      removeParticipant(index);
+    }
+  }
+
   function handleClaimChange(
     itemId: string,
     participantKeys: readonly string[],
@@ -784,6 +790,7 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                           return next;
                         });
                       }}
+                      onBlur={() => removeEmptyParticipant(index)}
                       onKeyDown={(e) => {
                         if (e.key !== "Enter") return;
                         e.preventDefault();
@@ -806,7 +813,14 @@ export function CaptureFlow({ messages }: CaptureFlowProps) {
                           : "border-primary/75 shadow-[0_0_0_1px_rgba(34,197,94,0.18)] focus:border-primary focus:ring-primary/35 dark:border-primary/80"
                       }`}
                     />
-                    {!isPendingSlot && (
+                    {isPendingSlot ? (
+                      <span
+                        aria-hidden="true"
+                        className="rounded px-2 py-1 text-sm invisible"
+                      >
+                        ✕
+                      </span>
+                    ) : (
                       <button
                         type="button"
                         onClick={() => removeParticipant(index)}
