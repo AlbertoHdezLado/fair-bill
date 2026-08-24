@@ -185,7 +185,9 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
         })),
       );
       setExtras({
-        taxCents: sumByKind(parsed.summary, "tax"),
+        taxCents: parsed.taxIncludedInItems
+          ? 0
+          : sumByKind(parsed.summary, "tax"),
         tipCents: sumByKind(parsed.summary, "tip"),
         serviceCents: sumByKind(parsed.summary, "service"),
         discountCents: sumByKind(parsed.summary, "discount"),

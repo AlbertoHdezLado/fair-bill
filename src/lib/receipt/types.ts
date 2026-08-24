@@ -32,6 +32,8 @@ export interface ParsedReceipt {
   itemsSubtotalCents: number;
   /** Best-effort total the receipt claims to have (TOTAL line, if found). */
   detectedTotalCents: number | null;
+  /** true when the VAT quota is already part of each item price, so it must not be added again. */
+  taxIncludedInItems: boolean;
   /** true when itemsSubtotalCents (+ extras) doesn't reconcile with detectedTotalCents. */
   mismatch: boolean;
   mismatchDeltaCents: number;

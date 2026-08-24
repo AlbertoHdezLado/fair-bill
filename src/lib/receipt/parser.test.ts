@@ -214,4 +214,76 @@ describe("parseReceipt", () => {
     ]);
     expect(result.detectedTotalCents).toBe(1250);
   });
+
+  it("parses a full four-section receipt, keeping only the product section", () => {
+    const words = receiptWords([
+      "BAR LA PLAZA",
+      "CIF B12345678",
+      "TEL 912.34.56",
+      "FECHA 12.05.2024 HORA 21:30",
+      "MESA 7 CAMARERO 3",
+      "2,00 CERVEZA 5,00",
+      "1,00 TORTILLA 8,50",
+      "3,00 CAFE 4,50",
+      "BASE IMPONIBLE 16,36",
+      "10% 16,36 1,64",
+      "TOTAL IVA 1,64",
+      "TOTAL 18,00",
+    ]);
+
+    const result = parseReceipt(words);
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        name: "CERVEZA",
+        quantity: 2,
+        totalCents: 500,
+        unitPriceCents: 250,
+      }),
+      expect.objectContaining({
+        name: "TORTILLA",
+        quantity: 1,
+        totalCents: 850,
+        unitPriceCents: 850,
+      }),
+      expect.objectContaining({
+        name: "CAFE",
+        quantity: 3,
+        totalCents: 450,
+        unitPriceCents: 150,
+      }),
+    ]);
+    expect(result.itemsSubtotalCents).toBe(1800);
+    expect(result.detectedTotalCents).toBe(1800);
+    expect(result.mismatch).toBe(false);
+  });
+
+  it("ignores header dates and phone numbers instead of reading them as products", () => {
+    const words = receiptWords([
+      "FECHA 12.05.2024",
+      "TELEFONO 912.34.56",
+      "1 Cafe 1,50",
+      "TOTAL 1,50",
+    ]);
+
+    const result = parseReceipt(words);
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].name).toBe("CAFE");
+  });
+
+  it("does not read the percentage rows of the tax section as products", () => {
+    const words = receiptWords([
+      "1 Menu 10,00",
+      "BASE IMPONIBLE 9,09",
+      "10% 9,09 0,91",
+      "TOTAL 10,00",
+    ]);
+
+    const result = parseReceipt(words);
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].name).toBe("MENU");
+    expect(result.detectedTotalCents).toBe(1000);
+  });
 });

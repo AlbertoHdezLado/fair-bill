@@ -6,16 +6,43 @@ import type {
   ReceiptLineKind,
 } from "./types";
 
-// Rule-based parser: groups OCR words into visual lines, then matches each
-// line against "quantity? description price" patterns and a set of keywords
-// (TOTAL, SUBTOTAL, IVA, PROPINA, SERVICIO, DESCUENTO) that separate summary
-// figures from actual products. Always fallible by design — the line editor
-// is the safety net for whatever this misses.
+// Rule-based parser: groups OCR words into visual lines, then walks them as
+// the four sections a receipt is normally printed in — business/contact
+// header, product lines, tax breakdown (base/quota/VAT/discount) and the
+// grand total. Only the second section can yield products; the others are
+// matched against keywords (TOTAL, SUBTOTAL, IVA, PROPINA, SERVICIO,
+// DESCUENTO). Always fallible by design — the line editor is the safety net
+// for whatever this misses.
 
 const MISMATCH_TOLERANCE_CENTS = 2;
 
 /** Matches money tokens with exactly 2 decimal digits, comma or dot separated. */
 const MONEY_TOKEN_RE = /\d{1,3}(?:[ .]\d{3})*,\d{2}|\d+\.\d{2}/g;
+
+/**
+ * Three-part dates ("12.05.2024") and clock times ("21:30"): they are only
+ * ever header data, but "12.05" alone would otherwise read as a price. Two
+ * part numbers are left alone precisely because they usually are prices.
+ */
+const DATE_RE = /\b\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}\b/g;
+const TIME_RE = /\b\d{1,2}:\d{2}(?::\d{2})?\b/g;
+
+/** Fields printed above the product list: business, contact, date, table, waiter. */
+const HEADER_PATTERNS = [
+  /\bFECHA\b/,
+  /\bHORA\b/,
+  /\bMESA\b/,
+  /\bCAMARER[OA]\b/,
+  /\bMOZO\b/,
+  /\bCOMENSALES\b/,
+  /\bATENDID[OA]\b/,
+  /\bFACTURA\b/,
+  /\bTICKET\b/,
+  /\bC\.?I\.?F\.?\b/,
+  /\bN\.?I\.?F\.?\b/,
+  /\bTEL(?:F|EFONO)?\.?\b/,
+  /\bTFNO\.?\b/,
+];
 
 /** Matches "2 x 4,50" / "2x4.50" style quantity+unit-price patterns. */
 const QTY_PRICE_RE = /(\d+)\s?[x×X]\s?(\d+(?:[.,]\d{2})?)/;
@@ -44,6 +71,13 @@ const KEYWORD_PATTERNS: [RegExp, Exclude<ReceiptLineKind, "item">][] = [
   [/\bTOTAL\b/, "total"],
 ];
 
+/** Keywords that mark the start of the tax/total sections: no product follows them. */
+const TOTALS_SECTION_KINDS = new Set<Exclude<ReceiptLineKind, "item">>([
+  "subtotal",
+  "tax",
+  "total",
+]);
+
 export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   const groupedLines = groupWordsIntoLines(words);
   const pageBounds = unionBoundingBox(words);
@@ -60,14 +94,17 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
 
   let itemCounter = 0;
   let summaryCounter = 0;
+  let inTotalsSection = false;
+  let seenFirstItem = false;
 
   for (const lineWords of groupedLines) {
-    const line = lineWords
+    const raw = lineWords
       .map((w) => w.text)
       .join(" ")
       .trim();
-    if (!line) continue;
+    if (!raw) continue;
 
+    const line = stripDatesAndTimes(raw);
     const keyword = detectKeyword(line);
     const priceTokens = findMoneyTokens(line);
 
@@ -78,21 +115,40 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       // wrong figure), since `detectedTotalCents` trusts the *last* "total"
       // line found. Skip keyword lines that have no money amount instead.
       if (priceTokens.length === 0) {
-        unmatchedLines.push(line);
+        unmatchedLines.push(raw);
         continue;
       }
+      if (TOTALS_SECTION_KINDS.has(keyword)) inTotalsSection = true;
       const amountCents = priceTokens.at(-1)!;
       summary.push({
         id: `summary-${summaryCounter++}`,
         kind: keyword,
-        raw: line,
+        raw,
         amountCents,
       });
       continue;
     }
 
+    // Neither the header nor the tax/total sections ever contain products,
+    // whatever shape their lines happen to have (percentages, phone numbers,
+    // table numbers…).
+    if (inTotalsSection || (!seenFirstItem && isHeaderLine(line))) {
+      unmatchedLines.push(raw);
+      // A bare amount below the tax breakdown is very likely the grand total
+      // printed without a legible keyword, so it still feeds the fallback.
+      if (inTotalsSection && priceTokens.length === 1) {
+        numericCandidates.push({
+          amountCents: priceTokens[0],
+          bbox: unionBoundingBox(lineWords),
+          raw,
+        });
+      }
+      continue;
+    }
+
     const item = parseItemLine(line, priceTokens, lineWords);
     if (item) {
+      seenFirstItem = true;
       const { score, ...itemFields } = item;
       items.push({
         ...itemFields,
@@ -102,18 +158,18 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       numericCandidates.push({
         amountCents: item.totalCents,
         bbox: unionBoundingBox(lineWords),
-        raw: line,
+        raw,
         itemIndex: items.length - 1,
       });
     } else {
-      unmatchedLines.push(line);
+      unmatchedLines.push(raw);
       // A bare number with no product name is often the grand total when
       // its keyword wasn't recognized (e.g. "TOTAL" misread as garbage).
       if (priceTokens.length === 1) {
         numericCandidates.push({
           amountCents: priceTokens[0],
           bbox: unionBoundingBox(lineWords),
-          raw: line,
+          raw,
         });
       }
     }
@@ -141,14 +197,30 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   const totalLines = summary.filter((s) => s.kind === "total");
   const detectedTotalCents = totalLines.at(-1)?.amountCents ?? null;
 
-  const extrasCents = summary
-    .filter((s) => s.kind === "tax" || s.kind === "tip" || s.kind === "service")
+  let itemsSubtotalCents = items.reduce((sum, i) => sum + i.totalCents, 0);
+
+  const taxCents = summary
+    .filter((s) => s.kind === "tax")
     .reduce((sum, s) => sum + s.amountCents, 0);
+
+  // When the product lines already add up to the printed total, the
+  // base/quota section is just a breakdown of a tax-inclusive price (the
+  // usual Spanish layout); adding the quota again would double-count it.
+  const taxIncludedInItems =
+    taxCents > 0 &&
+    detectedTotalCents !== null &&
+    Math.abs(itemsSubtotalCents - detectedTotalCents) <=
+      MISMATCH_TOLERANCE_CENTS;
+
+  const extrasCents =
+    (taxIncludedInItems ? 0 : taxCents) +
+    summary
+      .filter((s) => s.kind === "tip" || s.kind === "service")
+      .reduce((sum, s) => sum + s.amountCents, 0);
   const discountCents = summary
     .filter((s) => s.kind === "discount")
     .reduce((sum, s) => sum + s.amountCents, 0);
 
-  let itemsSubtotalCents = items.reduce((sum, i) => sum + i.totalCents, 0);
   let mismatch = false;
   let mismatchDeltaCents = 0;
 
@@ -187,6 +259,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     unmatchedLines,
     itemsSubtotalCents,
     detectedTotalCents,
+    taxIncludedInItems,
     mismatch,
     mismatchDeltaCents,
   };
@@ -406,6 +479,15 @@ function detectKeyword(line: string): Exclude<ReceiptLineKind, "item"> | null {
     if (pattern.test(upper)) return kind;
   }
   return null;
+}
+
+function isHeaderLine(line: string): boolean {
+  const upper = normalizeForMatching(line);
+  return HEADER_PATTERNS.some((pattern) => pattern.test(upper));
+}
+
+function stripDatesAndTimes(line: string): string {
+  return line.replace(DATE_RE, " ").replace(TIME_RE, " ");
 }
 
 function normalizeForMatching(line: string): string {
