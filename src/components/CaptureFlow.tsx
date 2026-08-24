@@ -6,19 +6,15 @@ import { getOcrProvider, preprocessReceiptImage } from "@/lib/ocr";
 import { parseReceipt } from "@/lib/receipt/parser";
 import { computeSplit, type SplitResult } from "@/lib/split";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
-import { ParticipantRoster } from "@/components/ParticipantRoster";
-import { PersonClaimStep } from "@/components/PersonClaimStep";
 import { PersonTotals } from "@/components/PersonTotals";
+import { IdentityPicker } from "@/components/board/IdentityPicker";
+import { SplitBoard } from "@/components/board/SplitBoard";
 import { formatCents } from "@/lib/money";
 import { defaultMessages, type Messages } from "@/i18n";
 import {
   buildSplitClaims,
-  choiceGroup,
-  choiceTotalUnits,
-  ownChoice,
   removeParticipantClaims,
   setClaimChoice,
-  unitsTakenByAll,
   type ClaimChoice,
   type LocalClaims,
 } from "@/lib/local-claims";
@@ -33,7 +29,7 @@ import { clearSession, loadSession, saveSession } from "@/lib/session-storage";
 type ScanStatus =
   "idle" | "preprocessing" | "recognizing" | "parsing" | "done" | "error";
 
-type LocalStage = "bill" | "names" | "roster" | "claim" | "results";
+type LocalStage = "bill" | "names" | "identity" | "board" | "results";
 
 interface CaptureFlowProps {
   readonly messages?: Messages;
@@ -62,11 +58,8 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     { key: newItemId(), name: "" },
   ]);
   const [claims, setClaims] = useState<LocalClaims>({});
-  const [confirmedKeys, setConfirmedKeys] = useState<string[]>([]);
-  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [selfKey, setSelfKey] = useState<string | null>(null);
   const [localResult, setLocalResult] = useState<SplitResult | null>(null);
-  const [showUnclaimedPrompt, setShowUnclaimedPrompt] = useState(false);
-  const [showBillInRoster, setShowBillInRoster] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "error">("idle");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const hydrated = useRef(false);
@@ -93,10 +86,8 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     setLocalStage(saved.localStage);
     setParticipants(saved.participants);
     setClaims(saved.claims);
-    setConfirmedKeys(saved.confirmedKeys);
-    setActiveKey(saved.activeKey);
+    setSelfKey(saved.selfKey);
     setLocalResult(saved.localResult);
-    setShowBillInRoster(saved.showBillInRoster);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -113,10 +104,8 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
       localStage,
       participants,
       claims,
-      confirmedKeys,
-      activeKey,
+      selfKey,
       localResult,
-      showBillInRoster,
     });
   }, [
     items,
@@ -125,10 +114,8 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     localStage,
     participants,
     claims,
-    confirmedKeys,
-    activeKey,
+    selfKey,
     localResult,
-    showBillInRoster,
   ]);
 
   useEffect(() => {
@@ -145,11 +132,6 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
-
-  // Once diners start picking their items, the global bill is only reachable
-  // through the "edit bill" toggle in the names roster, not shown by default.
-  const showReceiptEditor =
-    localStage === "bill" || (localStage === "roster" && showBillInRoster);
 
   function handleFileSelected(file: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -202,17 +184,6 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     }
   }
 
-  async function copyResultToClipboard() {
-    if (!localResult) return;
-    const text = buildSummaryText(localResult);
-
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      setCopyStatus("error");
-    }
-  }
-
   async function shareResultSummary() {
     if (!localResult) return;
     const text = buildSummaryText(localResult);
@@ -220,11 +191,7 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
 
     try {
       if (navigator.share) {
-        await navigator.share({
-          title: t.shareTitle,
-          text,
-          url: shareUrl,
-        });
+        await navigator.share({ title: t.shareTitle, text, url: shareUrl });
         return;
       }
 
@@ -249,11 +216,8 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
       { key: newItemId(), name: "" },
     ]);
     setClaims({});
-    setConfirmedKeys([]);
-    setActiveKey(null);
+    setSelfKey(null);
     setLocalResult(null);
-    setShowUnclaimedPrompt(false);
-    setShowBillInRoster(false);
     setCopyStatus("idle");
     setShowResetConfirm(false);
     clearSession();
@@ -272,7 +236,7 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     setParticipants((prev) => prev.filter((_, i) => i !== index));
     if (!key) return;
     setClaims((prev) => removeParticipantClaims(prev, key));
-    setConfirmedKeys((prev) => prev.filter((k) => k !== key));
+    setSelfKey((prev) => (prev === key ? null : prev));
   }
 
   function handleClaimChange(
@@ -280,9 +244,9 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     participantKeys: readonly string[],
     choice: ClaimChoice | null,
   ) {
-    // La elección la crea el participante que tiene el turno: se replica en
-    // el grupo entero pero sigue siendo suya, sin pisar lo que ya tenían.
-    const owner = activeKey;
+    // La elección la crea quien está usando el móvil: se replica en el grupo
+    // entero pero sigue siendo suya, sin pisar lo que ya tenían.
+    const owner = selfKey;
     if (!owner) return;
     setClaims((prev) =>
       participantKeys.reduce(
@@ -292,28 +256,7 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
     );
   }
 
-  function confirmActiveParticipant() {
-    if (!activeKey) return;
-    setConfirmedKeys((prev) =>
-      prev.includes(activeKey) ? prev : [...prev, activeKey],
-    );
-    setActiveKey(null);
-    setLocalStage("roster");
-  }
-
-  function finishRoster() {
-    const unclaimed = items.filter(
-      (item) => unitsTakenByAll(item, claims) < item.quantity,
-    );
-    if (unclaimed.length > 0) {
-      setShowUnclaimedPrompt(true);
-      return;
-    }
-    computeLocalResult();
-  }
-
   function computeLocalResult() {
-    setShowUnclaimedPrompt(false);
     const cleanParticipants = participants.filter((p) => p.name.trim());
 
     const result = computeSplit({
@@ -356,13 +299,12 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
       .filter(([, count]) => count > 1)
       .map(([name]) => name),
   );
-  const hasDuplicateNames =
-    duplicateNames.size > 0;
-  const canContinueFromNames = namedParticipants.length >= 2 && !hasDuplicateNames;
-  const unclaimedItems = items.filter(
-    (item) => unitsTakenByAll(item, claims) < item.quantity,
-  );
+  const hasDuplicateNames = duplicateNames.size > 0;
+  const canContinueFromNames =
+    namedParticipants.length >= 2 && !hasDuplicateNames;
   const hasProgress = showEditor || isScanning || items.length > 0;
+  const showCaptureOptions =
+    localStage === "bill" && !showEditor && !isScanning;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
@@ -419,30 +361,10 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
             </div>
           </div>
         )}
-        {localStage === "bill" && !showEditor && !isScanning && (
-          <>
-            <p className="text-xl font-bold text-primary">{t.selectOption}</p>
-            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-surface px-3 py-2 text-left">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                className="mt-0.5 h-5 w-5 shrink-0 text-primary"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path strokeLinecap="round" d="M12 11v5" />
-                <path strokeLinecap="round" d="M12 8h.01" />
-              </svg>
-              <p className="text-sm text-foreground">{t.uploadHint}</p>
-            </div>
-          </>
-        )}
       </div>
 
-      {localStage === "bill" && !showEditor && !isScanning && (
-        <div className="flex flex-col items-center gap-5 text-center">
+      {showCaptureOptions && (
+        <div className="flex flex-col items-center gap-4 text-center">
           {/* Sin `capture`, para que el selector abra la galería en vez de la cámara */}
           <input
             ref={galleryInputRef}
@@ -469,74 +391,68 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
             }}
           />
 
-          <div className="grid w-full max-w-sm grid-cols-1 gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              disabled={isScanning}
-              aria-label={t.takePhotoLabel}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-primary/40 bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
-            >
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  className="h-6 w-6"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.822 1.316Z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"
-                  />
-                </svg>
-              </span>
-              <span className="text-sm font-semibold text-foreground">
-                {t.takePhoto}
-              </span>
-            </button>
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            aria-label={t.uploadImageLabel}
+            className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border-2 border-primary bg-surface p-8 shadow-sm transition-all hover:bg-primary/10"
+          >
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="h-8 w-8"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v2.75A1.25 1.25 0 0 0 5.25 20h13.5A1.25 1.25 0 0 0 20 18.75V16M8 8l4-4m0 0 4 4m-4-4v13"
+                />
+              </svg>
+            </span>
+            <span className="text-lg font-bold text-primary">
+              {t.uploadImage}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t.uploadHint}
+            </span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => galleryInputRef.current?.click()}
-              disabled={isScanning}
-              aria-label={t.uploadImageLabel}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-gold/50 bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            aria-label={t.takePhotoLabel}
+            className="inline-flex items-center gap-2 rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              className="h-5 w-5"
+              aria-hidden="true"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/15 text-gold">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  className="h-6 w-6"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 16v2.75A1.25 1.25 0 0 0 5.25 20h13.5A1.25 1.25 0 0 0 20 18.75V16M8 8l4-4m0 0 4 4m-4-4v13"
-                  />
-                </svg>
-              </span>
-              <span className="text-sm font-semibold text-foreground">
-                {t.uploadImage}
-              </span>
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.822 1.316Z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"
+              />
+            </svg>
+            {t.takePhoto}
+          </button>
 
           <button
             type="button"
             onClick={startManualEntry}
-            disabled={isScanning}
-            className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+            className="text-xs text-muted-foreground underline hover:text-primary"
           >
             {t.manualEntry}
           </button>
@@ -587,277 +503,186 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
         </div>
       )}
 
-      {showEditor && (
+      {showEditor && localStage === "bill" && (
         <>
-          {showReceiptEditor && (
-            <ReceiptEditor
-              items={items}
-              extras={extras}
-              onItemsChange={setItems}
-              onExtrasChange={setExtras}
-              messages={messages.receiptEditor}
-              itemRowMessages={messages.itemRow}
-            />
-          )}
-
-          {localStage === "bill" && (
-            <button
-              type="button"
-              onClick={() => setLocalStage("names")}
-              disabled={items.filter((item) => item.name.trim()).length === 0}
-              className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
-            >
-              {t.continue}
-            </button>
-          )}
-
-          {localStage === "names" && (
-            <div className="flex flex-col gap-3">
-              <p className="text-center text-xl font-bold text-primary">
-                {t.enterParticipants}
-              </p>
-              {participants.map((participant, index) => {
-                // El último hueco vacío es solo un anticipo del siguiente
-                // participante, no cuenta todavía: se muestra más tenue.
-                const isPendingSlot =
-                  index === participants.length - 1 && !participant.name.trim();
-                return (
-                  <div
-                    key={participant.key}
-                    className={`flex gap-2 transition-opacity ${
-                      isPendingSlot ? "opacity-40" : "opacity-100"
-                    }`}
-                  >
-                    <input
-                      ref={(el) => {
-                        participantInputRefs.current[index] = el;
-                      }}
-                      type="text"
-                      value={participant.name}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase();
-                        setParticipants((prev) => {
-                          const next = prev.map((p, i) =>
-                            i === index ? { ...p, name: value } : p,
-                          );
-                          const wasLast = index === prev.length - 1;
-                          if (wasLast && value.trim()) {
-                            next.push({ key: newItemId(), name: "" });
-                          }
-                          return next;
-                        });
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key !== "Enter") return;
-                        e.preventDefault();
-                        // El siguiente input puede tardar un tick en montarse
-                        // si este era el último hueco.
-                        setTimeout(() => {
-                          participantInputRefs.current[index + 1]?.focus();
-                        }, 0);
-                      }}
-                      placeholder={t.participantPlaceholder.replace(
-                        "{{number}}",
-                        String(index + 1),
-                      )}
-                      enterKeyHint="next"
-                      className={`min-w-0 flex-1 rounded border-2 bg-transparent px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 ${
-                        duplicateNames.has(
-                          normalizeParticipantName(participant.name),
-                        )
-                          ? "border-gold text-gold focus:ring-gold/40"
-                          : "border-primary/70 focus:border-primary focus:ring-primary/35"
-                      }`}
-                    />
-                    {!isPendingSlot && (
-                      <button
-                        type="button"
-                        onClick={() => removeParticipant(index)}
-                        aria-label={t.removeParticipantLabel}
-                        className="rounded px-2 py-1 text-sm text-primary/70 hover:bg-primary/10 hover:text-primary"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() => setLocalStage("roster")}
-                disabled={!canContinueFromNames}
-                className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
-              >
-                {t.continue}
-              </button>
-              {hasDuplicateNames && (
-                <p className="text-center text-sm text-gold">
-                  {t.duplicateNames}
-                </p>
-              )}
-            </div>
-          )}
-
-          {localStage === "roster" && (
-            <ParticipantRoster
-              participants={namedParticipants}
-              confirmedKeys={confirmedKeys}
-              onSelect={(key) => {
-                setActiveKey(key);
-                setLocalStage("claim");
-              }}
-              onFinish={finishRoster}
-              onEditNames={() => setLocalStage("names")}
-              showBill={showBillInRoster}
-              onToggleBill={() => setShowBillInRoster((prev) => !prev)}
-              messages={messages.roster}
-            />
-          )}
-
-          {showUnclaimedPrompt && (
-            <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
-              <button
-                type="button"
-                aria-label={t.closeLabel}
-                onClick={() => setShowUnclaimedPrompt(false)}
-                className="absolute inset-0 bg-ink/70"
-              />
-              <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-lg border border-gold bg-background p-4 shadow-2xl">
-                <div className="flex items-center justify-center gap-2 text-gold">
-                  <AlertTriangle
-                    aria-hidden="true"
-                    size={20}
-                    strokeWidth={2}
-                    className="shrink-0"
-                  />
-                  <p className="text-center text-lg font-bold">
-                    {t.unclaimedTitle}
-                  </p>
-                </div>
-                <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 text-sm text-foreground">
-                  {unclaimedItems.map((item) => {
-                    const missing =
-                      item.quantity - unitsTakenByAll(item, claims);
-                    const assignments = namedParticipants
-                      .map((participant) => {
-                        const choice = ownChoice(
-                          claims,
-                          participant.key,
-                          item.id,
-                        );
-                        if (!choice) return null;
-                        const group = choiceGroup(participant.key, choice).map(
-                          (key) =>
-                            namedParticipants
-                              .find((p) => p.key === key)
-                              ?.name.trim() || "?",
-                        );
-                        return {
-                          ownerKey: participant.key,
-                          units: choiceTotalUnits(item, choice),
-                          names: group.join(" + "),
-                        };
-                      })
-                      .filter((entry) => entry !== null);
-                    return (
-                      <li
-                        key={item.id}
-                        className="rounded border border-gold/40 px-2 py-1.5"
-                      >
-                        <p className="font-medium">
-                          {item.name || t.unnamedProduct} x
-                          {roundUnits(missing)}
-                        </p>
-                        {assignments.length > 0 && (
-                          <ul className="mt-1 list-disc pl-4 text-xs opacity-80">
-                            {assignments.map((assignment) => (
-                              <li key={assignment.ownerKey}>
-                                {roundUnits(assignment.units)} {t.unitsAbbr} —{" "}
-                                {assignment.names}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={computeLocalResult}
-                    className="rounded-full bg-gold px-5 py-3 text-sm font-medium text-gold-foreground hover:bg-gold-hover"
-                  >
-                    {t.splitBetweenEveryone}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowUnclaimedPrompt(false)}
-                    className="rounded-full border border-primary px-5 py-3 text-sm font-medium text-primary hover:bg-primary/10"
-                  >
-                    {t.review}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {localStage === "claim" && activeKey && (
-            <PersonClaimStep
-              participantKey={activeKey}
-              participantName={
-                participants.find((p) => p.key === activeKey)?.name.trim() ?? ""
-              }
-              participants={namedParticipants.map((p) => ({
-                key: p.key,
-                name: p.name.trim(),
-              }))}
-              items={items}
-              claims={claims}
-              onChange={handleClaimChange}
-              onConfirm={confirmActiveParticipant}
-              onBack={() => {
-                setActiveKey(null);
-                setLocalStage("roster");
-              }}
-              messages={messages.claim}
-            />
-          )}
-
-          {localStage === "results" && localResult && (
-            <div className="flex flex-col gap-3">
-              {localResult.people.map((person) => (
-                <PersonTotals
-                  key={person.participantId}
-                  person={person}
-                  currency="EUR"
-                  hasPaid={false}
-                  isOwn={false}
-                  messages={messages.totals}
-                />
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  void shareResultSummary();
-                }}
-                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
-              >
-                {t.share}
-              </button>
-              {copyStatus === "error" && (
-                <p className="text-xs text-gold">{t.copyError}</p>
-              )}
-              <button
-                type="button"
-                onClick={() => setLocalStage("roster")}
-                className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
-              >
-                {t.backToSplit}
-              </button>
-            </div>
-          )}
+          <ReceiptEditor
+            items={items}
+            extras={extras}
+            onItemsChange={setItems}
+            onExtrasChange={setExtras}
+            messages={messages.receiptEditor}
+            itemRowMessages={messages.itemRow}
+          />
+          <button
+            type="button"
+            onClick={() => setLocalStage("names")}
+            disabled={items.filter((item) => item.name.trim()).length === 0}
+            className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+          >
+            {t.continue}
+          </button>
         </>
+      )}
+
+      {localStage === "names" && (
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-xl font-bold text-primary">
+            {t.enterParticipants}
+          </p>
+          {participants.map((participant, index) => {
+            // El último hueco vacío es solo un anticipo del siguiente
+            // participante, no cuenta todavía: se muestra más tenue.
+            const isPendingSlot =
+              index === participants.length - 1 && !participant.name.trim();
+            return (
+              <div
+                key={participant.key}
+                className={`flex gap-2 transition-opacity ${
+                  isPendingSlot ? "opacity-40" : "opacity-100"
+                }`}
+              >
+                <input
+                  ref={(el) => {
+                    participantInputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  value={participant.name}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+                    setParticipants((prev) => {
+                      const next = prev.map((p, i) =>
+                        i === index ? { ...p, name: value } : p,
+                      );
+                      const wasLast = index === prev.length - 1;
+                      if (wasLast && value.trim()) {
+                        next.push({ key: newItemId(), name: "" });
+                      }
+                      return next;
+                    });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    // El siguiente input puede tardar un tick en montarse
+                    // si este era el último hueco.
+                    setTimeout(() => {
+                      participantInputRefs.current[index + 1]?.focus();
+                    }, 0);
+                  }}
+                  placeholder={t.participantPlaceholder.replace(
+                    "{{number}}",
+                    String(index + 1),
+                  )}
+                  enterKeyHint="next"
+                  className={`min-w-0 flex-1 rounded border-2 bg-transparent px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 ${
+                    duplicateNames.has(
+                      normalizeParticipantName(participant.name),
+                    )
+                      ? "border-gold text-gold focus:ring-gold/40"
+                      : "border-primary/70 focus:border-primary focus:ring-primary/35"
+                  }`}
+                />
+                {!isPendingSlot && (
+                  <button
+                    type="button"
+                    onClick={() => removeParticipant(index)}
+                    aria-label={t.removeParticipantLabel}
+                    className="rounded px-2 py-1 text-sm text-primary/70 hover:bg-primary/10 hover:text-primary"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setLocalStage("identity")}
+            disabled={!canContinueFromNames}
+            className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+          >
+            {t.continue}
+          </button>
+          {hasDuplicateNames && (
+            <p className="text-center text-sm text-gold">{t.duplicateNames}</p>
+          )}
+        </div>
+      )}
+
+      {localStage === "identity" && (
+        <IdentityPicker
+          participants={namedParticipants.map((p) => ({
+            key: p.key,
+            name: p.name.trim(),
+          }))}
+          onSelect={(key) => {
+            setSelfKey(key);
+            setLocalStage("board");
+          }}
+          onAdd={(name) => {
+            const key = newItemId();
+            setParticipants((prev) => [
+              ...prev.filter((p) => p.name.trim()),
+              { key, name },
+              { key: newItemId(), name: "" },
+            ]);
+            setSelfKey(key);
+            setLocalStage("board");
+          }}
+          messages={messages.board}
+        />
+      )}
+
+      {localStage === "board" && selfKey && (
+        <SplitBoard
+          items={items}
+          extras={extras}
+          participants={namedParticipants.map((p) => ({
+            key: p.key,
+            name: p.name.trim(),
+          }))}
+          claims={claims}
+          selfKey={selfKey}
+          onItemsChange={setItems}
+          onClaimChange={handleClaimChange}
+          onSwitchUser={() => setLocalStage("identity")}
+          onFinish={computeLocalResult}
+          messages={messages}
+        />
+      )}
+
+      {localStage === "results" && localResult && (
+        <div className="flex flex-col gap-3">
+          {localResult.people.map((person) => (
+            <PersonTotals
+              key={person.participantId}
+              person={person}
+              currency="EUR"
+              hasPaid={false}
+              isOwn={person.participantId === selfKey}
+              messages={messages.totals}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              void shareResultSummary();
+            }}
+            className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+          >
+            {t.share}
+          </button>
+          {copyStatus === "error" && (
+            <p className="text-xs text-gold">{t.copyError}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => setLocalStage("board")}
+            className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+          >
+            {t.backToSplit}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -866,14 +691,12 @@ export function CaptureFlow({ messages = defaultMessages }: CaptureFlowProps) {
 function buildSummaryText(localResult: SplitResult): string {
   return localResult.people
     .map((person) => {
-      const items = person.items.map(
-        (item) => {
-          const sharedMark = item.hasUnclaimedShare
-            ? " [dividido entre todos]"
-            : "";
-          return `- ${item.itemName} x${item.effectiveUnits}: ${formatCents(item.shareCents, "EUR")}${sharedMark}`;
-        },
-      );
+      const items = person.items.map((item) => {
+        const sharedMark = item.hasUnclaimedShare
+          ? " [dividido entre todos]"
+          : "";
+        return `- ${item.itemName} x${item.effectiveUnits}: ${formatCents(item.shareCents, "EUR")}${sharedMark}`;
+      });
       return [
         `${person.name}: ${formatCents(person.totalCents, "EUR")}`,
         ...items,
@@ -944,7 +767,10 @@ function parseSharedSummaryFromLocation(): SplitResult | null {
 
   if (people.length === 0) return null;
 
-  const subtotalTotalCents = people.reduce((sum, person) => sum + person.totalCents, 0);
+  const subtotalTotalCents = people.reduce(
+    (sum, person) => sum + person.totalCents,
+    0,
+  );
 
   return {
     people,
@@ -992,8 +818,4 @@ function sumByKind(
 
 function normalizeParticipantName(name: string): string {
   return name.trim().replace(/\s+/g, " ").toUpperCase();
-}
-
-function roundUnits(units: number): number {
-  return Math.round(units * 100) / 100;
 }

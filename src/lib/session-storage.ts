@@ -2,19 +2,17 @@ import type { SplitResult } from "@/lib/split";
 import type { EditableExtras, EditableItem } from "@/lib/receipt/editable";
 import type { LocalClaims } from "@/lib/local-claims";
 
-const STORAGE_KEY = "fairBill.session.v1";
+const STORAGE_KEY = "fairBill.session.v2";
 
 export type PersistedSession = {
   items: EditableItem[];
   extras: EditableExtras;
   showEditor: boolean;
-  localStage: "bill" | "names" | "roster" | "claim" | "results";
+  localStage: "bill" | "names" | "identity" | "board" | "results";
   participants: { key: string; name: string }[];
   claims: LocalClaims;
-  confirmedKeys: string[];
-  activeKey: string | null;
+  selfKey: string | null;
   localResult: SplitResult | null;
-  showBillInRoster: boolean;
 };
 
 export function loadSession(): PersistedSession | null {
