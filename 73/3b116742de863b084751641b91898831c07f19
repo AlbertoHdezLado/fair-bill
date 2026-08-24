@@ -1,0 +1,51 @@
+next-env.d.ts
+  s_dd1d69fa72cdf3::t_ef74158b557062 3-4
+public/icon.svg
+  s_dd1d69fa72cdf3::t_415a61e86487dd 3-8
+public/logo-light.svg
+  s_a621a716c9e79f::t_36c2d3d3d3f6ec 2-4
+src/components/PersonTotals.test.tsx
+  s_fa9ecac8ab4a78::t_5c1b8e669676a5 1-51
+src/components/PersonTotals.tsx
+  s_cf1c7a5c1f2c30::t_46300688d6ff4f 48-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "733b116742de863b084751641b91898831c07f19",
+  "prompts": {},
+  "sessions": {
+    "s_a621a716c9e79f": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "a97a1bc2-1435-4367-8c90-7bedea4d38a8",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    },
+    "s_cf1c7a5c1f2c30": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "8dff2427-4796-4f0c-95f3-29f5da1644e8",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    },
+    "s_dd1d69fa72cdf3": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "0c48f52b-0173-4d16-af0f-3e97275e99f0",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    },
+    "s_fa9ecac8ab4a78": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "46b06685-062e-45db-b781-2ddbded586b7",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    }
+  }
+}
