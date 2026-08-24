@@ -1,20 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { preferredLocaleFromAcceptLanguage } from "@/lib/locale";
 
 const locales = ["es", "en"] as const;
-
-function getPreferredLocale(request: NextRequest): (typeof locales)[number] {
-  const acceptedLanguages = request.headers.get("accept-language") ?? "";
-  const requestedLanguages = acceptedLanguages
-    .split(",")
-    .map((entry) => entry.split(";")[0]?.trim().toLowerCase())
-    .filter(Boolean);
-
-  return requestedLanguages.some(
-    (language) => language === "en" || language.startsWith("en-"),
-  )
-    ? "en"
-    : "es";
-}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,7 +11,9 @@ export function proxy(request: NextRequest) {
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = `/${getPreferredLocale(request)}${pathname}`;
+  url.pathname = `/${preferredLocaleFromAcceptLanguage(
+    request.headers.get("accept-language"),
+  )}${pathname}`;
   return NextResponse.redirect(url);
 }
 
