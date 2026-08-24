@@ -1,0 +1,18 @@
+src/lib/locale.test.ts
+  h_16f4373190dfe3 1-26
+src/lib/locale.ts
+  h_16f4373190dfe3 1-43
+src/proxy.ts
+  h_16f4373190dfe3 2,14-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7bb1c31eea9e073b9c2b1d908970ddb757b3beb1",
+  "prompts": {},
+  "humans": {
+    "h_16f4373190dfe3": {
+      "author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    }
+  }
+}
