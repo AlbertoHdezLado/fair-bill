@@ -1,0 +1,22 @@
+public/sw.js
+  h_16f4373190dfe3 5,7-8,44,58
+src/components/PersonClaimStep.test.tsx
+  h_16f4373190dfe3 1-43
+src/components/PersonClaimStep.tsx
+  h_16f4373190dfe3 23,86-90,128-132,158,164-170,192,224,238,251,474-481
+src/proxy.test.ts
+  h_16f4373190dfe3 1-27
+src/proxy.ts
+  h_16f4373190dfe3 9-13,18,20-21,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b8e072a8b3f46914dedd619436689ff0a8be05da",
+  "prompts": {},
+  "humans": {
+    "h_16f4373190dfe3": {
+      "author": "Alberto Hernandez Lado <albertohljob@gmail.com>"
+    }
+  }
+}
