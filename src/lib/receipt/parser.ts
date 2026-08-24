@@ -183,13 +183,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     }
   }
 
-  // Confidence buckets are relative to this receipt's own items: each
-  // item's score is placed into a quartile of the score distribution across
-  // all items on the ticket, rather than compared to fixed cutoffs. This
-  // way a receipt full of messy OCR still highlights its worst lines, and a
-  // very clean receipt doesn't get lines flagged just because their score
-  // is a bit lower than the (mostly high) rest.
-  const confidences = assignConfidenceByQuartiles(itemScores);
+  const confidences = assignConfidenceByScore(itemScores);
   items.forEach((item, index) => {
     item.confidence = confidences[index];
   });
@@ -290,8 +284,8 @@ function parseItemLine(
  * (explicit "N x price"/"N Ud." quantity markers, a single unambiguous price
  * token, a description that isn't just leftover digits, exact quantity*price
  * reconciliation) plus the OCR engine's own average word confidence. Purely
- * heuristic — the raw score is later bucketed into confidence levels
- * relative to the rest of the receipt (see assignConfidenceByQuartiles),
+ * heuristic — the raw score is later bucketed into fixed confidence levels
+ * (see assignConfidenceByScore),
  * used to color-code lines in the editor so the user knows which ones are
  * worth double-checking, never to hide or auto-correct anything.
  */
@@ -331,36 +325,17 @@ function computeItemScore(params: {
 }
 
 /**
- * Splits a receipt's item scores into confidence levels by percentile *rank*
- * (not by raw value), so items are compared only to the rest of this
- * receipt:
- * - Top 50% → "high"/"medium" (shown as "probable" in the editor)
- * - Bottom 50% → "low"/"very-low" (shown as "revisa")
- * Ranking (rather than thresholding on the score value) guarantees both
- * groups are populated whenever there's more than one item, even if every
- * line scored identically — a receipt should never end up with every item
- * flagged "probable" or every item flagged "revisa" just because the parser
- * was uniformly confident (or unconfident) about all of them.
+ * Maps absolute item scores (-3 through 6) to confidence levels. A receipt's
+ * lines are evaluated independently, so a clean line stays reliable even if
+ * the rest of the ticket was poorly recognized, and vice versa.
  */
-function assignConfidenceByQuartiles(scores: number[]): ItemParseConfidence[] {
-  const n = scores.length;
-  if (n === 0) return [];
-  if (n === 1) return ["medium"];
-
-  const order = scores
-    .map((score, index) => ({ score, index }))
-    .sort((a, b) => a.score - b.score || a.index - b.index);
-
-  const confidences: ItemParseConfidence[] = new Array(n);
-  order.forEach(({ index }, rank) => {
-    const p = rank / (n - 1); // 0 (lowest-scored item) .. 1 (highest-scored item)
-    if (p < 0.25) confidences[index] = "very-low";
-    else if (p < 0.5) confidences[index] = "low";
-    else if (p < 0.75) confidences[index] = "medium";
-    else confidences[index] = "high";
+function assignConfidenceByScore(scores: number[]): ItemParseConfidence[] {
+  return scores.map((score) => {
+    if (score >= 5) return "high";
+    if (score >= 3) return "medium";
+    if (score >= 1) return "low";
+    return "very-low";
   });
-
-  return confidences;
 }
 
 /** Parses a possibly-decimal quantity token like "2", "1,00" or "4.00". */

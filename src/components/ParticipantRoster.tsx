@@ -72,7 +72,7 @@ export function ParticipantRoster({
             disabled={!allDone}
             className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
           >
-            {allDone ? "Ver reparto" : "Faltan participantes por marcar"}
+            Continuar
           </button>
         </>
       )}

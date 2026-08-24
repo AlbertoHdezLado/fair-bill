@@ -2,7 +2,7 @@ import type { SplitResult } from "@/lib/split";
 import type { EditableExtras, EditableItem } from "@/lib/receipt/editable";
 import type { LocalClaims } from "@/lib/local-claims";
 
-const STORAGE_KEY = "miticket.session.v1";
+const STORAGE_KEY = "myTab.session.v1";
 
 export type PersistedSession = {
   items: EditableItem[];

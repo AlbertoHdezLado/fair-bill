@@ -22,6 +22,7 @@
 
   --success-solid: #0faf8f;
   --warning-solid: #e0a527;
+  --warning-solid-foreground: #3e2600;
   --error-solid: #d64545;
   --info-solid: #3d6788;
 
@@ -57,6 +58,7 @@
   --color-success-bg: var(--success-bg);
   --color-success-foreground: var(--success-foreground);
   --color-warning-solid: var(--warning-solid);
+  --color-warning-solid-foreground: var(--warning-solid-foreground);
   --color-warning-bg: var(--warning-bg);
   --color-warning-foreground: var(--warning-foreground);
   --color-error-solid: var(--error-solid);
@@ -93,6 +95,7 @@
     --success-bg: #0d3830;
     --success-foreground: #5dcdb8;
     --warning-bg: #3d2c0c;
+    --warning-solid-foreground: #fff3d6;
     --warning-foreground: #e6b95c;
     --error-bg: #3d1414;
     --error-foreground: #f19999;

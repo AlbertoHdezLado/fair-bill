@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "miTicket",
+  title: "myTab",
   description: "Escanea el ticket y que cada uno marque lo que ha consumido.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "miTicket",
+    title: "myTab",
   },
 };
 
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#10af8f" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a1620" },
   ],
 };
 

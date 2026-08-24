@@ -22,7 +22,7 @@ export function OfflineBanner() {
   if (online) return null;
 
   return (
-    <div className="bg-warning-solid px-4 py-2 text-center text-xs font-medium text-warning-foreground">
+    <div className="bg-warning-solid px-4 py-2 text-center text-xs font-medium text-warning-solid-foreground">
       Sin conexión — tu selección se sincronizará cuando vuelvas a estar en
       línea.
     </div>

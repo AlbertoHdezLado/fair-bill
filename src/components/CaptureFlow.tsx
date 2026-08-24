@@ -73,9 +73,7 @@ export function CaptureFlow() {
   const [localResult, setLocalResult] = useState<SplitResult | null>(null);
   const [showUnclaimedPrompt, setShowUnclaimedPrompt] = useState(false);
   const [showBillInRoster, setShowBillInRoster] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
-    "idle",
-  );
+  const [copyStatus, setCopyStatus] = useState<"idle" | "error">("idle");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const hydrated = useRef(false);
 
@@ -83,7 +81,16 @@ export function CaptureFlow() {
   // reparto ya extraído, no el flujo de captura.
   useEffect(() => {
     const saved = loadSession();
+    const summaryFromUrl = parseSharedSummaryFromLocation();
     hydrated.current = true;
+
+    if (summaryFromUrl) {
+      setLocalResult(summaryFromUrl);
+      setLocalStage("results");
+      setShowEditor(true);
+      return;
+    }
+
     if (!saved) return;
     /* eslint-disable react-hooks/set-state-in-effect -- rehidratacion puntual al montar */
     setItems(saved.items);
@@ -258,46 +265,31 @@ export function CaptureFlow() {
 
   async function copyResultToClipboard() {
     if (!localResult) return;
-    const totalsLines = localResult.people.map(
-      (person) => `${person.name}: ${formatCents(person.totalCents, "EUR")}`,
-    );
-
-    const breakdownLines = localResult.people.flatMap((person) => {
-      const lines = [`${person.name}:`];
-      if (person.items.length === 0) {
-        lines.push("  No ha reclamado ninguna línea.");
-      } else {
-        for (const item of person.items) {
-          const qty =
-            item.claimedUnits > 0
-              ? ` x${Math.round(item.claimedUnits * 100) / 100}`
-              : "";
-          lines.push(
-            `  ${item.itemName}${qty}: ${formatCents(item.shareCents, "EUR")}`,
-          );
-        }
-      }
-      lines.push(`  Subtotal: ${formatCents(person.subtotalCents, "EUR")}`);
-      if (person.taxCents > 0)
-        lines.push(`  IVA: ${formatCents(person.taxCents, "EUR")}`);
-      if (person.tipCents > 0)
-        lines.push(
-          `  Propina / servicio: ${formatCents(person.tipCents, "EUR")}`,
-        );
-      if (person.discountCents > 0) {
-        lines.push(`  Descuento: -${formatCents(person.discountCents, "EUR")}`);
-      }
-      lines.push(`  Total: ${formatCents(person.totalCents, "EUR")}`);
-      return lines;
-    });
-
-    const text = [...totalsLines, "", "Desglose:", ...breakdownLines].join(
-      "\n",
-    );
+    const text = buildSummaryText(localResult);
 
     try {
       await navigator.clipboard.writeText(text);
-      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("error");
+    }
+  }
+
+  async function shareResultSummary() {
+    if (!localResult) return;
+    const text = buildSummaryText(localResult);
+    const shareUrl = buildSummaryShareUrl(text);
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Cuenta de myTab",
+          text,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
     } catch {
       setCopyStatus("error");
     }
@@ -457,13 +449,7 @@ export function CaptureFlow() {
           aria-label="Volver al inicio"
           className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          <picture>
-            <source
-              srcSet="/logo-dark.svg"
-              media="(prefers-color-scheme: dark)"
-            />
-            <img src="/logo-light.svg" alt="miTicket" className="h-16 w-auto" />
-          </picture>
+          <img src="/logo-light.svg" alt="myTab" className="h-16 w-auto" />
         </button>
 
         {showResetConfirm && (
@@ -493,14 +479,14 @@ export function CaptureFlow() {
                 <button
                   type="button"
                   onClick={() => setShowResetConfirm(false)}
-                  className="rounded-full border border-accent px-5 py-3 text-sm font-medium text-accent hover:bg-accent/10"
+                  className="rounded-full border border-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:bg-warning-solid/10"
                 >
                   Seguir aquí
                 </button>
                 <button
                   type="button"
                   onClick={resetToStart}
-                  className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                  className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:brightness-95"
                 >
                   Empezar de nuevo
                 </button>
@@ -508,7 +494,10 @@ export function CaptureFlow() {
             </div>
           </div>
         )}
-        {!showEditor && !showCrop && !showProcessingPreview && (
+        {localStage === "bill" &&
+          !showEditor &&
+          !showCrop &&
+          !showProcessingPreview && (
           <>
             <p className="text-xl font-bold text-accent">
               Selecciona una opción
@@ -591,7 +580,10 @@ export function CaptureFlow() {
         </div>
       )}
 
-      {!showEditor && !showCrop && !showProcessingPreview && (
+      {localStage === "bill" &&
+        !showEditor &&
+        !showCrop &&
+        !showProcessingPreview && (
         <div className="flex flex-col items-center gap-5 text-center">
           {/* Sin `capture`, para que el selector abra la galería en vez de la cámara */}
           <input
@@ -867,7 +859,7 @@ export function CaptureFlow() {
                     Productos sin asignar
                   </p>
                 </div>
-                <ul className="flex flex-col gap-2 text-sm text-warning-foreground">
+                <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 text-sm text-warning-foreground">
                   {unclaimedItems.map((item) => {
                     const missing =
                       item.quantity - unitsTakenByAll(item, claims);
@@ -898,9 +890,8 @@ export function CaptureFlow() {
                         className="rounded border border-warning-solid/40 px-2 py-1.5"
                       >
                         <p className="font-medium">
-                          {item.name || "Producto sin nombre"} — faltan{" "}
-                          {roundUnits(missing)} ud. ×{" "}
-                          {formatCents(item.unitPriceCents, "EUR")}
+                          {item.name || "Producto sin nombre"} x
+                          {roundUnits(missing)}
                         </p>
                         {assignments.length > 0 && (
                           <ul className="mt-1 list-disc pl-4 text-xs opacity-80">
@@ -919,17 +910,17 @@ export function CaptureFlow() {
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowUnclaimedPrompt(false)}
-                    className="rounded-full border border-accent px-5 py-3 text-sm font-medium text-accent hover:bg-accent/10"
+                    onClick={computeLocalResult}
+                    className="rounded-full bg-warning-solid px-5 py-3 text-sm font-medium text-warning-solid-foreground hover:brightness-95"
                   >
-                    Revisar
+                    Dividir entre todos
                   </button>
                   <button
                     type="button"
-                    onClick={computeLocalResult}
-                    className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                    onClick={() => setShowUnclaimedPrompt(false)}
+                    className="rounded-full border border-warning-solid px-5 py-3 text-sm font-medium text-warning-foreground hover:bg-warning-solid/10"
                   >
-                    Dividir entre todos
+                    Revisar
                   </button>
                 </div>
               </div>
@@ -971,15 +962,15 @@ export function CaptureFlow() {
               <button
                 type="button"
                 onClick={() => {
-                  void copyResultToClipboard();
+                  void shareResultSummary();
                 }}
                 className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground"
               >
-                {copyStatus === "copied" ? "Copiado" : "Copiar cuenta"}
+                Compartir
               </button>
               {copyStatus === "error" && (
                 <p className="text-xs text-error-foreground">
-                  No se pudo copiar al portapapeles.
+                  No se pudo copiar el contenido.
                 </p>
               )}
               <button
@@ -995,6 +986,124 @@ export function CaptureFlow() {
       )}
     </div>
   );
+}
+
+function buildSummaryText(localResult: SplitResult): string {
+  return localResult.people
+    .map((person) => {
+      const items = person.items.map(
+        (item) => {
+          const sharedMark = item.hasUnclaimedShare
+            ? " [dividido entre todos]"
+            : "";
+          return `- ${item.itemName} x${item.effectiveUnits}: ${formatCents(item.shareCents, "EUR")}${sharedMark}`;
+        },
+      );
+      return [
+        `${person.name}: ${formatCents(person.totalCents, "EUR")}`,
+        ...items,
+      ].join("\n");
+    })
+    .join("\n");
+}
+
+function parseSharedSummaryFromLocation(): SplitResult | null {
+  if (typeof window === "undefined") return null;
+
+  const summary = new URLSearchParams(window.location.search).get("summary");
+  if (!summary) return null;
+
+  const lines = summary
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return null;
+
+  const people: SplitResult["people"] = [];
+  for (const line of lines) {
+    if (line.startsWith("- ")) {
+      const hasUnclaimedShare = line.endsWith(" [dividido entre todos]");
+      const itemLine = hasUnclaimedShare
+        ? line.slice(0, -" [dividido entre todos]".length)
+        : line;
+      const itemMatch = itemLine.match(/^-\s+(.+?)\s+x([\d.,]+):\s+(.+)$/);
+      const currentPerson = people.at(-1);
+      if (!itemMatch || !currentPerson) continue;
+
+      const [, itemName, rawUnits, rawItemAmount] = itemMatch;
+      const shareCents = parseSharedAmountToCents(rawItemAmount);
+      const effectiveUnits = Number.parseFloat(rawUnits.replace(",", "."));
+      if (Number.isNaN(shareCents) || Number.isNaN(effectiveUnits)) continue;
+
+      currentPerson.items.push({
+        itemId: `${currentPerson.participantId}-item-${currentPerson.items.length}`,
+        itemName: itemName.trim(),
+        claimedUnits: effectiveUnits,
+        effectiveUnits,
+        hasUnclaimedShare,
+        shareCents,
+        itemTotalCents: shareCents,
+      });
+      continue;
+    }
+
+    const match = line.match(/^(.+?)\s*:\s*(.+)$/);
+    if (!match) continue;
+
+    const [, rawName, rawAmount] = match;
+    const totalCents = parseSharedAmountToCents(rawAmount);
+    if (Number.isNaN(totalCents)) continue;
+
+    people.push({
+      participantId: rawName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      name: rawName.trim(),
+      items: [],
+      subtotalCents: totalCents,
+      taxCents: 0,
+      tipCents: 0,
+      discountCents: 0,
+      totalCents,
+    });
+  }
+
+  if (people.length === 0) return null;
+
+  const subtotalTotalCents = people.reduce((sum, person) => sum + person.totalCents, 0);
+
+  return {
+    people,
+    unclaimedItemIds: [],
+    grandTotalCents: subtotalTotalCents,
+    subtotalTotalCents,
+  };
+}
+
+function parseSharedAmountToCents(rawAmount: string): number {
+  if (!rawAmount) return Number.NaN;
+
+  let cleaned = rawAmount.replace(/[€£$]/g, "").replace(/EUR/gi, "").trim();
+  if (!cleaned) return Number.NaN;
+
+  const negative = cleaned.startsWith("-");
+  cleaned = cleaned.replace(/-/g, "");
+
+  if (cleaned.includes(".") && cleaned.includes(",")) {
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (cleaned.includes(",")) {
+    cleaned = cleaned.replace(",", ".");
+  }
+
+  const parsed = Number.parseFloat(cleaned.replace(/[^0-9.]/g, ""));
+  if (Number.isNaN(parsed)) return Number.NaN;
+
+  return Math.round((negative ? -parsed : parsed) * 100);
+}
+
+export function buildSummaryShareUrl(summary: string): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set("summary", summary);
+  return url.toString();
 }
 
 function sumByKind(

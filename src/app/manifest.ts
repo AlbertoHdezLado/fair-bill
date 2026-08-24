@@ -2,13 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "miTicket",
-    short_name: "miTicket",
+    name: "myTab",
+    short_name: "myTab",
     description: "Escanea el ticket y que cada uno marque lo que ha consumido.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#ffffff",
+    background_color: "#e8eef3",
     theme_color: "#10af8f",
     icons: [
       {

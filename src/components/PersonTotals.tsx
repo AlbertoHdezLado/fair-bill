@@ -45,8 +45,8 @@ export function PersonTotals({
             key={item.itemId}
             className={`flex justify-between gap-2 ${
               item.hasUnclaimedShare
-                ? "font-semibold text-warning-solid"
-                : undefined
+                ? "font-medium text-warning-solid"
+                : "font-medium text-zinc-700 dark:text-zinc-200"
             }`}
           >
             <span className="truncate">
@@ -61,12 +61,6 @@ export function PersonTotals({
           </div>
         ))}
         {person.items.length === 0 && <p>No ha reclamado ninguna línea.</p>}
-        <div className="mt-1 flex justify-between gap-2 border-t border-zinc-100 pt-1 dark:border-zinc-800">
-          <span>Subtotal</span>
-          <span className="tabular-nums">
-            {formatCents(person.subtotalCents, currency)}
-          </span>
-        </div>
         {person.taxCents > 0 && (
           <div className="flex justify-between gap-2">
             <span>IVA</span>
