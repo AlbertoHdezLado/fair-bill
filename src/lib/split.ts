@@ -53,7 +53,7 @@ export interface PersonSplit {
 
 export interface SplitResult {
   people: PersonSplit[];
-  /** Ids de líneas con unidades sin reclamar (se han repartido entre todos). */
+  /** Ids de líneas con unidades sin reclamar. */
   unclaimedItemIds: string[];
   grandTotalCents: number;
   /** Suma de los subtotales de todas las personas: base usada para prorratear IVA/propina/descuento. */
@@ -65,6 +65,8 @@ export interface ComputeSplitInput {
   claims: SplitClaimInput[];
   participants: SplitParticipantInput[];
   extras: SplitExtras;
+  /** When false, leave unclaimed units out until the account is closed. */
+  distributeUnclaimed?: boolean;
 }
 
 // Reparte `totalCents` entre `weights` (proporcional, no negativo) de forma que la
@@ -116,8 +118,9 @@ function allocateItem(
   item: SplitItemInput,
   claims: IndexedClaim[],
   n: number,
+  distributeUnclaimed: boolean,
 ): ItemAllocation {
-  const itemTotalCents = item.quantity * item.unitPriceCents;
+  const fullItemTotalCents = item.quantity * item.unitPriceCents;
   const claimedByParticipant = new Array(n).fill(0) as number[];
   let claimedSum = 0;
   for (const claim of claims) {
@@ -127,13 +130,19 @@ function allocateItem(
   }
 
   const unclaimedUnits = Math.max(0, item.quantity - claimedSum);
+  const itemTotalCents = distributeUnclaimed
+    ? fullItemTotalCents
+    : claimedSum * item.unitPriceCents;
   const subtotals = new Array(n).fill(0) as number[];
   const personItems: PersonItemShare[][] = Array.from({ length: n }, () => []);
 
   if (n > 0) {
-    const unclaimedShare = unclaimedUnits / n;
+    const unclaimedShare = distributeUnclaimed ? unclaimedUnits / n : 0;
     const weights = claimedByParticipant.map((units) => units + unclaimedShare);
-    const shares = allocateByWeights(itemTotalCents, weights);
+    const shares =
+      !distributeUnclaimed && claimedSum === 0
+        ? new Array(n).fill(0)
+        : allocateByWeights(itemTotalCents, weights);
     for (let i = 0; i < n; i++) {
       if (shares[i] === 0 && claimedByParticipant[i] === 0) continue;
       subtotals[i] = shares[i];
@@ -157,6 +166,7 @@ export function computeSplit({
   claims,
   participants,
   extras,
+  distributeUnclaimed = true,
 }: ComputeSplitInput): SplitResult {
   const n = participants.length;
   const subtotals = new Array(n).fill(0) as number[];
@@ -175,7 +185,7 @@ export function computeSplit({
 
   for (const item of items) {
     itemsTotalCents += item.quantity * item.unitPriceCents;
-    const allocation = allocateItem(item, indexedClaims, n);
+    const allocation = allocateItem(item, indexedClaims, n, distributeUnclaimed);
     if (allocation.isUnclaimed) unclaimedItemIds.push(item.id);
     for (let i = 0; i < n; i++) {
       subtotals[i] += allocation.subtotals[i];

@@ -60,7 +60,6 @@ const LEADING_QTY_RE =
 // checked before the generic TOTAL pattern, because lines like "TOTAL IVA"
 // or "BASE IMPONIBLE" (the pre-tax amount + applied tax quota that usually
 // sit between the last product and the grand total) would otherwise be
-// misclassified as the receipt's final total.
 const KEYWORD_PATTERNS: [RegExp, Exclude<ReceiptLineKind, "item">][] = [
   [/SUBTOTAL/, "subtotal"],
   [/BASE\s*IMPONIBLE|\bBASE\b/, "subtotal"],
@@ -80,16 +79,14 @@ const TOTALS_SECTION_KINDS = new Set<Exclude<ReceiptLineKind, "item">>([
 
 export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   const groupedLines = groupWordsIntoLines(words);
-  const pageBounds = unionBoundingBox(words);
-
   const items: ParsedItemLine[] = [];
+  const headerLines: string[] = [];
   const itemScores: number[] = [];
   const summary: ParsedSummaryLine[] = [];
   const unmatchedLines: string[] = [];
 
-  // Amount + on-page position of every item and bare-number line, so a
-  // fallback pass can spot the grand total even when its keyword ("TOTAL"
-  // etc.) wasn't recognized by OCR — see findPositionalTotal below.
+  // Amount of every priced line, kept in OCR order so the final one is the
+  // ticket total even when its label is classified as another summary kind.
   const numericCandidates: NumericCandidate[] = [];
 
   let itemCounter = 0;
@@ -116,6 +113,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       // line found. Skip keyword lines that have no money amount instead.
       if (priceTokens.length === 0) {
         unmatchedLines.push(raw);
+        if (!seenFirstItem) headerLines.push(raw);
         continue;
       }
       if (TOTALS_SECTION_KINDS.has(keyword)) inTotalsSection = true;
@@ -126,6 +124,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
         raw,
         amountCents,
       });
+      numericCandidates.push({ amountCents, raw });
       continue;
     }
 
@@ -134,12 +133,12 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     // table numbers…).
     if (inTotalsSection || (!seenFirstItem && isHeaderLine(line))) {
       unmatchedLines.push(raw);
+      if (!seenFirstItem) headerLines.push(raw);
       // A bare amount below the tax breakdown is very likely the grand total
       // printed without a legible keyword, so it still feeds the fallback.
       if (inTotalsSection && priceTokens.length === 1) {
         numericCandidates.push({
           amountCents: priceTokens[0],
-          bbox: unionBoundingBox(lineWords),
           raw,
         });
       }
@@ -157,45 +156,43 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       itemScores.push(score);
       numericCandidates.push({
         amountCents: item.totalCents,
-        bbox: unionBoundingBox(lineWords),
         raw,
         itemIndex: items.length - 1,
       });
     } else {
       unmatchedLines.push(raw);
+      if (!seenFirstItem) headerLines.push(raw);
       // A bare number with no product name is often the grand total when
       // its keyword wasn't recognized (e.g. "TOTAL" misread as garbage).
       if (priceTokens.length === 1) {
         numericCandidates.push({
           amountCents: priceTokens[0],
-          bbox: unionBoundingBox(lineWords),
           raw,
         });
       }
     }
   }
 
-  // Only fall back to position-based detection when no "TOTAL" keyword line
-  // was found at all — a correctly recognized keyword always wins.
-  if (!summary.some((s) => s.kind === "total")) {
-    const positionalTotal = findPositionalTotal(numericCandidates, pageBounds);
-    if (positionalTotal) {
-      if (positionalTotal.itemIndex !== undefined) {
-        items.splice(positionalTotal.itemIndex, 1);
-      }
-      summary.push({
-        id: `summary-${summaryCounter++}`,
-        kind: "total",
-        raw: positionalTotal.raw,
-        amountCents: positionalTotal.amountCents,
-      });
-    }
+  const lastPricedLine = numericCandidates.at(-1);
+  const hasSummaryTotal = summary.some((s) => s.kind === "total");
+  if (lastPricedLine?.itemIndex !== undefined && hasSummaryTotal) {
+    items.splice(lastPricedLine.itemIndex, 1);
+    itemScores.splice(lastPricedLine.itemIndex, 1);
   }
 
-  // Receipts often print more than one "total"-labelled line (e.g. a partial
-  // total before extras); the grand total is the last one that appears.
-  const totalLines = summary.filter((s) => s.kind === "total");
-  const detectedTotalCents = totalLines.at(-1)?.amountCents ?? null;
+  if (!hasSummaryTotal && lastPricedLine?.itemIndex === undefined) {
+    summary.push({
+      id: `summary-${summaryCounter++}`,
+      kind: "total",
+      raw: lastPricedLine.raw,
+      amountCents: lastPricedLine.amountCents,
+    });
+  }
+
+  const detectedTotalCents =
+    hasSummaryTotal || lastPricedLine?.itemIndex === undefined
+      ? (lastPricedLine?.amountCents ?? null)
+      : null;
 
   let itemsSubtotalCents = items.reduce((sum, i) => sum + i.totalCents, 0);
 
@@ -254,6 +251,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   }
 
   return {
+    headerLines,
     items,
     summary,
     unmatchedLines,
@@ -412,52 +410,9 @@ function stripMatchedTokens(
 
 interface NumericCandidate {
   amountCents: number;
-  bbox: OcrBoundingBox;
   raw: string;
   /** Present when this candidate came from `items` (index to splice out if promoted). */
   itemIndex?: number;
-}
-
-const TOTAL_MIN_RATIO_OVER_RUNNER_UP = 1.4;
-const TOTAL_MIN_RELATIVE_Y = 0.55;
-const TOTAL_MIN_RELATIVE_X = 0.35;
-
-/**
- * Fallback for tickets whose grand total wasn't recognized via keyword (e.g.
- * "TOTAL" misread by OCR): the total is usually the largest money amount on
- * the receipt and sits in the bottom-right area, below and to the right of
- * the individual product lines.
- */
-function findPositionalTotal(
-  candidates: NumericCandidate[],
-  pageBounds: OcrBoundingBox,
-): NumericCandidate | null {
-  // Require at least two other numbers to compare against — with only one
-  // "other" candidate, a legitimately larger second item (e.g. "2 Vino 8,00"
-  // after "1 Cerveza 4,00") is too easily mistaken for the total.
-  if (candidates.length < 3) return null;
-
-  const [top, ...rest] = [...candidates].sort(
-    (a, b) => b.amountCents - a.amountCents,
-  );
-  const runnerUpCents = Math.max(...rest.map((c) => c.amountCents));
-  if (
-    runnerUpCents <= 0 ||
-    top.amountCents < runnerUpCents * TOTAL_MIN_RATIO_OVER_RUNNER_UP
-  ) {
-    return null;
-  }
-
-  const width = pageBounds.x1 - pageBounds.x0 || 1;
-  const height = pageBounds.y1 - pageBounds.y0 || 1;
-  const relativeX = (top.bbox.x1 - pageBounds.x0) / width;
-  const relativeY = ((top.bbox.y0 + top.bbox.y1) / 2 - pageBounds.y0) / height;
-
-  if (relativeY < TOTAL_MIN_RELATIVE_Y || relativeX < TOTAL_MIN_RELATIVE_X) {
-    return null;
-  }
-
-  return top;
 }
 
 /** Smallest bounding box that contains every given word (or line of words). */

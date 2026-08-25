@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 
 /** Warns that the room can't be read or updated while the device is offline. */
 export function OfflineBanner({ message }: { readonly message: string }) {
-  const [online, setOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  // Assume online on the first render so it matches the server-rendered HTML;
+  // the real value is synced right after mount.
+  const [online, setOnline] = useState(true);
 
   useEffect(() => {
+    setOnline(navigator.onLine);
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
     window.addEventListener("online", handleOnline);

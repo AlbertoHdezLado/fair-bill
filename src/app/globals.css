@@ -66,18 +66,31 @@
   --color-gold-hover: var(--gold-hover);
   --color-gold-foreground: var(--gold-foreground);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-app-sans);
+  --font-mono: var(--font-app-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.011em;
+  text-rendering: optimizeLegibility;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 @keyframes receipt-scan {
@@ -90,7 +103,29 @@ body {
 }
 
 .animate-receipt-scan {
+  top: 0;
   animation: receipt-scan 2s ease-in-out infinite alternate;
+}
+
+.ticket-paper {
+  position: relative;
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.ticket-paper::after {
+  position: absolute;
+  right: 0;
+  bottom: -9px;
+  left: 0;
+  height: 10px;
+  background: var(--surface);
+  clip-path: polygon(
+    0 0, 5% 100%, 10% 0, 15% 100%, 20% 0, 25% 100%, 30% 0,
+    35% 100%, 40% 0, 45% 100%, 50% 0, 55% 100%, 60% 0, 65% 100%,
+    70% 0, 75% 100%, 80% 0, 85% 100%, 90% 0, 95% 100%, 100% 0
+  );
+  content: "";
 }
 
 @media (prefers-reduced-motion: reduce) {

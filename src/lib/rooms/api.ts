@@ -59,6 +59,7 @@ export async function saveClaim(
   claim: {
     itemId: string;
     ownerId: string;
+    groupKey: string;
     participantIds: readonly string[];
     units: number | null;
     groupIds: readonly string[];

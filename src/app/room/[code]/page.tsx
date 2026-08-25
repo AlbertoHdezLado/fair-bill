@@ -6,17 +6,17 @@ import { getRequestMessages } from "@/lib/server-locale";
 export default async function RoomPage({
   params,
 }: {
-  params: Promise<{ code: string }>;
+  readonly params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
   if (!isValidRoomCode(code)) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
+    <main className="mx-auto flex h-[100svh] max-h-[100svh] min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 overflow-hidden px-4 py-6">
       <RoomFlow
         code={normalizeRoomCode(code)}
         messages={await getRequestMessages()}
       />
-    </div>
+    </main>
   );
 }

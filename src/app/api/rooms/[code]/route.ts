@@ -6,11 +6,11 @@ import {
   findRoom,
   loadRoomState,
 } from "@/lib/rooms/store";
+import { MAX_PRODUCT_NAME_LENGTH } from "@/lib/input-limits";
 
 export const runtime = "nodejs";
 
 const MAX_ITEMS = 200;
-const MAX_NAME_LENGTH = 80;
 
 export async function GET(
   _request: Request,
@@ -65,12 +65,29 @@ export async function PUT(
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
 
-  const { error: extrasError } = await supabase
-    .from("rooms")
-    .update(extras)
-    .eq("id", room.id);
+  const saveExtras = async (payload: Record<string, unknown>) =>
+    supabase.from("rooms").update(payload).eq("id", room.id);
+
+  const { error: extrasError } = await saveExtras(extras);
   if (extrasError) {
-    return NextResponse.json({ error: "Could not save" }, { status: 500 });
+    if (
+      // 42703: Postgres undefined_column. PGRST204: PostgREST's schema cache
+      // hasn't picked up the column yet (e.g. right after a migration).
+      (extrasError.code === "42703" || extrasError.code === "PGRST204") &&
+      /(merchant_name|receipt_header)/.test(extrasError.message ?? "")
+    ) {
+      const fallbackExtras = Object.fromEntries(
+        Object.entries(extras).filter(
+          ([key]) => key !== "merchant_name" && key !== "receipt_header",
+        ),
+      );
+      const { error: fallbackError } = await saveExtras(fallbackExtras);
+      if (fallbackError) {
+        return NextResponse.json({ error: "Could not save" }, { status: 500 });
+      }
+    } else {
+      return NextResponse.json({ error: "Could not save" }, { status: 500 });
+    }
   }
 
   // Claims cascade from items, so replacing the list also clears the shares of
@@ -117,7 +134,7 @@ function parseItems(value: unknown): IncomingItem[] | null {
       return null;
     }
     items.push({
-      name: name.slice(0, MAX_NAME_LENGTH),
+      name: name.slice(0, MAX_PRODUCT_NAME_LENGTH),
       quantity: Math.max(0, quantity),
       unitPriceCents: Math.max(0, Math.round(unitPriceCents)),
       edited: item.state === "editado",
@@ -126,7 +143,7 @@ function parseItems(value: unknown): IncomingItem[] | null {
   return items;
 }
 
-function parseExtras(value: unknown): Record<string, number | null> | null {
+function parseExtras(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null) return null;
   const extras = value as Record<string, unknown>;
 
@@ -144,8 +161,12 @@ function parseExtras(value: unknown): Record<string, number | null> | null {
   }
 
   const detectedTotalCents = toFiniteNumber(extras.detectedTotalCents);
+  const header = parseHeader(extras.receiptHeader);
+  const merchantName = parseMerchantName(extras.merchantName, header);
 
   return {
+    merchant_name: merchantName,
+    receipt_header: header,
     tax_cents: Math.round(taxCents),
     tip_cents: Math.round(tipCents),
     service_cents: Math.round(serviceCents),
@@ -153,6 +174,21 @@ function parseExtras(value: unknown): Record<string, number | null> | null {
     detected_total_cents:
       detectedTotalCents === null ? null : Math.round(detectedTotalCents),
   };
+}
+
+function parseMerchantName(value: unknown, header: string[]): string {
+  const headerValue =
+    typeof value === "string" ? value.trim() : header[0]?.trim() ?? "";
+  return headerValue.slice(0, 120);
+}
+
+function parseHeader(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((line): line is string => typeof line === "string")
+    .map((line) => line.trim().slice(0, 120))
+    .filter(Boolean)
+    .slice(0, 20);
 }
 
 function toFiniteNumber(value: unknown): number | null {

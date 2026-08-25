@@ -44,7 +44,7 @@ pnpm install
 pnpm dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000). Desde la portada puedes hacer
+Abre [http://localhost:3001](http://localhost:3001). Desde la portada puedes hacer
 una foto del ticket (o introducir las líneas a mano), revisar/editar el ticket
 leído y repartirlo entre los participantes pasando el móvil.
 

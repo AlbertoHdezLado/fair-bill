@@ -10,10 +10,11 @@ export function toLocalClaims(claims: readonly RoomClaim[]): LocalClaims {
     const entries = (forPerson[claim.itemId] ??= []);
     entries.push({
       owner: claim.ownerId,
+      groupId: claim.groupKey,
       choice: {
         mode: "units",
         count: claim.units,
-        group: claim.groupIds.length > 1 ? [...claim.groupIds] : undefined,
+        group: claim.groupIds.length > 0 ? [...claim.groupIds] : undefined,
       },
     });
   }

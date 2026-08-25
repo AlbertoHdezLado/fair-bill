@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ownChoice } from "@/lib/local-claims";
+import { itemGroups, ownChoice } from "@/lib/local-claims";
 import { toLocalClaims } from "./claims";
 
 describe("toLocalClaims", () => {
@@ -9,6 +9,7 @@ describe("toLocalClaims", () => {
         itemId: "i1",
         participantId: "p1",
         ownerId: "p1",
+        groupKey: "g1",
         units: 2,
         groupIds: [],
       },
@@ -23,6 +24,7 @@ describe("toLocalClaims", () => {
         itemId: "i1",
         participantId: "p1",
         ownerId: "p1",
+        groupKey: "g1",
         units: 1,
         groupIds: ["p1", "p2"],
       },
@@ -30,6 +32,7 @@ describe("toLocalClaims", () => {
         itemId: "i1",
         participantId: "p2",
         ownerId: "p1",
+        groupKey: "g1",
         units: 1,
         groupIds: ["p1", "p2"],
       },
@@ -51,6 +54,7 @@ describe("toLocalClaims", () => {
         itemId: "i1",
         participantId: "p2",
         ownerId: "p2",
+        groupKey: "g1",
         units: 1,
         groupIds: [],
       },
@@ -58,6 +62,7 @@ describe("toLocalClaims", () => {
         itemId: "i1",
         participantId: "p2",
         ownerId: "p1",
+        groupKey: "g2",
         units: 2,
         groupIds: ["p1", "p2"],
       },
@@ -65,5 +70,47 @@ describe("toLocalClaims", () => {
 
     expect(claims.p2.i1).toHaveLength(2);
     expect(ownChoice(claims, "p2", "i1")).toEqual({ mode: "units", count: 1 });
+  });
+
+  it("keeps several groups owned by the same person apart", () => {
+    const claims = toLocalClaims([
+      {
+        itemId: "i1",
+        participantId: "p1",
+        ownerId: "p1",
+        groupKey: "g1",
+        units: 1,
+        groupIds: ["p1"],
+      },
+      {
+        itemId: "i1",
+        participantId: "p1",
+        ownerId: "p1",
+        groupKey: "g2",
+        units: 2,
+        groupIds: ["p1", "p2"],
+      },
+      {
+        itemId: "i1",
+        participantId: "p2",
+        ownerId: "p1",
+        groupKey: "g2",
+        units: 2,
+        groupIds: ["p1", "p2"],
+      },
+    ]);
+
+    const item = {
+      id: "i1",
+      name: "CERVEZA",
+      quantity: 4,
+      unitPriceCents: 250,
+      state: "leido" as const,
+    };
+
+    expect(itemGroups(item, claims)).toEqual([
+      { groupId: "g1", ownerId: "p1", memberIds: ["p1"], units: 1 },
+      { groupId: "g2", ownerId: "p1", memberIds: ["p1", "p2"], units: 2 },
+    ]);
   });
 });

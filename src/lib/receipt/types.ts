@@ -24,6 +24,8 @@ export interface ParsedSummaryLine {
 export type ParsedLine = ParsedItemLine | ParsedSummaryLine;
 
 export interface ParsedReceipt {
+  /** Lines printed before the first product, usually venue and contact data. */
+  headerLines: string[];
   items: ParsedItemLine[];
   summary: ParsedSummaryLine[];
   /** Lines that had no price token and could not be classified. */

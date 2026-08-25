@@ -3,11 +3,16 @@
 
 const TARGET_WIDTH = 1600;
 
+export type ReceiptImageVariant = "contrast" | "threshold";
+
 /**
  * Resizes the image to ~TARGET_WIDTH, converts it to grayscale and stretches
  * contrast, then re-encodes it as a JPEG blob ready to feed to an OCR engine.
  */
-export async function preprocessReceiptImage(file: File | Blob): Promise<Blob> {
+export async function preprocessReceiptImage(
+  file: File | Blob,
+  variant: ReceiptImageVariant = "contrast",
+): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
 
   const scale = Math.min(1, TARGET_WIDTH / bitmap.width);
@@ -27,6 +32,9 @@ export async function preprocessReceiptImage(file: File | Blob): Promise<Blob> {
 
   const imageData = ctx.getImageData(0, 0, width, height);
   grayscaleAndStretchContrast(imageData);
+  if (variant === "threshold") {
+    applyOtsuThreshold(imageData);
+  }
   ctx.putImageData(imageData, 0, 0);
 
   return await canvasToBlob(canvas);
@@ -54,6 +62,54 @@ function grayscaleAndStretchContrast(imageData: ImageData) {
     data[i] = stretched;
     data[i + 1] = stretched;
     data[i + 2] = stretched;
+  }
+}
+
+function applyOtsuThreshold(imageData: ImageData) {
+  const histogram = new Uint32Array(256);
+  const { data } = imageData;
+
+  for (let i = 0; i < data.length; i += 4) {
+    histogram[data[i]]++;
+  }
+
+  const totalPixels = data.length / 4;
+  const totalIntensity = histogram.reduce(
+    (sum, count, intensity) => sum + intensity * count,
+    0,
+  );
+  let backgroundPixels = 0;
+  let backgroundIntensity = 0;
+  let bestThreshold = 128;
+  let bestVariance = 0;
+
+  for (let threshold = 0; threshold < histogram.length; threshold++) {
+    backgroundPixels += histogram[threshold];
+    if (backgroundPixels === 0) continue;
+
+    const foregroundPixels = totalPixels - backgroundPixels;
+    if (foregroundPixels === 0) break;
+
+    backgroundIntensity += threshold * histogram[threshold];
+    const backgroundMean = backgroundIntensity / backgroundPixels;
+    const foregroundMean =
+      (totalIntensity - backgroundIntensity) / foregroundPixels;
+    const variance =
+      backgroundPixels *
+      foregroundPixels *
+      (backgroundMean - foregroundMean) ** 2;
+
+    if (variance > bestVariance) {
+      bestVariance = variance;
+      bestThreshold = threshold;
+    }
+  }
+
+  for (let i = 0; i < data.length; i += 4) {
+    const value = data[i] > bestThreshold ? 255 : 0;
+    data[i] = value;
+    data[i + 1] = value;
+    data[i + 2] = value;
   }
 }
 

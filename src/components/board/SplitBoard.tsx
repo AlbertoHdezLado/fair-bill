@@ -1,29 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { formatCents } from "@/lib/money";
 import {
+  assignedUnits,
   buildSplitClaims,
   claimedUnits,
-  ownChoice,
-  unitsTakenByAll,
-  unitsTakenExcludingOwner,
-  type ClaimChoice,
+  itemGroups,
   type LocalClaims,
 } from "@/lib/local-claims";
 import {
   editorSubtotalCents,
-  itemTotalCents,
   type EditableExtras,
   type EditableItem,
 } from "@/lib/receipt/editable";
 import { computeSplit } from "@/lib/split";
 import { AssignedBar } from "./AssignedBar";
-import { BillProgress, type BoardTab } from "./BillProgress";
-import { ItemActionSheet, type SheetMode } from "./ItemActionSheet";
-import { ProductCard, formatUnits } from "./ProductCard";
+import { BillProgress, BoardTabs, type BoardTab } from "./BillProgress";
+import { ItemActionSheet } from "./ItemActionSheet";
+import { NotificationBell, type BoardNotification } from "./NotificationBell";
+import { formatUnits, ProductCard } from "./ProductCard";
+import { ReceiptEditor } from "@/components/ReceiptEditor";
 import type { Messages } from "@/i18n";
+import type { RoomEvent } from "@/lib/rooms/types";
 
 interface Participant {
   readonly key: string;
@@ -35,16 +34,52 @@ interface SplitBoardProps {
   readonly extras: EditableExtras;
   readonly participants: readonly Participant[];
   readonly claims: LocalClaims;
+  readonly events?: readonly RoomEvent[];
   readonly selfKey: string;
   readonly onItemsChange: (items: EditableItem[]) => void;
-  readonly onClaimChange: (
+  readonly onExtrasChange: (extras: EditableExtras) => void;
+  /** Creates, updates (`units`) or drops (`units === null`) one group of a line. */
+  readonly onSaveGroup: (
     itemId: string,
-    participantKeys: readonly string[],
-    choice: ClaimChoice | null,
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
   ) => void;
-  readonly onSwitchUser: () => void;
-  readonly onFinish: () => void;
+  readonly tableLabel: string;
+  readonly onToggleShare: () => void;
+  readonly onFinish?: () => void;
   readonly messages: Messages;
+}
+
+function toBoardNotification(
+  event: RoomEvent,
+  participants: readonly Participant[],
+  messages: Messages["board"],
+): BoardNotification {
+  const actor =
+    participants.find((participant) => participant.key === event.actorId)?.name ??
+    event.actorId ??
+    "?";
+  const itemName = event.itemName || messages.unnamedItem;
+
+  const text =
+    event.kind === "group_removed"
+      ? messages.groupRemovedBy
+          .replace("{{actor}}", actor)
+          .replace("{{item}}", itemName)
+      : messages.groupChangedBy
+          .replace("{{actor}}", actor)
+          .replace("{{item}}", itemName)
+          .replace("{{units}}", formatUnits(event.units ?? 0))
+          .replace("{{people}}", String(event.peopleCount ?? 0));
+
+  return {
+    id: event.id,
+    text,
+    at: event.at,
+    read: false,
+  };
 }
 
 export function SplitBoard({
@@ -52,35 +87,47 @@ export function SplitBoard({
   extras,
   participants,
   claims,
+  events = [],
   selfKey,
   onItemsChange,
-  onClaimChange,
-  onSwitchUser,
+  onExtrasChange,
+  onSaveGroup,
+  tableLabel,
+  onToggleShare,
   onFinish,
   messages,
 }: SplitBoardProps) {
   const t = messages.board;
-  const [tab, setTab] = useState<BoardTab>("remaining");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<{
-    itemId: string;
-    mode: SheetMode;
-  } | null>(null);
+  const [tab, setTab] = useState<BoardTab>("all");
+  const [sheet, setSheet] = useState<{ itemId: string } | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
+  const [notifications, setNotifications] = useState<
+    readonly BoardNotification[]
+  >([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const nameOf = (key: string) =>
+    participants.find((participant) => participant.key === key)?.name ?? key;
+
+  const groupsByItem = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof itemGroups>>();
+    for (const item of items) map.set(item.id, itemGroups(item, claims));
+    return map;
+  }, [items, claims]);
 
   const totalCents = editorSubtotalCents([...items]);
   const assignedCents = items.reduce(
     (sum, item) =>
       sum +
       Math.round(
-        Math.min(unitsTakenByAll(item, claims), item.quantity) *
+        Math.min(assignedUnits(item, claims), item.quantity) *
           item.unitPriceCents,
       ),
     0,
   );
   const fullyAssignedCount = items.filter(
-    (item) => unitsTakenByAll(item, claims) >= item.quantity,
+    (item) => assignedUnits(item, claims) >= item.quantity,
   ).length;
 
   const split = computeSplit({
@@ -101,166 +148,177 @@ export function SplitBoard({
       tipCents: extras.tipCents + extras.serviceCents,
       discountCents: extras.discountCents,
     },
+    distributeUnclaimed: false,
   });
 
-  const visibleItems = items.filter((item) =>
+  useEffect(() => {
+    // Keeps read/unread flags for already seen events while reflecting
+    // persisted history from the server.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza avisos locales con historial remoto persistido
+    setNotifications((previous) => {
+      const previousById = new Map(previous.map((notice) => [notice.id, notice]));
+      return events.map((event) => {
+        const next = toBoardNotification(event, participants, t);
+        return previousById.get(next.id)
+          ? { ...next, read: previousById.get(next.id)!.read }
+          : next;
+      });
+    });
+  }, [events, participants, t]);
+
+  const saveGroup = (
+    itemId: string,
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
+  ) => {
+    onSaveGroup(itemId, groupId, ownerId, memberIds, units);
+    setSheet(null);
+  };
+
+  const visibleItems =
     tab === "mine"
-      ? claimedUnits(item, claims, selfKey) > 0
-      : unitsTakenByAll(item, claims) < item.quantity,
-  );
+      ? items.filter((item) => claimedUnits(item, claims, selfKey) > 0)
+      : items;
 
   const sheetItem = sheet
     ? (items.find((item) => item.id === sheet.itemId) ?? null)
     : null;
 
   return (
-    <div className="flex flex-col gap-3 pb-24">
-      <BillProgress
-        assignedCents={assignedCents}
-        totalCents={totalCents}
-        assignedItems={fullyAssignedCount}
-        totalItems={items.length}
-        tab={tab}
-        onTabChange={setTab}
-        onOpenTableBill={() => setTableBillOpen(true)}
-        messages={t}
-      />
-
-      <div className="flex flex-col gap-2">
-        {visibleItems.map((item) => (
-          <ProductCard
-            key={item.id}
-            item={item}
-            remainingUnits={Math.max(
-              0,
-              item.quantity - unitsTakenByAll(item, claims),
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 flex-col">
+          <div className="sticky top-0 z-20 flex shrink-0 flex-col gap-3 bg-background pb-0 shadow-sm">
+            <BillProgress
+              assignedCents={assignedCents}
+              totalCents={totalCents}
+              assignedItems={fullyAssignedCount}
+              totalItems={items.length}
+              onOpenTableBill={() => setTableBillOpen(true)}
+              tableLabel={tableLabel}
+              onToggleShare={onToggleShare}
+              notifications={
+                <NotificationBell
+                  notifications={notifications}
+                  open={notificationsOpen}
+                  onToggle={() => {
+                    setNotificationsOpen((prev) => !prev);
+                    setNotifications((prev) =>
+                      prev.map((notification) => ({
+                        ...notification,
+                        read: true,
+                      })),
+                    );
+                  }}
+                  onClose={() => setNotificationsOpen(false)}
+                  onClear={() => setNotifications([])}
+                  messages={t}
+                />
+              }
+              messages={t}
+            />
+            <BoardTabs tab={tab} onTabChange={setTab} messages={t} />
+          </div>
+          <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
+            {visibleItems.map((item) => {
+              const groups = groupsByItem.get(item.id) ?? [];
+              return (
+                <ProductCard
+                  key={item.id}
+                  item={item}
+                  remainingUnits={Math.max(
+                    0,
+                    item.quantity - assignedUnits(item, claims),
+                  )}
+                  myUnits={claimedUnits(item, claims, selfKey)}
+                  groups={groups.map((group) => ({
+                    groupId: group.groupId,
+                    memberNames: group.memberIds.map(nameOf),
+                    units: group.units,
+                    includesSelf: group.memberIds.includes(selfKey),
+                  }))}
+                  showGroups={tab === "mine"}
+                  onSelect={() => setSheet({ itemId: item.id })}
+                  messages={t}
+                />
+              );
+            })}
+            {visibleItems.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {tab === "mine" ? t.nothingAssigned : t.nothingRemaining}
+              </p>
             )}
-            myUnits={claimedUnits(item, claims, selfKey)}
-            expanded={expandedId === item.id}
-            onToggle={() =>
-              setExpandedId((prev) => (prev === item.id ? null : item.id))
-            }
-            onSelect={() => setSheet({ itemId: item.id, mode: "select" })}
-            onDivide={() => setSheet({ itemId: item.id, mode: "divide" })}
-            onEdit={() => setSheet({ itemId: item.id, mode: "edit" })}
+          </div>
+        </div>
+        <div className="mt-auto">
+          <AssignedBar
+            split={split}
+            selfKey={selfKey}
+            open={breakdownOpen}
+            onToggle={() => setBreakdownOpen((prev) => !prev)}
             messages={t}
+            totalsMessages={messages.totals}
           />
-        ))}
-        {visibleItems.length === 0 && (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            {tab === "mine" ? t.nothingAssigned : t.nothingRemaining}
-          </p>
-        )}
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onFinish}
-        className="self-center rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
-      >
-        {t.finish}
-      </button>
-
-      <button
-        type="button"
-        onClick={onSwitchUser}
-        className="self-center text-xs text-primary underline"
-      >
-        {t.switchUser}
-      </button>
-
-      {sheetItem && sheet && (
+      {sheetItem && (
         <ItemActionSheet
-          mode={sheet.mode}
+          tab={tab}
           item={sheetItem}
           selfKey={selfKey}
-          others={participants.filter((p) => p.key !== selfKey)}
-          availableUnits={Math.max(
+          groups={groupsByItem.get(sheetItem.id) ?? []}
+          remainingUnits={Math.max(
             0,
-            sheetItem.quantity -
-              unitsTakenExcludingOwner(sheetItem, claims, selfKey),
+            sheetItem.quantity - assignedUnits(sheetItem, claims),
           )}
-          currentChoice={ownChoice(claims, selfKey, sheetItem.id)}
+          participantNames={Object.fromEntries(
+            participants.map((participant) => [
+              participant.key,
+              participant.name,
+            ]),
+          )}
           onClose={() => setSheet(null)}
-          onApplyClaim={(participantKeys, choice) => {
-            const previous = ownChoice(claims, selfKey, sheetItem.id);
-            const previousGroup =
-              previous?.mode === "units"
-                ? (previous.group ?? [selfKey])
-                : [selfKey];
-            const staleKeys = previousGroup.filter(
-              (key) => !participantKeys.includes(key),
-            );
-            if (staleKeys.length > 0)
-              onClaimChange(sheetItem.id, staleKeys, null);
-            onClaimChange(sheetItem.id, participantKeys, choice);
-            setSheet(null);
-          }}
-          onEditItem={(next) =>
-            onItemsChange(
-              items.map((item) => (item.id === next.id ? next : item)),
-            )
+          onSaveGroup={(groupId, ownerId, memberIds, units) =>
+            saveGroup(sheetItem.id, groupId, ownerId, memberIds, units)
           }
-          onRemoveItem={() => {
-            onItemsChange(items.filter((item) => item.id !== sheetItem.id));
-            setSheet(null);
-          }}
           messages={t}
         />
       )}
 
       {tableBillOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"
             aria-label={t.close}
             onClick={() => setTableBillOpen(false)}
             className="absolute inset-0 bg-ink/70"
           />
-          <div className="relative flex max-h-[80vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-2xl border border-primary/40 bg-background p-4 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-lg font-bold text-primary">
-                {t.tableBillTitle}
-              </p>
+          <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-2xl border border-primary/40 bg-background p-4 pb-8 shadow-2xl">
+            <div className="flex items-start justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setTableBillOpen(false)}
                 aria-label={t.close}
-                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                className="-mr-1 -mt-1 ml-auto rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
               >
                 <X aria-hidden="true" size={20} />
               </button>
             </div>
-            <ul className="flex flex-col gap-1 text-sm">
-              {items.map((item) => (
-                <li key={item.id} className="flex justify-between gap-2">
-                  <span className="truncate">
-                    {item.name || t.unnamedItem} ×{formatUnits(item.quantity)}
-                  </span>
-                  <span className="tabular-nums">
-                    {formatCents(itemTotalCents(item))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex justify-between gap-2 border-t border-primary/20 pt-2 font-bold">
-              <span>{messages.receiptEditor.total}</span>
-              <span className="tabular-nums">
-                {formatCents(split.grandTotalCents)}
-              </span>
-            </div>
+            <ReceiptEditor
+              items={[...items]}
+              extras={extras}
+              onItemsChange={onItemsChange}
+              onExtrasChange={onExtrasChange}
+              messages={messages.receiptEditor}
+              itemRowMessages={messages.itemRow}
+            />
           </div>
         </div>
       )}
 
-      <AssignedBar
-        split={split}
-        selfKey={selfKey}
-        open={breakdownOpen}
-        onToggle={() => setBreakdownOpen((prev) => !prev)}
-        messages={t}
-        totalsMessages={messages.totals}
-      />
     </div>
   );
 }

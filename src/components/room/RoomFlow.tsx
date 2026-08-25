@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight, X } from "lucide-react";
 import { ReceiptScanner } from "@/components/capture/ReceiptScanner";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
 import { SplitBoard } from "@/components/board/SplitBoard";
 import { ShareRoom } from "@/components/room/ShareRoom";
 import { PersonTotals } from "@/components/PersonTotals";
+import { buildSplitClaims } from "@/lib/local-claims";
 import {
   addParticipant,
   fetchRoom,
   saveBill,
   saveClaim,
 } from "@/lib/rooms/api";
+import { takePendingCapture } from "@/lib/rooms/pending-capture";
 import { toLocalClaims } from "@/lib/rooms/claims";
 import type { RoomState } from "@/lib/rooms/types";
 import {
@@ -20,10 +23,15 @@ import {
   ROOM_UPDATED_EVENT,
   roomChannelName,
 } from "@/lib/supabase/realtime";
-import { buildSplitClaims } from "@/lib/local-claims";
-import { computeSplit, type SplitResult } from "@/lib/split";
-import type { EditableExtras, EditableItem } from "@/lib/receipt/editable";
+import type { SplitResult } from "@/lib/split";
+import {
+  EMPTY_EXTRAS,
+  type EditableExtras,
+  type EditableItem,
+} from "@/lib/receipt/editable";
+import { computeSplit } from "@/lib/split";
 import type { Messages } from "@/i18n";
+import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
 
 interface RoomFlowProps {
   readonly code: string;
@@ -43,6 +51,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   const [selfId, setSelfId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<{
     items: EditableItem[];
@@ -51,6 +60,22 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   const [showShare, setShowShare] = useState(false);
   const [result, setResult] = useState<SplitResult | null>(null);
   const pendingName = useRef<string | null>(null);
+  const hasAutoSavedDraft = useRef(false);
+
+  // The receipt is scanned before the room exists; only the parsed bill crosses
+  // the navigation boundary.
+  useEffect(() => {
+    const pending = takePendingCapture();
+    if (!pending) return;
+
+    if (pending === "manual") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- traspaso puntual al montar
+      setDraft({ items: [], extras: EMPTY_EXTRAS });
+      return;
+    }
+
+    setDraft({ items: pending.items, extras: pending.extras });
+  }, []);
 
   const reload = useCallback(async () => {
     try {
@@ -63,6 +88,12 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     }
   }, [code, t.notFound]);
 
+  const handleActionError = useCallback(() => {
+    pendingName.current = null;
+    setActionError(t.saveError);
+    void reload();
+  }, [reload, t.saveError]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial desde el servidor
     void reload();
@@ -73,6 +104,23 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura puntual al montar
     if (stored) setSelfId(stored);
   }, [code]);
+
+  // Auto-save scanned receipts once the room is loaded
+  useEffect(() => {
+    if (!draft || !room || hasAutoSavedDraft.current) return;
+    if (draft.items.filter((item) => item.name.trim()).length === 0) return;
+
+    hasAutoSavedDraft.current = true;
+    void saveBill(code, draft.items, draft.extras)
+      .then((next) => {
+        setDraft(null);
+        setRoom(next);
+      })
+      .catch(() => {
+        hasAutoSavedDraft.current = false;
+        setActionError("Error al guardar");
+      });
+  }, [draft, room, code]);
 
   // A newly added participant only gets an id back through the room state, so
   // the name we just submitted is matched against the refreshed list.
@@ -104,17 +152,21 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   }, [code, reload]);
 
   if (loading) {
-    return <p className="py-10 text-center text-sm">{t.loading}</p>;
+    return (
+      <p className="py-10 text-center text-sm text-muted-foreground">
+        {t.loading}
+      </p>
+    );
   }
 
   if (error || !room) {
     return (
-      <div className="flex flex-col items-center gap-4 py-10 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         <p className="text-sm text-gold">{error ?? t.notFound}</p>
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+          className="rounded-2xl border border-border bg-surface px-5 py-3 text-sm font-medium shadow-sm transition-colors hover:border-primary"
         >
           {t.backHome}
         </button>
@@ -127,35 +179,84 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   );
 
   if (!self) {
+    const trimmed = name.trim().slice(0, MAX_PARTICIPANT_NAME_LENGTH);
+    const duplicateName = room.participants.some(
+      (participant) =>
+        participant.name.trim().toUpperCase() === trimmed.toUpperCase(),
+    );
+
+    const submitName = () => {
+      if (trimmed === "") return;
+      if (duplicateName) {
+        setActionError(t.duplicateName);
+        return;
+      }
+      pendingName.current = trimmed;
+      setActionError(null);
+      void addParticipant(code, trimmed)
+        .then((next) => {
+          setRoom(next);
+          setActionError(null);
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "";
+          setActionError(
+            message === "Participant name already exists"
+              ? t.duplicateName
+              : t.saveError,
+          );
+        });
+    };
+
     return (
-      <div className="flex flex-col gap-4">
-        <p className="text-center text-xl font-bold text-primary">
-          {t.enterName}
-        </p>
-        <p className="text-center text-sm text-muted-foreground">
-          {t.enterNameHint.replace("{{code}}", room.code)}
-        </p>
-        <div className="flex gap-2">
+      <div className="flex flex-1 flex-col justify-center gap-5">
+        <div className="flex flex-col gap-1 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t.enterName}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2 shadow-sm focus-within:border-primary">
           <input
             type="text"
+            autoFocus
+            enterKeyHint="go"
             value={name}
-            onChange={(e) => setName(e.target.value.toUpperCase())}
+            maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+            onChange={(e) => {
+              setName(
+                e.target.value
+                  .toUpperCase()
+                  .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
+              );
+              setActionError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitName();
+            }}
             placeholder={t.namePlaceholder}
-            className="min-w-0 flex-1 rounded border-2 border-primary/70 bg-transparent px-3 py-2 text-sm uppercase focus:border-primary focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base uppercase focus:outline-none"
           />
           <button
             type="button"
-            disabled={name.trim() === ""}
-            onClick={() => {
-              const trimmed = name.trim();
-              pendingName.current = trimmed;
-              void addParticipant(code, trimmed).then(setRoom);
-            }}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            disabled={trimmed === "" || duplicateName}
+            onClick={submitName}
+            aria-label={t.join}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-40"
           >
-            {t.join}
+            <ArrowRight aria-hidden="true" size={20} />
           </button>
         </div>
+
+        {duplicateName && trimmed !== "" && (
+          <p className="text-center text-sm text-gold">{t.duplicateName}</p>
+        )}
+
+        {actionError && (
+          <p role="alert" className="text-center text-sm text-gold">
+            {actionError}
+          </p>
+        )}
         {room.participants.length > 0 && (
           <p className="text-center text-xs text-muted-foreground">
             {t.alreadyHere.replace(
@@ -184,6 +285,11 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
       return (
         <div className="flex flex-col gap-6">
           <ShareRoom code={room.code} messages={t} />
+          {actionError && (
+            <p role="alert" className="text-center text-sm text-gold">
+              {actionError}
+            </p>
+          )}
           <ReceiptScanner
             messages={messages.capture}
             onScanned={(items, extras) => setDraft({ items, extras })}
@@ -250,64 +356,132 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        onClick={() => setShowShare((prev) => !prev)}
-        className="self-center rounded-full border border-primary px-4 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
-      >
-        {t.roomCode.replace("{{code}}", room.code)}
-      </button>
-
-      {showShare && <ShareRoom code={room.code} messages={t} />}
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {showShare && (
+        <dialog
+          open
+          className="fixed inset-0 z-[70] m-0 h-full w-full bg-transparent p-0"
+          aria-label={t.shareTitle}
+          onCancel={(event) => {
+            event.preventDefault();
+            setShowShare(false);
+          }}
+        >
+          <div className="relative flex min-h-full items-center justify-center p-4">
+            <button
+              type="button"
+              aria-label={messages.capture.closeLabel}
+              onClick={() => setShowShare(false)}
+              className="absolute inset-0 h-full w-full bg-ink/70"
+            />
+            <div className="relative z-10 w-full max-w-sm rounded-3xl border border-border bg-surface p-5 shadow-2xl">
+            <button
+              type="button"
+              aria-label={messages.capture.closeLabel}
+              onClick={() => setShowShare(false)}
+              className="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-transparent text-primary hover:border-primary"
+            >
+              <X aria-hidden="true" size={18} />
+            </button>
+            <ShareRoom code={room.code} messages={t} />
+            </div>
+          </div>
+        </dialog>
+      )}
 
       <SplitBoard
         items={room.items}
         extras={room.extras}
         participants={participants}
         claims={claims}
+        events={room.events ?? []}
         selfKey={self.id}
-        onItemsChange={(items) => {
-          setRoom({ ...room, items });
-          void saveBill(code, items, room.extras).then(setRoom);
+        tableLabel={t.roomCode.replace("{{code}}", room.code)}
+        onToggleShare={() => setShowShare((prev) => !prev)}
+        onFinish={() => {
+          const finalResult = computeSplit({
+            items: room.items.map((item) => ({
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              unitPriceCents: item.unitPriceCents,
+            })),
+            claims: buildSplitClaims(
+              room.items,
+              room.participants.map((participant) => participant.id),
+              claims,
+            ),
+            participants: room.participants.map((participant) => ({
+              id: participant.id,
+              name: participant.name,
+            })),
+            extras: {
+              taxCents: room.extras.taxCents,
+              tipCents: room.extras.tipCents + room.extras.serviceCents,
+              discountCents: room.extras.discountCents,
+            },
+            distributeUnclaimed: true,
+          });
+          setResult(finalResult);
         }}
-        onClaimChange={(itemId, participantKeys, choice) => {
+        onItemsChange={(items) => {
+          setActionError(null);
+          setRoom({ ...room, items });
+          void saveBill(code, items, room.extras)
+            .then((next) => {
+              setRoom(next);
+              setActionError(null);
+            })
+            .catch(handleActionError);
+        }}
+        onExtrasChange={(extras) => {
+          setActionError(null);
+          setRoom({ ...room, extras });
+          void saveBill(code, room.items, extras)
+            .then((next) => {
+              setRoom(next);
+              setActionError(null);
+            })
+            .catch(handleActionError);
+        }}
+        onSaveGroup={(itemId, groupId, ownerId, memberIds, units) => {
+          setActionError(null);
+          // Aplica el cambio localmente al instante; el servidor confirma o revierte después.
+          const remainingClaims = room.claims.filter(
+            (claim) => !(claim.itemId === itemId && claim.groupKey === groupId),
+          );
+          const optimisticClaims =
+            units === null || memberIds.length === 0
+              ? remainingClaims
+              : [
+                  ...remainingClaims,
+                  ...memberIds.map((participantId) => ({
+                    itemId,
+                    participantId,
+                    ownerId,
+                    groupKey: groupId,
+                    units,
+                    groupIds: memberIds,
+                  })),
+                ];
+          setRoom({ ...room, claims: optimisticClaims });
           void saveClaim(code, {
             itemId,
-            ownerId: self.id,
-            participantIds: participantKeys,
-            units: choice === null ? null : choice.mode === "half" ? 0.5 : choice.count,
-            groupIds:
-              choice?.mode === "units" && choice.group ? choice.group : [],
-          }).then(setRoom);
+            ownerId,
+            groupKey: groupId,
+            participantIds: memberIds,
+            units,
+            groupIds: memberIds,
+          })
+            .then((next) => {
+              setRoom(next);
+              setActionError(null);
+            })
+            .catch(handleActionError);
         }}
-        onSwitchUser={() => {
-          window.localStorage.removeItem(identityStorageKey(code));
-          setSelfId(null);
-        }}
-        onFinish={() =>
-          setResult(
-            computeSplit({
-              items: room.items,
-              claims: buildSplitClaims(
-                room.items,
-                participants.map((p) => p.key),
-                claims,
-              ),
-              participants: participants.map((p) => ({
-                id: p.key,
-                name: p.name,
-              })),
-              extras: {
-                taxCents: room.extras.taxCents,
-                tipCents: room.extras.tipCents + room.extras.serviceCents,
-                discountCents: room.extras.discountCents,
-              },
-            }),
-          )
-        }
         messages={messages}
       />
+      {actionError && <p className="text-center text-sm text-gold">{actionError}</p>}
     </div>
   );
 }

@@ -15,7 +15,7 @@ export function ShareRoom({ code, messages }: ShareRoomProps) {
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    const roomUrl = `${window.location.origin}/sala/${code}`;
+    const roomUrl = `${window.location.origin}/room/${code}`;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la URL solo se conoce en el navegador
     setUrl(roomUrl);
     QRCode.toDataURL(roomUrl, { width: 320, margin: 1 })
@@ -37,9 +37,7 @@ export function ShareRoom({ code, messages }: ShareRoomProps) {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <p className="text-sm text-muted-foreground">{messages.shareHint}</p>
-
-      <p className="rounded-xl border-2 border-primary bg-surface px-6 py-3 font-mono text-3xl font-bold tracking-[0.35em] text-primary">
+      <p className="rounded-xl border-2 border-primary bg-surface px-6 py-3 text-center indent-[0.35em] font-mono text-3xl font-bold tracking-[0.35em] text-primary">
         {code}
       </p>
 

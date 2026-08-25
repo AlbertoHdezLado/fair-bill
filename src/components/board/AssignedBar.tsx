@@ -95,10 +95,12 @@ export function AssignedBar({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-primary/40 bg-primary px-5 py-3 text-primary-foreground shadow-[0_-2px_12px_rgba(0,0,0,0.18)]"
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        className="-mx-4 -mb-6 flex w-[calc(100%+2rem)] shrink-0 items-center justify-between gap-3 border-t border-primary/40 bg-primary px-5 py-3 text-primary-foreground shadow-[0_-2px_12px_rgba(0,0,0,0.18)]"
+        style={{
+          paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+        }}
       >
-        <span className="text-sm font-medium">{messages.yourTotal}</span>
+        <span className="text-lg font-bold">{messages.yourTotal}</span>
         <span className="flex items-center gap-2">
           <span className="text-lg font-bold tabular-nums">
             {formatCents(me?.totalCents ?? 0)}

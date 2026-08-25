@@ -13,6 +13,10 @@ export interface EditableItem {
 }
 
 export interface EditableExtras {
+  /** Merchant or venue name as a dedicated field, plus the remaining header lines. */
+  merchantName: string;
+  /** OCR lines from the receipt header, such as venue and contact details. */
+  receiptHeader: string[];
   taxCents: number;
   tipCents: number;
   serviceCents: number;
@@ -22,6 +26,8 @@ export interface EditableExtras {
 }
 
 export const EMPTY_EXTRAS: EditableExtras = {
+  merchantName: "",
+  receiptHeader: [],
   taxCents: 0,
   tipCents: 0,
   serviceCents: 0,

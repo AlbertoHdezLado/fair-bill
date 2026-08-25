@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.17.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

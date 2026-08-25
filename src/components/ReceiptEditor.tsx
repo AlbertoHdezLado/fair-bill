@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleAlert, X } from "lucide-react";
+import { Pencil, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 import { ItemRow } from "@/components/ItemRow";
 import { formatCents, useMoneyField } from "@/lib/money";
@@ -41,6 +41,7 @@ export function ReceiptEditor({
   const [isTotalWarningOpen, setIsTotalWarningOpen] = useState(
     extras.detectedTotalCents === null || hasMismatch,
   );
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   function updateItem(index: number, next: EditableItem) {
     onItemsChange(items.map((item, i) => (i === index ? next : item)));
@@ -51,51 +52,69 @@ export function ReceiptEditor({
   }
 
   function addItem() {
-    onItemsChange([
-      ...items,
-      {
-        id: newItemId(),
-        name: "",
-        quantity: 0,
-        unitPriceCents: 0,
-        state: "editado",
-      },
-    ]);
+    const newItem = {
+      id: newItemId(),
+      name: "",
+      quantity: 0,
+      unitPriceCents: 0,
+      state: "editado" as const,
+    };
+    onItemsChange([...items, newItem]);
+    setEditingItemId(newItem.id);
+  }
+
+  function updateMerchantName(name: string) {
+    const merchantName = name.trim();
+    const remainingHeader = extras.receiptHeader.slice(1);
+    onExtrasChange({
+      ...extras,
+      merchantName,
+      receiptHeader:
+        merchantName || remainingHeader.length > 0
+          ? [merchantName, ...remainingHeader].filter(Boolean)
+          : [],
+    });
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-center text-xl font-bold text-primary">
-        {messages.title}
-      </p>
-      <div className="flex flex-col">
-        {/* En móvil cada línea ya lleva sus propias etiquetas (Uds./Precio/Total) */}
-        <div className="hidden items-center gap-2 px-3 pb-1 text-xs font-medium text-muted-foreground sm:flex">
-          <span className="flex-1">{messages.product}</span>
-          <span className="w-14 text-center">{messages.units}</span>
-          <span className="w-20 text-right">{messages.price}</span>
-          <span className="w-20 text-right">{messages.total}</span>
-          <span className="w-7" />
+    <div className="flex flex-col gap-1 text-[13px]">
+      <div className="ticket-paper mx-auto w-full max-w-md px-4 pb-6 pt-5 shadow-lg">
+        <div className="pb-3 text-center font-mono text-[11px] uppercase">
+          <input
+            type="text"
+            value={extras.merchantName || extras.receiptHeader[0] || ""}
+            onChange={(event) => updateMerchantName(event.target.value)}
+            placeholder={messages.merchantNamePlaceholder}
+            className="w-full border-b border-dashed border-primary/35 bg-transparent px-1 py-1 text-center font-mono text-sm font-semibold uppercase outline-none placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground/70 focus:border-primary"
+          />
+          {extras.receiptHeader.slice(1).map((line, index) => (
+            <p key={`${line}-${index}`} className="mt-1 leading-5">
+              {line}
+            </p>
+          ))}
         </div>
+        <div className="flex flex-col gap-0 border-b border-dashed border-primary/35">
         {items.map((item, index) => (
           <ItemRow
             key={item.id}
             item={item}
             onChange={(next) => updateItem(index, next)}
             onRemove={() => removeItem(index)}
+            forceOpen={editingItemId === item.id}
+            onOpenChange={(open) => setEditingItemId(open ? item.id : null)}
             messages={itemRowMessages}
           />
         ))}
         <button
           type="button"
           onClick={addItem}
-          className="mt-2 flex items-center justify-center gap-1 rounded border border-dashed border-primary/50 py-2 text-sm text-primary hover:border-primary hover:bg-primary/10"
+          className="mt-1 flex items-center justify-center gap-1 rounded border border-dashed border-primary/50 py-1.5 text-xs text-primary hover:border-primary hover:bg-primary/10"
         >
           + {messages.addProduct}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-primary/25 bg-primary/10 p-3 text-sm">
+      <div className="grid grid-cols-1 gap-y-0.5 border-b border-dashed border-primary/35 py-3 text-[12px] sm:grid-cols-2 sm:gap-x-4 sm:gap-y-1">
         <ExtraField
           label={messages.tax}
           cents={extras.taxCents}
@@ -122,7 +141,7 @@ export function ReceiptEditor({
         />
       </div>
 
-      <div className="flex flex-col gap-1 text-sm">
+      <div className="flex flex-col gap-0.5 border-b border-dashed border-primary/35 pb-2 pt-3 text-[12px]">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">
             {messages.subtotalProducts}
@@ -141,21 +160,25 @@ export function ReceiptEditor({
             {formatCents(subtotalCents)}
           </span>
         </div>
-        <div className="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2 font-semibold">
+        <div className="flex items-center justify-between border-t-2 border-primary/50 px-1 py-3 font-semibold">
           <span>Total</span>
           <TotalField
             cents={extras.detectedTotalCents ?? grandTotalCents}
             onChange={(cents) =>
               onExtrasChange({ ...extras, detectedTotalCents: cents })
             }
+            editLabel={messages.editTotal}
+            saveLabel={messages.saveTotal}
           />
         </div>
 
       </div>
+      </div>
 
       {isTotalWarningOpen && (
-        <dialog
-          open
+        <div
+          role="dialog"
+          aria-modal="true"
           aria-labelledby="total-warning-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
         >
@@ -177,7 +200,7 @@ export function ReceiptEditor({
               </button>
             </div>
             <p
-              className={`mt-3 text-sm ${
+              className={`mt-3 text-xs ${
                 hasMismatch ? "text-gold" : "text-muted-foreground"
               }`}
             >
@@ -191,7 +214,7 @@ export function ReceiptEditor({
                 : messages.missingTotal}
             </p>
           </div>
-        </dialog>
+        </div>
       )}
     </div>
   );
@@ -208,13 +231,15 @@ function ExtraField({
 }) {
   const field = useMoneyField(cents, onChange);
   return (
-    <label className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-      <span className="text-muted-foreground">{label}</span>
+    <label className="flex min-w-0 items-center justify-between gap-2 py-1">
+      <span className="truncate text-xs font-semibold uppercase text-muted-foreground">
+        {label}
+      </span>
       <input
         type="text"
         inputMode="decimal"
         {...field}
-        className="w-20 self-end rounded border border-border bg-transparent px-2 py-1 text-right sm:self-auto"
+        className="w-20 shrink-0 rounded border border-border bg-transparent px-2 py-1 text-right"
       />
     </label>
   );
@@ -223,17 +248,49 @@ function ExtraField({
 function TotalField({
   cents,
   onChange,
+  editLabel,
+  saveLabel,
 }: {
   readonly cents: number;
   readonly onChange: (cents: number) => void;
+  readonly editLabel: string;
+  readonly saveLabel: string;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
   const field = useMoneyField(cents, onChange);
+  if (!isEditing) {
+    return (
+      <span className="flex items-center gap-2 font-mono text-xl tabular-nums">
+        {formatCents(cents)}
+        <button
+          type="button"
+          onClick={() => setIsEditing(true)}
+          aria-label={editLabel}
+          title={editLabel}
+          className="flex h-8 w-8 items-center justify-center rounded border border-primary/30 text-primary hover:bg-primary/10"
+        >
+          <Pencil aria-hidden="true" size={13} />
+        </button>
+      </span>
+    );
+  }
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      {...field}
-      className="w-24 rounded border border-border bg-transparent px-2 py-1 text-right tabular-nums"
-    />
+    <span className="flex items-center gap-2">
+      <input
+        type="text"
+        inputMode="decimal"
+        {...field}
+        autoFocus
+        className="w-24 rounded border border-border bg-transparent px-2 py-1 text-right text-lg tabular-nums"
+      />
+      <button
+        type="button"
+        onClick={() => setIsEditing(false)}
+        aria-label={saveLabel}
+        className="rounded border border-primary px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+      >
+        {saveLabel}
+      </button>
+    </span>
   );
 }

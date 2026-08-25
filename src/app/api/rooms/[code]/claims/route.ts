@@ -1,22 +1,29 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isValidRoomCode } from "@/lib/rooms/code";
-import { broadcastRoomUpdate, findRoom, loadRoomState } from "@/lib/rooms/store";
+import { saveClaimRows } from "@/lib/rooms/claims-write";
+import {
+  appendRoomEvent,
+  broadcastRoomUpdate,
+  findRoom,
+  loadRoomState,
+} from "@/lib/rooms/store";
 
 export const runtime = "nodejs";
 
 interface ClaimPayload {
   itemId?: unknown;
   ownerId?: unknown;
+  groupKey?: unknown;
   participantIds?: unknown;
   units?: unknown;
   groupIds?: unknown;
 }
 
 /**
- * Applies one person's choice on one line. A shared choice is stored once per
- * member of the group, all of them tagged with the same owner, so only its
- * author can later change or drop it. `units` of null removes the choice.
+ * Applies one group's choice on one line. The choice is stored once per member
+ * of the group, all of them tagged with the same `groupKey`, so a person can
+ * hold several groups on the same line. `units` of null removes the group.
  */
 export async function PUT(
   request: Request,
@@ -30,6 +37,7 @@ export async function PUT(
   const body = (await request.json().catch(() => null)) as ClaimPayload | null;
   const itemId = asUuid(body?.itemId);
   const ownerId = asUuid(body?.ownerId);
+  const groupKey = asUuid(body?.groupKey);
   const participantIds = asUuidList(body?.participantIds);
   const groupIds = asUuidList(body?.groupIds) ?? [];
   const units =
@@ -39,7 +47,7 @@ export async function PUT(
         ? Math.max(0, body.units)
         : undefined;
 
-  if (!itemId || !ownerId || !participantIds || units === undefined) {
+  if (!itemId || !ownerId || !groupKey || !participantIds || units === undefined) {
     return NextResponse.json({ error: "Invalid claim" }, { status: 400 });
   }
 
@@ -49,33 +57,35 @@ export async function PUT(
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
 
-  // The owner's previous choice is replaced wholesale, so the group it used to
-  // cover is cleared first and only the new members are written back.
-  const { error: deleteError } = await supabase
-    .from("claims")
-    .delete()
-    .eq("room_id", room.id)
-    .eq("item_id", itemId)
-    .eq("owner_id", ownerId);
-  if (deleteError) {
+  try {
+    await saveClaimRows(
+      supabase,
+      room.id,
+      itemId,
+      ownerId,
+      groupKey,
+      participantIds,
+      units,
+      groupIds,
+    );
+  } catch {
     return NextResponse.json({ error: "Could not save" }, { status: 500 });
   }
 
-  if (units !== null && participantIds.length > 0) {
-    const { error: insertError } = await supabase.from("claims").insert(
-      participantIds.map((participantId) => ({
-        room_id: room.id,
-        item_id: itemId,
-        participant_id: participantId,
-        owner_id: ownerId,
-        units,
-        group_ids: groupIds,
-      })),
-    );
-    if (insertError) {
-      return NextResponse.json({ error: "Could not save" }, { status: 500 });
-    }
-  }
+  const { data: itemRow } = await supabase
+    .from("items")
+    .select("name")
+    .eq("id", itemId)
+    .maybeSingle<{ name: string | null }>();
+
+  await appendRoomEvent(supabase, {
+    roomId: room.id,
+    kind: units === null ? "group_removed" : "group_changed",
+    actorId: ownerId,
+    itemName: (itemRow?.name ?? "").trim(),
+    units,
+    peopleCount: units === null ? null : participantIds.length,
+  });
 
   await broadcastRoomUpdate(supabase, code);
   return NextResponse.json(await loadRoomState(supabase, room));

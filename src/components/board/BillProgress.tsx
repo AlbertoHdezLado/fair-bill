@@ -1,19 +1,21 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Receipt } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { Messages } from "@/i18n";
 
-export type BoardTab = "remaining" | "mine";
+export type BoardTab = "all" | "mine";
 
 interface BillProgressProps {
   readonly assignedCents: number;
   readonly totalCents: number;
   readonly assignedItems: number;
   readonly totalItems: number;
-  readonly tab: BoardTab;
-  readonly onTabChange: (tab: BoardTab) => void;
   readonly onOpenTableBill: () => void;
+  readonly tableLabel: string;
+  readonly onToggleShare: () => void;
+  readonly notifications?: ReactNode;
   readonly messages: Messages["board"];
 }
 
@@ -22,9 +24,10 @@ export function BillProgress({
   totalCents,
   assignedItems,
   totalItems,
-  tab,
-  onTabChange,
   onOpenTableBill,
+  tableLabel,
+  onToggleShare,
+  notifications,
   messages,
 }: BillProgressProps) {
   const percent =
@@ -33,7 +36,21 @@ export function BillProgress({
       : 0;
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-3 bg-background px-4 pb-2 pt-3">
+    <div className="flex w-full flex-col gap-3 pt-3">
+      <div className="flex items-center justify-between gap-3">
+        <img src="/logo.svg" alt="fairBill" className="h-9 w-auto" />
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggleShare}
+            className="shrink-0 rounded-full border border-primary px-4 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+          >
+            {tableLabel}
+          </button>
+          {notifications}
+        </div>
+      </div>
+
       <div
         role="progressbar"
         aria-valuemin={0}
@@ -69,15 +86,27 @@ export function BillProgress({
           {messages.viewTableBill}
         </button>
       </div>
+    </div>
+  );
+}
 
+interface BoardTabsProps {
+  readonly tab: BoardTab;
+  readonly onTabChange: (tab: BoardTab) => void;
+  readonly messages: Messages["board"];
+}
+
+export function BoardTabs({ tab, onTabChange, messages }: BoardTabsProps) {
+  return (
+    <div className="rounded-t-2xl border-x border-t border-primary/20 bg-surface p-1">
       <div
         role="tablist"
         className="grid grid-cols-2 gap-1 rounded-full bg-primary/10 p-1"
       >
         <Tab
-          label={messages.tabRemaining}
-          active={tab === "remaining"}
-          onClick={() => onTabChange("remaining")}
+          label={messages.tabAll}
+          active={tab === "all"}
+          onClick={() => onTabChange("all")}
         />
         <Tab
           label={messages.tabMine}

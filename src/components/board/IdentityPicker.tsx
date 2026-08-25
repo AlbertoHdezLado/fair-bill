@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Messages } from "@/i18n";
+import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
 
 interface Participant {
   readonly key: string;
@@ -60,7 +61,14 @@ export function IdentityPicker({
               type="text"
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value.toUpperCase())}
+              maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+              onChange={(e) =>
+                setName(
+                  e.target.value
+                    .toUpperCase()
+                    .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
+                )
+              }
               placeholder={messages.newUserPlaceholder}
               className="min-w-0 flex-1 rounded border-2 border-primary/70 bg-transparent px-3 py-2 text-sm uppercase focus:border-primary focus:outline-none"
             />

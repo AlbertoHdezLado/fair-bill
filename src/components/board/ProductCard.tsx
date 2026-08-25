@@ -1,19 +1,25 @@
 "use client";
 
-import { Divide, Pencil, SquareCheckBig } from "lucide-react";
+import { Users } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { Messages } from "@/i18n";
+
+export interface ProductCardGroup {
+  readonly groupId: string;
+  readonly memberNames: readonly string[];
+  readonly units: number;
+  readonly includesSelf: boolean;
+}
 
 interface ProductCardProps {
   readonly item: EditableItem;
   readonly remainingUnits: number;
   readonly myUnits: number;
-  readonly expanded: boolean;
-  readonly onToggle: () => void;
+  readonly groups: readonly ProductCardGroup[];
+  /** The "mine" tab lists every group of the line with its members and price. */
+  readonly showGroups: boolean;
   readonly onSelect: () => void;
-  readonly onDivide: () => void;
-  readonly onEdit: () => void;
   readonly messages: Messages["board"];
 }
 
@@ -21,26 +27,22 @@ export function ProductCard({
   item,
   remainingUnits,
   myUnits,
-  expanded,
-  onToggle,
+  groups,
+  showGroups,
   onSelect,
-  onDivide,
-  onEdit,
   messages,
 }: ProductCardProps) {
   const isMine = myUnits > 0;
 
   return (
     <article
-      className={`w-full overflow-hidden rounded-xl border-2 bg-surface ${
-        isMine ? "border-gold" : "border-primary/30"
+      className={`w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
+        isMine ? "border-gold" : "border-primary/45"
       }`}
     >
       <button
         type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        aria-label={expanded ? messages.collapseLabel : messages.expandLabel}
+        onClick={onSelect}
         className="flex w-full items-center gap-3 px-4 py-3 text-left"
       >
         <span className="min-w-0 flex-1">
@@ -59,62 +61,60 @@ export function ProductCard({
           </span>
         </span>
 
-        {isMine && (
-          <span className="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-semibold tabular-nums text-gold-foreground">
-            {messages.yoursUnits.replace("{{count}}", formatUnits(myUnits))}
-          </span>
-        )}
-
-        <span
-          aria-hidden="true"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary text-lg font-semibold leading-none text-primary"
-        >
-          {expanded ? "−" : "+"}
+        <span className="flex shrink-0 items-center gap-2">
+          {groups.length > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
+              <Users aria-hidden="true" size={12} />
+              {groups.length}
+            </span>
+          )}
+          {isMine && (
+            <span className="rounded-full bg-gold px-2 py-0.5 text-[11px] font-semibold tabular-nums text-gold-foreground">
+              {formatUnits(myUnits)}
+            </span>
+          )}
         </span>
       </button>
 
-      {expanded && (
-        <div className="grid grid-cols-3 gap-2 border-t border-primary/20 px-4 py-3">
-          <CardAction
-            icon={<SquareCheckBig aria-hidden="true" size={18} />}
-            label={messages.select}
-            onClick={onSelect}
-          />
-          <CardAction
-            icon={<Divide aria-hidden="true" size={18} />}
-            label={messages.divide}
-            onClick={onDivide}
-          />
-          <CardAction
-            icon={<Pencil aria-hidden="true" size={18} />}
-            label={messages.edit}
-            onClick={onEdit}
-          />
-        </div>
+      {showGroups && groups.length > 0 && (
+        <ul className="flex flex-col gap-1 border-t border-primary/20 px-3 py-2">
+          {groups.map((group) => (
+            <li
+              key={group.groupId}
+              className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-xs ${
+                group.includesSelf ? "bg-gold/15" : "bg-primary/5"
+              }`}
+            >
+              <span className="min-w-0 truncate">
+                {group.memberNames.join(", ")}
+              </span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">
+                {messages.groupUnits.replace(
+                  "{{count}}",
+                  formatUnits(group.units),
+                )}
+                {" · "}
+                {messages.perPerson.replace(
+                  "{{amount}}",
+                  formatCents(
+                    perPersonCents(item, group.units, group.memberNames.length),
+                  ),
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </article>
   );
 }
 
-function CardAction({
-  icon,
-  label,
-  onClick,
-}: {
-  readonly icon: React.ReactNode;
-  readonly label: string;
-  readonly onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center gap-1 rounded-lg border border-primary/40 py-2 text-xs font-medium text-primary hover:bg-primary/10"
-    >
-      {icon}
-      {label}
-    </button>
-  );
+export function perPersonCents(
+  item: EditableItem,
+  units: number,
+  people: number,
+): number {
+  return Math.round((units * item.unitPriceCents) / Math.max(people, 1));
 }
 
 /** Units can be fractional after a split, so trailing zeros are dropped. */

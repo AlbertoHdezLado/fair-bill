@@ -1,54 +1,73 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
-import { formatCents, useMoneyField } from "@/lib/money";
+import { LogOut, User, Users, X } from "lucide-react";
+import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
-import type { ClaimChoice } from "@/lib/local-claims";
-import { formatUnits } from "./ProductCard";
+import type { ItemGroup } from "@/lib/local-claims";
+import { formatUnits, perPersonCents } from "./ProductCard";
+import type { BoardTab } from "./BillProgress";
 import type { Messages } from "@/i18n";
 
-export type SheetMode = "select" | "divide" | "edit";
-
-interface Participant {
-  readonly key: string;
-  readonly name: string;
-}
-
 interface ItemActionSheetProps {
-  readonly mode: SheetMode;
+  readonly tab: BoardTab;
   readonly item: EditableItem;
   readonly selfKey: string;
-  readonly others: readonly Participant[];
-  /** Units still free for this person, already excluding their own current choice. */
-  readonly availableUnits: number;
-  readonly currentChoice: ClaimChoice | null;
+  readonly groups: readonly ItemGroup[];
+  /** Units of the line nobody has taken yet. */
+  readonly remainingUnits: number;
+  readonly participantNames: Readonly<Record<string, string>>;
   readonly onClose: () => void;
-  readonly onApplyClaim: (
-    participantKeys: readonly string[],
-    choice: ClaimChoice | null,
+  readonly onSaveGroup: (
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
   ) => void;
-  readonly onEditItem: (item: EditableItem) => void;
-  readonly onRemoveItem: () => void;
   readonly messages: Messages["board"];
 }
 
-export function ItemActionSheet(props: ItemActionSheetProps) {
-  const { item, mode, onClose, messages } = props;
+export function ItemActionSheet({
+  tab,
+  item,
+  selfKey,
+  groups,
+  remainingUnits,
+  participantNames,
+  onClose,
+  onSaveGroup,
+  messages,
+}: ItemActionSheetProps) {
+  const myGroups = groups.filter((group) => group.memberIds.includes(selfKey));
+  const nameOf = (key: string) => participantNames[key] ?? key;
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
         aria-label={messages.close}
         onClick={onClose}
         className="absolute inset-0 bg-ink/70"
       />
-      <div className="relative flex w-full max-w-md flex-col gap-4 rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
+      <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-lg font-bold text-primary">
-            {item.name || messages.unnamedItem}
-          </p>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold text-primary">
+              {item.name || messages.unnamedItem}
+            </p>
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {formatUnits(item.quantity)} × {formatCents(item.unitPriceCents)}
+              {" · "}
+              {remainingUnits > 0
+                ? messages.remainingUnits.replace(
+                    "{{count}}",
+                    formatUnits(remainingUnits),
+                  )
+                : messages.allAssigned}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -59,231 +78,361 @@ export function ItemActionSheet(props: ItemActionSheetProps) {
           </button>
         </div>
 
-        {mode === "edit" ? <EditForm {...props} /> : <ClaimForm {...props} />}
-      </div>
-    </div>
-  );
-}
-
-function ClaimForm({
-  mode,
-  item,
-  selfKey,
-  others,
-  availableUnits,
-  currentChoice,
-  onApplyClaim,
-  messages,
-}: ItemActionSheetProps) {
-  const existingGroup = (
-    currentChoice?.mode === "units" ? (currentChoice.group ?? []) : []
-  ).filter((key) => key !== selfKey);
-
-  const [units, setUnits] = useState(() =>
-    Math.min(
-      Math.max(1, currentChoice?.mode === "units" ? currentChoice.count : 1),
-      Math.max(availableUnits, 1),
-    ),
-  );
-  const [sharedWith, setSharedWith] = useState<string[]>(existingGroup);
-
-  const isDivide = mode === "divide";
-  const groupSize = isDivide ? sharedWith.length + 1 : 1;
-  const canConfirm =
-    availableUnits > 0 && units > 0 && (!isDivide || sharedWith.length > 0);
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-xs font-medium uppercase text-muted-foreground">
-          {messages.units}
-        </p>
-        <div className="flex items-center gap-4">
-          <StepperButton
-            label="−"
-            disabled={units <= 1}
-            onClick={() => setUnits((prev) => Math.max(1, prev - 1))}
-          />
-          <span className="w-14 text-center text-2xl font-bold tabular-nums text-primary">
-            {formatUnits(units)}
-          </span>
-          <StepperButton
-            label="+"
-            disabled={units >= availableUnits}
-            onClick={() =>
-              setUnits((prev) => Math.min(availableUnits, prev + 1))
-            }
-          />
-        </div>
-        <button
-          type="button"
-          disabled={units >= availableUnits || availableUnits <= 0}
-          onClick={() => setUnits(availableUnits)}
-          className="rounded-full border border-gold px-3 py-1 text-xs text-gold disabled:opacity-40"
-        >
-          {messages.takeAll}
-        </button>
-      </div>
-
-      {isDivide && (
-        <div className="flex flex-col gap-2">
-          <p className="text-center text-xs text-muted-foreground">
-            {messages.shareWith}
-          </p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {others.map((person) => {
-              const isSelected = sharedWith.includes(person.key);
+        {tab === "mine" ? (
+          <section className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              {messages.groupsTitle}
+            </p>
+            {myGroups.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {messages.noGroups}
+              </p>
+            )}
+            {myGroups.map((group) => (
+              <button
+                key={group.groupId}
+                type="button"
+                onClick={() => setEditingGroupId(group.groupId)}
+                className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-surface px-3 py-2 text-left hover:bg-primary/10"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {group.memberIds.map(nameOf).join(", ")}
+                  </p>
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    {messages.groupUnits.replace(
+                      "{{count}}",
+                      formatUnits(group.units),
+                    )}
+                    {" · "}
+                    {messages.perPerson.replace(
+                      "{{amount}}",
+                      formatCents(
+                        perPersonCents(
+                          item,
+                          group.units,
+                          group.memberIds.length,
+                        ),
+                      ),
+                    )}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </section>
+        ) : (
+          <section className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              {messages.groupsTitle}
+            </p>
+            {groups.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {messages.noGroups}
+              </p>
+            )}
+            {groups.map((group) => {
+              const includesSelf = group.memberIds.includes(selfKey);
               return (
-                <button
-                  key={person.key}
-                  type="button"
-                  onClick={() =>
-                    setSharedWith((prev) =>
-                      prev.includes(person.key)
-                        ? prev.filter((k) => k !== person.key)
-                        : [...prev, person.key],
-                    )
-                  }
-                  className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-                    isSelected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-foreground"
+                <div
+                  key={group.groupId}
+                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
+                    includesSelf
+                      ? "border-gold bg-gold/15"
+                      : "border-primary/20 bg-surface"
                   }`}
                 >
-                  {person.name}
-                </button>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {group.memberIds.map(nameOf).join(", ")}
+                    </p>
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      {messages.groupUnits.replace(
+                        "{{count}}",
+                        formatUnits(group.units),
+                      )}
+                      {" · "}
+                      {messages.perPerson.replace(
+                        "{{amount}}",
+                        formatCents(
+                          perPersonCents(
+                            item,
+                            group.units,
+                            group.memberIds.length,
+                          ),
+                        ),
+                      )}
+                    </p>
+                  </div>
+                  {includesSelf ? (
+                    <span className="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-semibold text-gold-foreground">
+                      {messages.alreadyInShared}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSaveGroup(
+                          group.groupId,
+                          group.ownerId,
+                          [...group.memberIds, selfKey],
+                          group.units,
+                        )
+                      }
+                      className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
+                    >
+                      {messages.joinShared}
+                    </button>
+                  )}
+                </div>
               );
             })}
-          </div>
+          </section>
+        )}
+
+        {tab !== "mine" && remainingUnits > 0 && (
+          <NewGroupForm
+            item={item}
+            selfKey={selfKey}
+            remainingUnits={remainingUnits}
+            onSaveGroup={onSaveGroup}
+            messages={messages}
+          />
+        )}
+      </div>
+
+      {editingGroup && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
           <button
             type="button"
-            disabled={sharedWith.length === others.length}
-            onClick={() => setSharedWith(others.map((p) => p.key))}
-            className="self-center rounded-full border border-gold px-3 py-1 text-xs text-gold disabled:opacity-40"
-          >
-            {messages.everyone}
-          </button>
+            aria-label={messages.close}
+            onClick={() => setEditingGroupId(null)}
+            className="absolute inset-0 bg-ink/70"
+          />
+          <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-sm font-semibold text-primary">
+                {editingGroup.memberIds.map(nameOf).join(", ")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setEditingGroupId(null)}
+                aria-label={messages.close}
+                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+              >
+                <X aria-hidden="true" size={20} />
+              </button>
+            </div>
+            <GroupEditor
+              item={item}
+              group={editingGroup}
+              selfKey={selfKey}
+              remainingUnits={remainingUnits}
+              nameOf={nameOf}
+              onSaveGroup={(groupId, ownerId, memberIds, units) => {
+                onSaveGroup(groupId, ownerId, memberIds, units);
+                setEditingGroupId(null);
+              }}
+              messages={messages}
+            />
+          </div>
         </div>
-      )}
-
-      <p className="text-center text-sm tabular-nums text-muted-foreground">
-        {formatCents(Math.round((units * item.unitPriceCents) / groupSize))}
-      </p>
-
-      <button
-        type="button"
-        disabled={!canConfirm}
-        onClick={() =>
-          onApplyClaim(
-            isDivide ? [selfKey, ...sharedWith] : [selfKey],
-            isDivide
-              ? { mode: "units", count: units, group: [selfKey, ...sharedWith] }
-              : { mode: "units", count: units },
-          )
-        }
-        className="rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
-      >
-        {messages.confirm}
-      </button>
-
-      {currentChoice && (
-        <button
-          type="button"
-          onClick={() => onApplyClaim([selfKey], null)}
-          className="rounded-full border border-primary/50 px-4 py-2 text-sm text-primary hover:bg-primary/10"
-        >
-          {messages.removeSelection}
-        </button>
       )}
     </div>
   );
 }
 
-function EditForm({
+function NewGroupForm({
   item,
-  onEditItem,
-  onRemoveItem,
-  onClose,
+  selfKey,
+  remainingUnits,
+  onSaveGroup,
   messages,
-}: ItemActionSheetProps) {
-  const [name, setName] = useState(item.name);
-  const [quantity, setQuantity] = useState(String(item.quantity));
-  const [unitPriceCents, setUnitPriceCents] = useState(item.unitPriceCents);
-  const priceField = useMoneyField(unitPriceCents, setUnitPriceCents);
+}: {
+  readonly item: EditableItem;
+  readonly selfKey: string;
+  readonly remainingUnits: number;
+  readonly onSaveGroup: (
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
+  ) => void;
+  readonly messages: Messages["board"];
+}) {
+  const [units, setUnits] = useState(1);
+  const capped = Math.min(units, remainingUnits);
 
   return (
-    <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-        {messages.productName}
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value.toUpperCase())}
-          className="rounded border border-border bg-transparent px-3 py-2 text-base uppercase text-foreground"
-        />
-      </label>
+    <section className="flex flex-col items-center gap-2 rounded-xl border border-primary/20 bg-surface p-3">
+      <UnitStepper
+        units={capped}
+        max={remainingUnits}
+        onChange={setUnits}
+        messages={messages}
+      />
+      <p className="text-sm tabular-nums text-muted-foreground">
+        {formatCents(perPersonCents(item, capped, 1))}
+      </p>
+      <button
+        type="button"
+        onClick={() =>
+          onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped)
+        }
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+      >
+        <User aria-hidden="true" size={16} />
+        {messages.forMe}
+      </button>
+    </section>
+  );
+}
 
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          {messages.quantity}
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="rounded border border-border bg-transparent px-3 py-2 text-base text-foreground"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          {messages.unitPrice}
-          <input
-            type="text"
-            inputMode="decimal"
-            {...priceField}
-            className="rounded border border-border bg-transparent px-3 py-2 text-right text-base tabular-nums text-foreground"
-          />
-        </label>
+function GroupEditor({
+  item,
+  group,
+  selfKey,
+  remainingUnits,
+  nameOf,
+  onSaveGroup,
+  messages,
+}: {
+  readonly item: EditableItem;
+  readonly group: ItemGroup;
+  readonly selfKey: string;
+  readonly remainingUnits: number;
+  readonly nameOf: (key: string) => string;
+  readonly onSaveGroup: (
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
+  ) => void;
+  readonly messages: Messages["board"];
+}) {
+  const [units, setUnits] = useState(group.units);
+  const max = group.units + remainingUnits;
+  const capped = Math.min(units, max);
+
+  // Leaving keeps everyone else's share intact, so the group total shrinks by
+  // exactly the part that was mine.
+  const leave = () => {
+    const rest = group.memberIds.filter((member) => member !== selfKey);
+    if (rest.length === 0) {
+      onSaveGroup(group.groupId, group.ownerId, [], null);
+      return;
+    }
+    onSaveGroup(
+      group.groupId,
+      group.ownerId,
+      rest,
+      (group.units / group.memberIds.length) * rest.length,
+    );
+  };
+
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-surface p-3">
+      <div className="flex items-center gap-2 text-sm">
+        <Users
+          aria-hidden="true"
+          size={14}
+          className="shrink-0 text-primary"
+        />
+        <span className="min-w-0 truncate font-semibold">
+          {group.memberIds.map(nameOf).join(", ")}
+        </span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          const parsedQuantity = Number.parseInt(quantity, 10);
-          onEditItem({
-            ...item,
-            name,
-            quantity:
-              Number.isFinite(parsedQuantity) && parsedQuantity >= 0
-                ? parsedQuantity
-                : 0,
-            unitPriceCents,
-            state: "editado",
-          });
-          onClose();
-        }}
-        className="rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        {messages.confirm}
-      </button>
+      <UnitStepper
+        units={capped}
+        max={max}
+        onChange={setUnits}
+        messages={messages}
+      />
 
+      <p className="text-center text-sm tabular-nums text-muted-foreground">
+        {messages.perPerson.replace(
+          "{{amount}}",
+          formatCents(perPersonCents(item, capped, group.memberIds.length)),
+        )}
+      </p>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            onSaveGroup(
+              group.groupId,
+              group.ownerId,
+              group.memberIds,
+              capped,
+            )
+          }
+          className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+        >
+          {messages.saveSelection}
+        </button>
+        <button
+          type="button"
+          onClick={leave}
+          className="flex items-center justify-center gap-2 rounded-full border border-primary/50 px-4 py-2 text-sm text-primary hover:bg-primary/10"
+        >
+          <LogOut aria-hidden="true" size={16} />
+          {messages.leaveGroup}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function UnitStepper({
+  units,
+  max,
+  onChange,
+  messages,
+}: {
+  readonly units: number;
+  readonly max: number;
+  readonly onChange: (units: number) => void;
+  readonly messages: Messages["board"];
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-xs font-medium uppercase text-muted-foreground">
+        {messages.units}
+      </p>
+      <div className="flex items-center gap-4">
+        <StepperButton
+          icon="minus"
+          disabled={units <= 1}
+          onClick={() => onChange(Math.max(1, units - 1))}
+        />
+        <span className="w-14 text-center text-2xl font-bold tabular-nums text-primary">
+          {formatUnits(units)}
+        </span>
+        <StepperButton
+          icon="plus"
+          disabled={units >= max}
+          onClick={() => onChange(Math.min(max, units + 1))}
+        />
+      </div>
       <button
         type="button"
-        onClick={onRemoveItem}
-        className="rounded-full border border-gold px-4 py-2 text-sm text-gold hover:bg-gold/10"
+        disabled={units >= max || max <= 0}
+        onClick={() => onChange(max)}
+        className="rounded-full border border-gold px-3 py-1 text-xs text-gold disabled:opacity-40"
       >
-        {messages.removeItem}
+        {messages.takeAll}
       </button>
     </div>
   );
 }
 
 function StepperButton({
-  label,
+  icon,
   disabled,
   onClick,
 }: {
-  readonly label: string;
+  readonly icon: "minus" | "plus";
   readonly disabled: boolean;
   readonly onClick: () => void;
 }) {
@@ -292,9 +441,21 @@ function StepperButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex h-12 w-12 items-center justify-center rounded-full border border-primary text-xl font-semibold text-primary disabled:opacity-40"
+      aria-label={icon === "plus" ? "+" : "-"}
+      className="flex h-12 w-12 items-center justify-center rounded-full border border-primary text-primary disabled:opacity-40"
     >
-      {label}
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        className="h-6 w-6"
+        aria-hidden="true"
+      >
+        <line x1="5" y1="12" x2="19" y2="12" />
+        {icon === "plus" && <line x1="12" y1="5" x2="12" y2="19" />}
+      </svg>
     </button>
   );
 }

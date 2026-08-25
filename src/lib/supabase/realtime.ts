@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+export { ROOM_UPDATED_EVENT, roomChannelName } from "./channels";
 
 let cached: SupabaseClient | null = null;
 
@@ -19,9 +20,3 @@ export function getRealtimeClient(): SupabaseClient | null {
   });
   return cached;
 }
-
-export function roomChannelName(code: string): string {
-  return `room:${code.toUpperCase()}`;
-}
-
-export const ROOM_UPDATED_EVENT = "room-updated";

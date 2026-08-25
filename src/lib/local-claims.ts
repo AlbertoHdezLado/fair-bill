@@ -24,6 +24,8 @@ export type ClaimMode = ClaimChoice["mode"] | "none";
  */
 export interface ClaimEntry {
   readonly owner: string;
+  /** Identity of the choice; falls back to `owner` for legacy single-group data. */
+  readonly groupId?: string;
   readonly choice: ClaimChoice;
 }
 
@@ -198,6 +200,80 @@ export function unitsTakenByAll(
     total += claimedUnits(item, claims, key);
   }
   return total;
+}
+
+/**
+ * Unidades marcadas en modo compartido (grupo > 1), sin duplicar por cada
+ * miembro del grupo replicado en `claims`.
+ */
+export function sharedUnitsByAll(
+  item: EditableItem,
+  claims: LocalClaims,
+): number {
+  let total = 0;
+  for (const ownerKey of Object.keys(claims)) {
+    const choice = ownChoice(claims, ownerKey, item.id);
+    if (choice?.mode !== "units") continue;
+    if (!choice.group || choice.group.length === 0) continue;
+    total += choiceTotalUnits(item, choice);
+  }
+  return total;
+}
+
+export function hasSharedUnits(item: EditableItem, claims: LocalClaims): boolean {
+  return sharedUnitsByAll(item, claims) > 0;
+}
+
+/**
+ * Una elección vista como grupo: `units` son las unidades que consume el grupo
+ * entero y `memberIds` quiénes se las reparten (una persona sola es un grupo
+ * de uno). `groupId` identifica la elección: es la clave con la que se guarda
+ * y se reemplaza en el servidor.
+ */
+export interface ItemGroup {
+  readonly groupId: string;
+  readonly ownerId: string;
+  readonly memberIds: readonly string[];
+  readonly units: number;
+}
+
+/** Grupos que hay sobre una línea, sin duplicar la copia de cada miembro. */
+export function itemGroups(
+  item: EditableItem,
+  claims: LocalClaims,
+): ItemGroup[] {
+  const byGroup = new Map<string, ItemGroup>();
+  for (const participantKey of Object.keys(claims)) {
+    for (const entry of entriesFor(claims, participantKey, item.id)) {
+      const groupId = entry.groupId ?? entry.owner;
+      if (byGroup.has(groupId)) continue;
+      const { choice } = entry;
+      const memberIds =
+        choice.mode === "units" && choice.group?.length
+          ? [...choice.group]
+          : [entry.owner];
+      byGroup.set(groupId, {
+        groupId,
+        ownerId: entry.owner,
+        memberIds,
+        units: choiceTotalUnits(item, choice),
+      });
+    }
+  }
+  return [...byGroup.values()];
+}
+
+/** Unidades de una línea repartidas entre todos los grupos existentes. */
+export function assignedUnits(item: EditableItem, claims: LocalClaims): number {
+  return itemGroups(item, claims).reduce(
+    (total, group) => total + group.units,
+    0,
+  );
+}
+
+/** Unidades de una línea que nadie ha cogido todavía. */
+export function freeUnits(item: EditableItem, claims: LocalClaims): number {
+  return Math.max(0, item.quantity - assignedUnits(item, claims));
 }
 
 /**

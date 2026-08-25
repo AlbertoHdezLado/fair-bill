@@ -9,7 +9,10 @@ export type {
   OcrResult,
   OcrWord,
 } from "./types";
-export { preprocessReceiptImage } from "./preprocess";
+export {
+  preprocessReceiptImage,
+  type ReceiptImageVariant,
+} from "./preprocess";
 
 /**
  * Picks the OCR provider to use on the client. Defaults to Tesseract
