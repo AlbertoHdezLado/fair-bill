@@ -180,7 +180,11 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     itemScores.splice(lastPricedLine.itemIndex, 1);
   }
 
-  if (!hasSummaryTotal && lastPricedLine?.itemIndex === undefined) {
+  if (
+    !hasSummaryTotal &&
+    lastPricedLine &&
+    lastPricedLine.itemIndex === undefined
+  ) {
     summary.push({
       id: `summary-${summaryCounter++}`,
       kind: "total",

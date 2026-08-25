@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export function isMissingGroupKeyColumnError(
   error: { code?: string; message?: string } | null,
 ): boolean {
@@ -8,19 +10,7 @@ export function isMissingGroupKeyColumnError(
 }
 
 export async function saveClaimRows(
-  supabase: {
-    from: (table: string) => {
-      delete: () => {
-        eq: (
-          field: string,
-          value: string,
-        ) => Promise<{ error: { code?: string; message?: string } | null }>;
-      };
-      insert: (
-        rows: Record<string, unknown>[],
-      ) => Promise<{ error: { code?: string; message?: string } | null }>;
-    };
-  },
+  supabase: Pick<SupabaseClient, "from">,
   roomId: string,
   itemId: string,
   ownerId: string,
