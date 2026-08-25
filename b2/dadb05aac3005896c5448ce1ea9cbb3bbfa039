@@ -1,0 +1,19 @@
+next-env.d.ts
+  s_0b738bb1333558::t_85d2619cc9369a 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b2dadb05aac3005896c5448ce1ea9cbb3bbfa039",
+  "prompts": {},
+  "sessions": {
+    "s_0b738bb1333558": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "16b45fd7-423f-4fae-8be2-7c4d02a451a8",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
