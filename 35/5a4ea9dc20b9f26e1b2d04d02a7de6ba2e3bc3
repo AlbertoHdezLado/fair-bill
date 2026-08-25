@@ -1,0 +1,95 @@
+README.md
+  s_70f518ff416b39::t_6563117dd1fe64 47
+next-env.d.ts
+  s_70f518ff416b39::t_999dee45e6bfc3 3-4
+package.json
+  s_70f518ff416b39::t_4402bc03505f89 7
+public/sw.js
+  s_70f518ff416b39::t_f76fbaea7f1058 68-72
+src/app/globals.css
+  s_70f518ff416b39::t_50d8adf7c67e77 69-70,76-78,85-95,106,110-130
+src/app/layout.tsx
+  s_70f518ff416b39::t_8943ab681fa2d5 2,8-9,11,14-15,17,53
+src/app/page.tsx
+  s_70f518ff416b39::t_e9b5cee3bc0ff6 6-8
+src/components/ItemRow.tsx
+  s_846aa6693bd6b0::t_62c81c976d2f4a 4-5,8,14-15,23-24,45-49,73-94,97-100,102,105-228
+src/components/OfflineBanner.tsx
+  s_70f518ff416b39::t_f6bfc489fc5bf6 7-9,12
+src/components/board/ItemActionSheet.tsx
+  s_6a9bfd906ad81b::t_a671d6a4761cee 4-5,7-9,13,16-19,21-25,30-44,47,54,56-70,81-200,202-239,244,247-248,250-263,265-286,288,290-330,333-342,345-350,353-356,359,362-370,372,374-383,387-390,392-397,399-415,420-422,424,431,435,444-445,447-458
+src/components/capture/ReceiptScanner.tsx
+  s_70f518ff416b39::t_cea3fcb4c84928 4-5,11,22,41-43,45-46,48,56,73,75-76,81-85,87-96,98-104
+src/components/room/RoomFlow.tsx
+  s_b97881888a9ce4::t_c84505bc687794 5,11,18,26-32,34,54,63-78,91-96,108-124,155-159,164,169,182-210,212-219,222-223,225-236,238,242-245,247,250-259,288-292,359-390,397,399-426,428,430-445,447-467,470-480,484
+src/components/room/RoomHome.tsx
+  s_b97881888a9ce4::t_80e0f3b597e5b6 3,5-7,9-14,19,22,24-25,27-31,33-64,66-77,79-84,86-105,107-109,112-114,116-121,124-160,162-180
+src/components/room/ShareRoom.tsx
+  s_70f518ff416b39::t_deed617bc1cfbe 18,40
+src/lib/ocr/index.ts
+  s_70f518ff416b39::t_ad8bd26f326074 12-15
+src/lib/ocr/preprocess.ts
+  s_70f518ff416b39::t_1a028a95da138f 6-7,12-15,35-37,68-115
+src/lib/receipt/editable.ts
+  s_70f518ff416b39::t_fc0061f14cb094 16-19,29-30
+src/lib/receipt/parser.test.ts
+  s_70f518ff416b39::t_879b3cba97b1f6 149-160
+src/lib/receipt/parser.ts
+  s_70f518ff416b39::t_d35d341c4cdb94 83,88-89,116,127,136,164,176-180,183-195,254
+src/lib/receipt/types.ts
+  s_70f518ff416b39::t_1743fa5ad8034d 27-28
+src/lib/rooms/pending-capture.ts
+  s_5b3e5c661db3ba::t_22a107b96f282e 1-21
+src/lib/split.ts
+  s_70f518ff416b39::t_3457803feb57b3 56,68-69,121,123,133-135,140,142-145,169,188
+src/lib/supabase/realtime.ts
+  s_70f518ff416b39::t_d5796cb088ba0b 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "355a4ea9dc20b9f26e1b2d04d02a7de6ba2e3bc3",
+  "prompts": {},
+  "sessions": {
+    "s_5b3e5c661db3ba": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "d5a1e8be-d831-49b8-b70d-e29d2c160a18",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_6a9bfd906ad81b": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "57aa786c-8bae-44fb-a16f-5087be90e142",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_70f518ff416b39": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "272ed432-cfbf-49b1-9850-bb3fa6537ca8",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_846aa6693bd6b0": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "a6164bf9-213b-46c4-a3fc-4d902a3e95a6",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_b97881888a9ce4": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "40b9f47c-0ff0-44f8-8987-230cd6e0af55",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
