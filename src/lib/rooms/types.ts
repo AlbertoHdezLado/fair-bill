@@ -13,6 +13,8 @@ export interface RoomClaim {
   readonly ownerId: string;
   /** Identifies the group, so one person can hold several on the same line. */
   readonly groupKey: string;
+  /** A shared group is open for other people to join; a private one is not. */
+  readonly shared: boolean;
   readonly units: number;
   readonly groupIds: readonly string[];
 }

@@ -5,19 +5,33 @@ export function isMissingGroupKeyColumnError(
 ): boolean {
   return (
     (error?.code === "42703" || error?.code === "PGRST204") &&
-    /group_key/.test(error.message ?? "")
+    /(group_key|shared)/.test(error.message ?? "")
   );
+}
+
+export interface ClaimRowsInput {
+  readonly roomId: string;
+  readonly itemId: string;
+  readonly ownerId: string;
+  readonly groupKey: string;
+  readonly participantIds: readonly string[];
+  readonly units: number | null;
+  readonly groupIds: readonly string[];
+  readonly shared: boolean;
 }
 
 export async function saveClaimRows(
   supabase: Pick<SupabaseClient, "from">,
-  roomId: string,
-  itemId: string,
-  ownerId: string,
-  groupKey: string,
-  participantIds: string[],
-  units: number | null,
-  groupIds: string[],
+  {
+    roomId,
+    itemId,
+    ownerId,
+    groupKey,
+    participantIds,
+    units,
+    groupIds,
+    shared,
+  }: ClaimRowsInput,
 ): Promise<void> {
   const deleteResult = await supabase
     .from("claims")
@@ -52,7 +66,8 @@ export async function saveClaimRows(
     owner_id: ownerId,
     group_key: groupKey,
     units,
-    group_ids: groupIds,
+    group_ids: [...groupIds],
+    shared,
   }));
 
   const insertResult = await supabase.from("claims").insert(rows);
@@ -62,9 +77,9 @@ export async function saveClaimRows(
     throw new Error("Could not save");
   }
 
-  const legacyInsertResult = await supabase
-    .from("claims")
-    .insert(rows.map(({ group_key: _groupKey, ...row }) => row));
+  const legacyInsertResult = await supabase.from("claims").insert(
+    rows.map(({ group_key: _groupKey, shared: _shared, ...row }) => row),
+  );
 
   if (legacyInsertResult.error) {
     throw new Error("Could not save");

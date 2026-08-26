@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { LogOut, User, Users, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { User, Users, X } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { ItemGroup } from "@/lib/local-claims";
@@ -23,6 +23,7 @@ interface ItemActionSheetProps {
     ownerId: string,
     memberIds: readonly string[],
     units: number | null,
+    shared: boolean,
   ) => void;
   readonly messages: Messages["board"];
 }
@@ -43,6 +44,40 @@ export function ItemActionSheet({
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
 
+  // Salir deja intacta la parte de los demás, así que el grupo encoge justo lo
+  // que era mío.
+  const leaveGroup = (group: ItemGroup) => {
+    const rest = group.memberIds.filter((member) => member !== selfKey);
+    if (rest.length === 0) {
+      onSaveGroup(group.groupId, group.ownerId, [], null, group.shared);
+      return;
+    }
+    onSaveGroup(
+      group.groupId,
+      group.ownerId,
+      rest,
+      (group.units / group.memberIds.length) * rest.length,
+      group.shared,
+    );
+  };
+
+  let quantityLine: ReactNode;
+  if (tab !== "remaining") {
+    quantityLine = (
+      <>
+        {formatUnits(item.quantity)} × {formatCents(item.unitPriceCents)}
+      </>
+    );
+  } else if (remainingUnits > 0) {
+    quantityLine = (
+      <>
+        {formatUnits(remainingUnits)} × {formatCents(item.unitPriceCents)}
+      </>
+    );
+  } else {
+    quantityLine = messages.allAssigned;
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
@@ -58,14 +93,7 @@ export function ItemActionSheet({
               {item.name || messages.unnamedItem}
             </p>
             <p className="text-xs tabular-nums text-muted-foreground">
-              {formatUnits(item.quantity)} × {formatCents(item.unitPriceCents)}
-              {" · "}
-              {remainingUnits > 0
-                ? messages.remainingUnits.replace(
-                    "{{count}}",
-                    formatUnits(remainingUnits),
-                  )
-                : messages.allAssigned}
+              {quantityLine}
             </p>
           </div>
           <button
@@ -78,10 +106,20 @@ export function ItemActionSheet({
           </button>
         </div>
 
-        {tab === "mine" ? (
+        {tab === "remaining" && (
+          <NewGroupForm
+            item={item}
+            selfKey={selfKey}
+            remainingUnits={remainingUnits}
+            onSaveGroup={onSaveGroup}
+            messages={messages}
+          />
+        )}
+
+        {tab === "mine" && (
           <section className="flex flex-col gap-2">
             <p className="text-xs font-medium uppercase text-muted-foreground">
-              {messages.groupsTitle}
+              {messages.myGroupsTitle}
             </p>
             {myGroups.length === 0 && (
               <p className="text-sm text-muted-foreground">
@@ -93,8 +131,51 @@ export function ItemActionSheet({
                 key={group.groupId}
                 type="button"
                 onClick={() => setEditingGroupId(group.groupId)}
-                className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-surface px-3 py-2 text-left hover:bg-primary/10"
+                className="rounded-lg border border-primary/20 bg-surface px-3 py-2 text-left"
               >
+                <p className="truncate text-sm font-semibold">
+                  {group.memberIds.map(nameOf).join(", ")}
+                </p>
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {messages.groupUnits.replace(
+                    "{{count}}",
+                    formatUnits(group.units),
+                  )}
+                  {" · "}
+                  {messages.perPerson.replace(
+                    "{{amount}}",
+                    formatCents(
+                      perPersonCents(
+                        item,
+                        group.units,
+                        group.memberIds.length,
+                      ),
+                    ),
+                  )}
+                </p>
+              </button>
+            ))}
+          </section>
+        )}
+
+        {tab === "shared" && (
+          <section className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              {messages.sharedGroupsTitle}
+            </p>
+            {groups.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {messages.noGroups}
+              </p>
+            )}
+            {groups.map((group) => {
+              const includesSelf = group.memberIds.includes(selfKey);
+              const rowClassName = `flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
+                includesSelf
+                  ? "border-gold bg-gold/15"
+                  : "border-primary/20 bg-surface"
+              }`;
+              const groupInfo = (
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
                     {group.memberIds.map(nameOf).join(", ")}
@@ -117,86 +198,43 @@ export function ItemActionSheet({
                     )}
                   </p>
                 </div>
-              </button>
-            ))}
-          </section>
-        ) : (
-          <section className="flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
-              {messages.groupsTitle}
-            </p>
-            {groups.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                {messages.noGroups}
-              </p>
-            )}
-            {groups.map((group) => {
-              const includesSelf = group.memberIds.includes(selfKey);
+              );
+
+              if (includesSelf) {
+                return (
+                  <button
+                    key={group.groupId}
+                    type="button"
+                    onClick={() => setEditingGroupId(group.groupId)}
+                    className={`${rowClassName} text-left`}
+                  >
+                    {groupInfo}
+                  </button>
+                );
+              }
+
               return (
-                <div
-                  key={group.groupId}
-                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
-                    includesSelf
-                      ? "border-gold bg-gold/15"
-                      : "border-primary/20 bg-surface"
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {group.memberIds.map(nameOf).join(", ")}
-                    </p>
-                    <p className="text-xs tabular-nums text-muted-foreground">
-                      {messages.groupUnits.replace(
-                        "{{count}}",
-                        formatUnits(group.units),
-                      )}
-                      {" · "}
-                      {messages.perPerson.replace(
-                        "{{amount}}",
-                        formatCents(
-                          perPersonCents(
-                            item,
-                            group.units,
-                            group.memberIds.length,
-                          ),
-                        ),
-                      )}
-                    </p>
-                  </div>
-                  {includesSelf ? (
-                    <span className="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-semibold text-gold-foreground">
-                      {messages.alreadyInShared}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onSaveGroup(
-                          group.groupId,
-                          group.ownerId,
-                          [...group.memberIds, selfKey],
-                          group.units,
-                        )
-                      }
-                      className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
-                    >
-                      {messages.joinShared}
-                    </button>
-                  )}
+                <div key={group.groupId} className={rowClassName}>
+                  {groupInfo}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSaveGroup(
+                        group.groupId,
+                        group.ownerId,
+                        [...group.memberIds, selfKey],
+                        group.units,
+                        true,
+                      )
+                    }
+                    className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
+                  >
+                    {messages.joinShared}
+                  </button>
                 </div>
               );
             })}
           </section>
-        )}
-
-        {tab !== "mine" && remainingUnits > 0 && (
-          <NewGroupForm
-            item={item}
-            selfKey={selfKey}
-            remainingUnits={remainingUnits}
-            onSaveGroup={onSaveGroup}
-            messages={messages}
-          />
         )}
       </div>
 
@@ -225,11 +263,14 @@ export function ItemActionSheet({
             <GroupEditor
               item={item}
               group={editingGroup}
-              selfKey={selfKey}
               remainingUnits={remainingUnits}
               nameOf={nameOf}
-              onSaveGroup={(groupId, ownerId, memberIds, units) => {
-                onSaveGroup(groupId, ownerId, memberIds, units);
+              onSaveGroup={(groupId, ownerId, memberIds, units, shared) => {
+                onSaveGroup(groupId, ownerId, memberIds, units, shared);
+                setEditingGroupId(null);
+              }}
+              onLeave={() => {
+                leaveGroup(editingGroup);
                 setEditingGroupId(null);
               }}
               messages={messages}
@@ -256,6 +297,7 @@ function NewGroupForm({
     ownerId: string,
     memberIds: readonly string[],
     units: number | null,
+    shared: boolean,
   ) => void;
   readonly messages: Messages["board"];
 }) {
@@ -273,16 +315,30 @@ function NewGroupForm({
       <p className="text-sm tabular-nums text-muted-foreground">
         {formatCents(perPersonCents(item, capped, 1))}
       </p>
-      <button
-        type="button"
-        onClick={() =>
-          onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped)
-        }
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        <User aria-hidden="true" size={16} />
-        {messages.forMe}
-      </button>
+      <div className="flex w-full gap-2">
+        <button
+          type="button"
+          disabled={remainingUnits <= 0}
+          onClick={() =>
+            onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped, false)
+          }
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-40"
+        >
+          <User aria-hidden="true" size={16} />
+          {messages.forMe}
+        </button>
+        <button
+          type="button"
+          disabled={remainingUnits <= 0}
+          onClick={() =>
+            onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped, true)
+          }
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border border-primary px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-40"
+        >
+          <Users aria-hidden="true" size={16} />
+          {messages.shareUnits}
+        </button>
+      </div>
     </section>
   );
 }
@@ -290,15 +346,14 @@ function NewGroupForm({
 function GroupEditor({
   item,
   group,
-  selfKey,
   remainingUnits,
   nameOf,
   onSaveGroup,
+  onLeave,
   messages,
 }: {
   readonly item: EditableItem;
   readonly group: ItemGroup;
-  readonly selfKey: string;
   readonly remainingUnits: number;
   readonly nameOf: (key: string) => string;
   readonly onSaveGroup: (
@@ -306,28 +361,14 @@ function GroupEditor({
     ownerId: string,
     memberIds: readonly string[],
     units: number | null,
+    shared: boolean,
   ) => void;
+  readonly onLeave: () => void;
   readonly messages: Messages["board"];
 }) {
   const [units, setUnits] = useState(group.units);
   const max = group.units + remainingUnits;
   const capped = Math.min(units, max);
-
-  // Leaving keeps everyone else's share intact, so the group total shrinks by
-  // exactly the part that was mine.
-  const leave = () => {
-    const rest = group.memberIds.filter((member) => member !== selfKey);
-    if (rest.length === 0) {
-      onSaveGroup(group.groupId, group.ownerId, [], null);
-      return;
-    }
-    onSaveGroup(
-      group.groupId,
-      group.ownerId,
-      rest,
-      (group.units / group.memberIds.length) * rest.length,
-    );
-  };
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-surface p-3">
@@ -359,25 +400,25 @@ function GroupEditor({
       <div className="flex gap-2">
         <button
           type="button"
+          onClick={onLeave}
+          className="rounded-full border border-primary/50 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+        >
+          {messages.leaveGroup}
+        </button>
+        <button
+          type="button"
           onClick={() =>
             onSaveGroup(
               group.groupId,
               group.ownerId,
               group.memberIds,
               capped,
+              group.shared,
             )
           }
           className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
         >
           {messages.saveSelection}
-        </button>
-        <button
-          type="button"
-          onClick={leave}
-          className="flex items-center justify-center gap-2 rounded-full border border-primary/50 px-4 py-2 text-sm text-primary hover:bg-primary/10"
-        >
-          <LogOut aria-hidden="true" size={16} />
-          {messages.leaveGroup}
         </button>
       </div>
     </section>

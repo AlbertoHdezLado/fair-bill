@@ -93,6 +93,34 @@ h3 {
   outline-offset: 2px;
 }
 
+/* Modern, brand-tinted scrollbars (Firefox). */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--primary) 55%, var(--background)) transparent;
+}
+
+/* Modern, brand-tinted scrollbars (WebKit). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--primary) 55%, var(--background));
+  border-radius: 999px;
+  border: 2px solid var(--background);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--primary) 75%, var(--background));
+  background-clip: padding-box;
+}
+
 @keyframes receipt-scan {
   from {
     top: 0;

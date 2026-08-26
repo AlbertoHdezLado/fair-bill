@@ -39,16 +39,16 @@ describe("saveClaimRows", () => {
     };
 
     await expect(
-      saveClaimRows(
-        supabase as never,
-        "room-1",
-        "item-1",
-        "owner-1",
-        "group-1",
-        ["p1", "p2"],
-        2,
-        ["p1", "p2"],
-      ),
+      saveClaimRows(supabase as never, {
+        roomId: "room-1",
+        itemId: "item-1",
+        ownerId: "owner-1",
+        groupKey: "group-1",
+        participantIds: ["p1", "p2"],
+        units: 2,
+        groupIds: ["p1", "p2"],
+        shared: true,
+      }),
     ).resolves.toBeUndefined();
 
     expect(deleteCalls).toContain("room_id:room-1");

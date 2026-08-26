@@ -11,6 +11,7 @@ export function toLocalClaims(claims: readonly RoomClaim[]): LocalClaims {
     entries.push({
       owner: claim.ownerId,
       groupId: claim.groupKey,
+      shared: claim.shared,
       choice: {
         mode: "units",
         count: claim.units,

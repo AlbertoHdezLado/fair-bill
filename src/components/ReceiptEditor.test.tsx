@@ -4,6 +4,54 @@ import { EMPTY_EXTRAS } from "@/lib/receipt/editable";
 import { ReceiptEditor } from "./ReceiptEditor";
 
 describe("ReceiptEditor", () => {
+  it("calculates the displayed total from products and extras", () => {
+    render(
+      <ReceiptEditor
+        items={[{
+          id: "item-1",
+          name: "Café",
+          quantity: 1,
+          unitPriceCents: 300,
+          state: "editado",
+        }]}
+        extras={{
+          ...EMPTY_EXTRAS,
+          taxCents: 100,
+          discountCents: 50,
+          detectedTotalCents: 500,
+        }}
+        onItemsChange={vi.fn()}
+        onExtrasChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("5,00 €")).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toMatch(/5,00 €|5,00/);
+  });
+
+  it("allows correcting the detected receipt total", () => {
+    const onExtrasChange = vi.fn();
+
+    render(
+      <ReceiptEditor
+        items={[]}
+        extras={{ ...EMPTY_EXTRAS, detectedTotalCents: 500 }}
+        onItemsChange={vi.fn()}
+        onExtrasChange={onExtrasChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /editar total/i }));
+    const input = screen.getByDisplayValue("5.00");
+    fireEvent.change(input, { target: { value: "3,50" } });
+    fireEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    expect(onExtrasChange).toHaveBeenLastCalledWith({
+      ...EMPTY_EXTRAS,
+      detectedTotalCents: 350,
+    });
+  });
+
   it("opens a modal when the receipt total is missing", () => {
     render(
       <ReceiptEditor

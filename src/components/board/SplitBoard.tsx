@@ -45,8 +45,10 @@ interface SplitBoardProps {
     ownerId: string,
     memberIds: readonly string[],
     units: number | null,
+    shared: boolean,
   ) => void;
   readonly tableLabel: string;
+  readonly roomCode: string;
   readonly onToggleShare: () => void;
   readonly onFinish?: () => void;
   readonly messages: Messages;
@@ -93,12 +95,13 @@ export function SplitBoard({
   onExtrasChange,
   onSaveGroup,
   tableLabel,
+  roomCode,
   onToggleShare,
   onFinish,
   messages,
 }: SplitBoardProps) {
   const t = messages.board;
-  const [tab, setTab] = useState<BoardTab>("all");
+  const [tab, setTab] = useState<BoardTab>("remaining");
   const [sheet, setSheet] = useState<{ itemId: string } | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
@@ -172,15 +175,36 @@ export function SplitBoard({
     ownerId: string,
     memberIds: readonly string[],
     units: number | null,
+    shared: boolean,
   ) => {
-    onSaveGroup(itemId, groupId, ownerId, memberIds, units);
+    onSaveGroup(itemId, groupId, ownerId, memberIds, units, shared);
     setSheet(null);
   };
 
-  const visibleItems =
-    tab === "mine"
-      ? items.filter((item) => claimedUnits(item, claims, selfKey) > 0)
-      : items;
+  // Cada pestaña mira una parte distinta de la misma línea: lo que queda libre,
+  // los grupos abiertos y los grupos privados de esta persona.
+  const groupsForTab = (itemId: string) => {
+    const groups = groupsByItem.get(itemId) ?? [];
+    if (tab === "shared") return groups.filter((group) => group.shared);
+    if (tab === "mine")
+      return groups.filter(
+        (group) => !group.shared && group.memberIds.includes(selfKey),
+      );
+    return groups;
+  };
+
+  const visibleItems = items.filter((item) => {
+    if (tab === "remaining")
+      return item.quantity - assignedUnits(item, claims) > 0;
+    return groupsForTab(item.id).length > 0;
+  });
+
+  const emptyMessages: Record<BoardTab, string> = {
+    remaining: items.length === 0 ? t.nothingRemaining : t.nothingLeft,
+    shared: t.nothingShared,
+    mine: t.nothingAssigned,
+  };
+  const emptyMessage = emptyMessages[tab];
 
   const sheetItem = sheet
     ? (items.find((item) => item.id === sheet.itemId) ?? null)
@@ -198,6 +222,7 @@ export function SplitBoard({
               totalItems={items.length}
               onOpenTableBill={() => setTableBillOpen(true)}
               tableLabel={tableLabel}
+              roomCode={roomCode}
               onToggleShare={onToggleShare}
               notifications={
                 <NotificationBell
@@ -222,32 +247,41 @@ export function SplitBoard({
             <BoardTabs tab={tab} onTabChange={setTab} messages={t} />
           </div>
           <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
-            {visibleItems.map((item) => {
-              const groups = groupsByItem.get(item.id) ?? [];
-              return (
+            {visibleItems.flatMap((item) => {
+              const groups = groupsForTab(item.id);
+              const cards = tab === "remaining" ? [null] : groups;
+
+              return cards.map((group) => (
                 <ProductCard
-                  key={item.id}
+                  key={`${item.id}-${group?.groupId ?? "remaining"}`}
                   item={item}
+                  displayUnits={group?.units}
                   remainingUnits={Math.max(
                     0,
                     item.quantity - assignedUnits(item, claims),
                   )}
                   myUnits={claimedUnits(item, claims, selfKey)}
-                  groups={groups.map((group) => ({
-                    groupId: group.groupId,
-                    memberNames: group.memberIds.map(nameOf),
-                    units: group.units,
-                    includesSelf: group.memberIds.includes(selfKey),
-                  }))}
-                  showGroups={tab === "mine"}
+                  groups={
+                    group
+                      ? [
+                          {
+                            groupId: group.groupId,
+                            memberNames: group.memberIds.map(nameOf),
+                            units: group.units,
+                            includesSelf: group.memberIds.includes(selfKey),
+                          },
+                        ]
+                      : []
+                  }
+                  showGroups={tab !== "remaining"}
                   onSelect={() => setSheet({ itemId: item.id })}
                   messages={t}
                 />
-              );
+              ));
             })}
             {visibleItems.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                {tab === "mine" ? t.nothingAssigned : t.nothingRemaining}
+                {emptyMessage}
               </p>
             )}
           </div>
@@ -269,7 +303,7 @@ export function SplitBoard({
           tab={tab}
           item={sheetItem}
           selfKey={selfKey}
-          groups={groupsByItem.get(sheetItem.id) ?? []}
+          groups={groupsForTab(sheetItem.id)}
           remainingUnits={Math.max(
             0,
             sheetItem.quantity - assignedUnits(sheetItem, claims),
@@ -281,8 +315,8 @@ export function SplitBoard({
             ]),
           )}
           onClose={() => setSheet(null)}
-          onSaveGroup={(groupId, ownerId, memberIds, units) =>
-            saveGroup(sheetItem.id, groupId, ownerId, memberIds, units)
+          onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>
+            saveGroup(sheetItem.id, groupId, ownerId, memberIds, units, shared)
           }
           messages={t}
         />

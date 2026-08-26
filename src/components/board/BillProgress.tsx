@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Receipt } from "lucide-react";
+import { Receipt, Share2 } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { Messages } from "@/i18n";
 
-export type BoardTab = "all" | "mine";
+export type BoardTab = "remaining" | "shared" | "mine";
 
 interface BillProgressProps {
   readonly assignedCents: number;
@@ -14,6 +14,7 @@ interface BillProgressProps {
   readonly totalItems: number;
   readonly onOpenTableBill: () => void;
   readonly tableLabel: string;
+  readonly roomCode: string;
   readonly onToggleShare: () => void;
   readonly notifications?: ReactNode;
   readonly messages: Messages["board"];
@@ -26,6 +27,7 @@ export function BillProgress({
   totalItems,
   onOpenTableBill,
   tableLabel,
+  roomCode,
   onToggleShare,
   notifications,
   messages,
@@ -43,9 +45,12 @@ export function BillProgress({
           <button
             type="button"
             onClick={onToggleShare}
-            className="shrink-0 rounded-full border border-primary px-4 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+            aria-label={tableLabel}
+            title={tableLabel}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
           >
-            {tableLabel}
+            {roomCode}
+            <Share2 aria-hidden="true" size={14} />
           </button>
           {notifications}
         </div>
@@ -101,12 +106,17 @@ export function BoardTabs({ tab, onTabChange, messages }: BoardTabsProps) {
     <div className="rounded-t-2xl border-x border-t border-primary/20 bg-surface p-1">
       <div
         role="tablist"
-        className="grid grid-cols-2 gap-1 rounded-full bg-primary/10 p-1"
+        className="grid grid-cols-3 gap-1 rounded-full bg-primary/10 p-1"
       >
         <Tab
-          label={messages.tabAll}
-          active={tab === "all"}
-          onClick={() => onTabChange("all")}
+          label={messages.tabRemaining}
+          active={tab === "remaining"}
+          onClick={() => onTabChange("remaining")}
+        />
+        <Tab
+          label={messages.tabShared}
+          active={tab === "shared"}
+          onClick={() => onTabChange("shared")}
         />
         <Tab
           label={messages.tabMine}

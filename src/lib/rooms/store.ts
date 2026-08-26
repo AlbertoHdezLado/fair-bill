@@ -27,6 +27,7 @@ interface ClaimRow {
   units: number | string;
   group_ids: string[] | null;
   group_key?: string | null;
+  shared?: boolean | null;
 }
 
 interface RoomEventRow {
@@ -44,7 +45,7 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
     // 42703: Postgres undefined_column. PGRST204: PostgREST's schema cache
     // hasn't picked up the column yet (e.g. right after a migration).
     (error?.code === "42703" || error?.code === "PGRST204") &&
-    /(merchant_name|receipt_header|group_key)/.test(error.message ?? "")
+    /(merchant_name|receipt_header|group_key|shared)/.test(error.message ?? "")
   );
 }
 
@@ -104,7 +105,7 @@ export async function loadRoomState(
       .from("claims")
       .select(
         includeGroupKey
-          ? "item_id, participant_id, owner_id, units, group_ids, group_key"
+          ? "item_id, participant_id, owner_id, units, group_ids, group_key, shared"
           : "item_id, participant_id, owner_id, units, group_ids",
       )
       .eq("room_id", room.id) as unknown as PromiseLike<{
@@ -184,6 +185,7 @@ export async function loadRoomState(
       participantId: row.participant_id,
       ownerId: row.owner_id,
       groupKey: row.group_key ?? row.owner_id,
+      shared: row.shared ?? (row.group_ids ?? []).length > 1,
       units: Number(row.units),
       groupIds: row.group_ids ?? [],
     })),

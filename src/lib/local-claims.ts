@@ -26,6 +26,8 @@ export interface ClaimEntry {
   readonly owner: string;
   /** Identity of the choice; falls back to `owner` for legacy single-group data. */
   readonly groupId?: string;
+  /** A shared choice is open for other people to join; a private one is not. */
+  readonly shared?: boolean;
   readonly choice: ClaimChoice;
 }
 
@@ -235,6 +237,7 @@ export interface ItemGroup {
   readonly ownerId: string;
   readonly memberIds: readonly string[];
   readonly units: number;
+  readonly shared: boolean;
 }
 
 /** Grupos que hay sobre una línea, sin duplicar la copia de cada miembro. */
@@ -257,6 +260,7 @@ export function itemGroups(
         ownerId: entry.owner,
         memberIds,
         units: choiceTotalUnits(item, choice),
+        shared: entry.shared ?? memberIds.length > 1,
       });
     }
   }

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ImageUp, PencilLine } from "lucide-react";
 import { ScanOverlay } from "@/components/capture/ScanOverlay";
+import { LoadingState } from "@/components/Spinner";
 import { CodeInput } from "@/components/room/CodeInput";
 import { createRoom } from "@/lib/rooms/api";
 import { scanReceipt, type ScanOutcome, type ScanStage } from "@/lib/ocr/scan";
@@ -22,16 +23,17 @@ interface RoomHomeProps {
 export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
   const router = useRouter();
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scan, setScan] = useState<{
     stage: ScanStage;
     progress: number;
     previewUrl: string;
   } | null>(null);
+  const busy = busyLabel !== null || scan !== null;
 
   function start(capture: PendingCapture) {
-    setBusy(true);
+    setBusyLabel(messages.creatingRoom);
     setError(null);
     createRoom()
       .then((created) => {
@@ -40,13 +42,12 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
       })
       .catch(() => {
         setError(messages.createError);
-        setBusy(false);
+        setBusyLabel(null);
       });
   }
 
   function scanAndStart(file: File) {
     const previewUrl = URL.createObjectURL(file);
-    setBusy(true);
     setError(null);
     setScan({ stage: "preprocessing", progress: 0, previewUrl });
     void scanReceipt(file, (stage, progress) =>
@@ -55,12 +56,21 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
       .then((outcome: ScanOutcome) => start(outcome))
       .catch(() => {
         setError(messages.createError);
-        setBusy(false);
+        setBusyLabel(null);
       })
       .finally(() => {
         setScan(null);
         URL.revokeObjectURL(previewUrl);
       });
+  }
+
+  // Mientras se crea o se entra en una sala el menú desaparece por completo.
+  if (busyLabel !== null && scan === null) {
+    return (
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-8">
+        <LoadingState label={busyLabel} />
+      </main>
+    );
   }
 
   return (
@@ -96,7 +106,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
           </span>
           <span className="flex min-w-0 flex-col">
             <span className="text-lg font-semibold tracking-tight">
-              {busy ? messages.creatingRoom : captureMessages.uploadImage}
+              {captureMessages.uploadImage}
             </span>
           </span>
           <ArrowRight
@@ -172,7 +182,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
               return;
             }
             setError(null);
-            setBusy(true);
+            setBusyLabel(messages.joiningRoom);
             router.push(`/room/${normalizeRoomCode(code)}`);
           }}
         />

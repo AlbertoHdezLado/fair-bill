@@ -12,6 +12,7 @@ describe("toLocalClaims", () => {
         groupKey: "g1",
         units: 2,
         groupIds: [],
+        shared: false,
       },
     ]);
 
@@ -27,6 +28,7 @@ describe("toLocalClaims", () => {
         groupKey: "g1",
         units: 1,
         groupIds: ["p1", "p2"],
+        shared: true,
       },
       {
         itemId: "i1",
@@ -35,6 +37,7 @@ describe("toLocalClaims", () => {
         groupKey: "g1",
         units: 1,
         groupIds: ["p1", "p2"],
+        shared: true,
       },
     ]);
 
@@ -57,6 +60,7 @@ describe("toLocalClaims", () => {
         groupKey: "g1",
         units: 1,
         groupIds: [],
+        shared: false,
       },
       {
         itemId: "i1",
@@ -65,6 +69,7 @@ describe("toLocalClaims", () => {
         groupKey: "g2",
         units: 2,
         groupIds: ["p1", "p2"],
+        shared: true,
       },
     ]);
 
@@ -81,6 +86,7 @@ describe("toLocalClaims", () => {
         groupKey: "g1",
         units: 1,
         groupIds: ["p1"],
+        shared: false,
       },
       {
         itemId: "i1",
@@ -89,6 +95,7 @@ describe("toLocalClaims", () => {
         groupKey: "g2",
         units: 2,
         groupIds: ["p1", "p2"],
+        shared: true,
       },
       {
         itemId: "i1",
@@ -97,6 +104,7 @@ describe("toLocalClaims", () => {
         groupKey: "g2",
         units: 2,
         groupIds: ["p1", "p2"],
+        shared: true,
       },
     ]);
 
@@ -109,8 +117,20 @@ describe("toLocalClaims", () => {
     };
 
     expect(itemGroups(item, claims)).toEqual([
-      { groupId: "g1", ownerId: "p1", memberIds: ["p1"], units: 1 },
-      { groupId: "g2", ownerId: "p1", memberIds: ["p1", "p2"], units: 2 },
+      {
+        groupId: "g1",
+        ownerId: "p1",
+        memberIds: ["p1"],
+        units: 1,
+        shared: false,
+      },
+      {
+        groupId: "g2",
+        ownerId: "p1",
+        memberIds: ["p1", "p2"],
+        units: 2,
+        shared: true,
+      },
     ]);
   });
 });

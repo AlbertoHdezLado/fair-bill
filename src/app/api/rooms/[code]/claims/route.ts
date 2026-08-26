@@ -18,6 +18,7 @@ interface ClaimPayload {
   participantIds?: unknown;
   units?: unknown;
   groupIds?: unknown;
+  shared?: unknown;
 }
 
 /**
@@ -40,6 +41,7 @@ export async function PUT(
   const groupKey = asUuid(body?.groupKey);
   const participantIds = asUuidList(body?.participantIds);
   const groupIds = asUuidList(body?.groupIds) ?? [];
+  const shared = body?.shared === true;
   const units =
     body?.units === null
       ? null
@@ -58,16 +60,16 @@ export async function PUT(
   }
 
   try {
-    await saveClaimRows(
-      supabase,
-      room.id,
+    await saveClaimRows(supabase, {
+      roomId: room.id,
       itemId,
       ownerId,
       groupKey,
       participantIds,
       units,
       groupIds,
-    );
+      shared,
+    });
   } catch {
     return NextResponse.json({ error: "Could not save" }, { status: 500 });
   }

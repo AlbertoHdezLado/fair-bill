@@ -81,7 +81,6 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   const groupedLines = groupWordsIntoLines(words);
   const items: ParsedItemLine[] = [];
   const headerLines: string[] = [];
-  const itemScores: number[] = [];
   const summary: ParsedSummaryLine[] = [];
   const unmatchedLines: string[] = [];
 
@@ -145,15 +144,13 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       continue;
     }
 
-    const item = parseItemLine(line, priceTokens, lineWords);
+    const item = parseItemLine(line, priceTokens);
     if (item) {
       seenFirstItem = true;
-      const { score, ...itemFields } = item;
       items.push({
-        ...itemFields,
+        ...item,
         id: `item-${itemCounter++}`,
       });
-      itemScores.push(score);
       numericCandidates.push({
         amountCents: item.totalCents,
         raw,
@@ -177,7 +174,6 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   const hasSummaryTotal = summary.some((s) => s.kind === "total");
   if (lastPricedLine?.itemIndex !== undefined && hasSummaryTotal) {
     items.splice(lastPricedLine.itemIndex, 1);
-    itemScores.splice(lastPricedLine.itemIndex, 1);
   }
 
   if (
@@ -198,7 +194,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
       ? (lastPricedLine?.amountCents ?? null)
       : null;
 
-  let itemsSubtotalCents = items.reduce((sum, i) => sum + i.totalCents, 0);
+  const itemsSubtotalCents = items.reduce((sum, i) => sum + i.totalCents, 0);
 
   const taxCents = summary
     .filter((s) => s.kind === "tax")
@@ -230,28 +226,6 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     mismatchDeltaCents = detectedTotalCents - expected;
     mismatch = Math.abs(mismatchDeltaCents) > MISMATCH_TOLERANCE_CENTS;
 
-    // A mismatch is often a single bogus item line (e.g. a stray price OCR
-    // misread as a product). If dropping the single worst-scored item would
-    // reconcile the total, assume that's what happened and drop it;
-    // otherwise leave every item as parsed and let the user resolve it.
-    if (mismatch && items.length > 0) {
-      const worstIndex = itemScores.reduce(
-        (worst, score, index) => (score < itemScores[worst] ? index : worst),
-        0,
-      );
-      const candidateSubtotal =
-        itemsSubtotalCents - items[worstIndex].totalCents;
-      const candidateDelta =
-        detectedTotalCents - (candidateSubtotal + extrasCents - discountCents);
-
-      if (Math.abs(candidateDelta) <= MISMATCH_TOLERANCE_CENTS) {
-        items.splice(worstIndex, 1);
-        itemScores.splice(worstIndex, 1);
-        itemsSubtotalCents = candidateSubtotal;
-        mismatchDeltaCents = candidateDelta;
-        mismatch = false;
-      }
-    }
   }
 
   return {
@@ -270,8 +244,7 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
 function parseItemLine(
   line: string,
   priceTokens: number[],
-  lineWords: OcrWord[],
-): (Omit<ParsedItemLine, "id"> & { score: number }) | null {
+): Omit<ParsedItemLine, "id"> | null {
   if (priceTokens.length === 0) return null;
 
   const qtyPriceMatch = QTY_PRICE_RE.exec(line);
@@ -286,15 +259,6 @@ function parseItemLine(
         ? lastToken
         : quantity * unitPriceCents;
     const name = stripMatchedTokens(line, [qtyPriceMatch[0]]).toUpperCase();
-    const score = computeItemScore({
-      name,
-      quantity,
-      unitPriceCents,
-      totalCents,
-      priceTokens,
-      lineWords,
-      hasExplicitQuantity: true,
-    });
     return {
       kind: "item",
       raw: line,
@@ -302,7 +266,6 @@ function parseItemLine(
       quantity,
       unitPriceCents,
       totalCents,
-      score,
     };
   }
 
@@ -326,16 +289,6 @@ function parseItemLine(
 
   if (!name) return null;
 
-  const score = computeItemScore({
-    name,
-    quantity,
-    unitPriceCents,
-    totalCents,
-    priceTokens,
-    lineWords,
-    hasExplicitQuantity: leadingQtyMatch !== null,
-  });
-
   return {
     kind: "item",
     raw: line,
@@ -343,51 +296,7 @@ function parseItemLine(
     quantity,
     unitPriceCents,
     totalCents,
-    score,
   };
-}
-
-/**
- * Scores how trustworthy a parsed item line is, from the shape of the match
- * (explicit "N x price"/"N Ud." quantity markers, a single unambiguous price
- * token, a description that isn't just leftover digits, exact quantity*price
- * reconciliation) plus the OCR engine's own average word confidence. Used
- * only to pick which line to drop when the parsed lines don't reconcile with
- * the receipt's total — never surfaced to the user.
- */
-function computeItemScore(params: {
-  name: string;
-  quantity: number;
-  unitPriceCents: number;
-  totalCents: number;
-  priceTokens: number[];
-  lineWords: OcrWord[];
-  hasExplicitQuantity: boolean;
-}): number {
-  const {
-    name,
-    quantity,
-    unitPriceCents,
-    totalCents,
-    priceTokens,
-    lineWords,
-    hasExplicitQuantity,
-  } = params;
-
-  let score = 0;
-
-  score += hasExplicitQuantity ? 2 : 0;
-  score += priceTokens.length === 1 ? 1 : priceTokens.length > 2 ? -1 : 0;
-  score += quantity * unitPriceCents === totalCents ? 1 : 0;
-  score += name.length >= 3 && !/\d/.test(name) ? 1 : -1;
-
-  if (lineWords.length > 0) {
-    const avgOcrConfidence =
-      lineWords.reduce((sum, w) => sum + w.confidence, 0) / lineWords.length;
-    score += avgOcrConfidence >= 90 ? 1 : avgOcrConfidence < 70 ? -1 : 0;
-  }
-
-  return score;
 }
 
 /** Parses a possibly-decimal quantity token like "2", "1,00" or "4.00". */

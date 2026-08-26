@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { ReceiptScanner } from "@/components/capture/ReceiptScanner";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
 import { SplitBoard } from "@/components/board/SplitBoard";
+import { IdentityPicker } from "@/components/board/IdentityPicker";
+import { LoadingState } from "@/components/Spinner";
 import { ShareRoom } from "@/components/room/ShareRoom";
 import { PersonTotals } from "@/components/PersonTotals";
 import { buildSplitClaims } from "@/lib/local-claims";
@@ -49,10 +51,11 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
 
   const [room, setRoom] = useState<RoomState | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
-  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+  const [savingBill, setSavingBill] = useState(false);
   const [draft, setDraft] = useState<{
     items: EditableItem[];
     extras: EditableExtras;
@@ -111,6 +114,8 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     if (draft.items.filter((item) => item.name.trim()).length === 0) return;
 
     hasAutoSavedDraft.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- guarda el ticket escaneado en cuanto existe la sala
+    setSavingBill(true);
     void saveBill(code, draft.items, draft.extras)
       .then((next) => {
         setDraft(null);
@@ -119,7 +124,8 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
       .catch(() => {
         hasAutoSavedDraft.current = false;
         setActionError("Error al guardar");
-      });
+      })
+      .finally(() => setSavingBill(false));
   }, [draft, room, code]);
 
   // A newly added participant only gets an id back through the room state, so
@@ -133,6 +139,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     pendingName.current = null;
     window.localStorage.setItem(identityStorageKey(code), match.id);
     setSelfId(match.id);
+    setJoining(false);
   }, [room, code]);
 
   useEffect(() => {
@@ -152,11 +159,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   }, [code, reload]);
 
   if (loading) {
-    return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        {t.loading}
-      </p>
-    );
+    return <LoadingState label={t.loading} />;
   }
 
   if (error || !room) {
@@ -179,20 +182,17 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   );
 
   if (!self) {
-    const trimmed = name.trim().slice(0, MAX_PARTICIPANT_NAME_LENGTH);
-    const duplicateName = room.participants.some(
-      (participant) =>
-        participant.name.trim().toUpperCase() === trimmed.toUpperCase(),
-    );
+    const selectExisting = (participantId: string) => {
+      window.localStorage.setItem(identityStorageKey(code), participantId);
+      setSelfId(participantId);
+    };
 
-    const submitName = () => {
+    const submitName = (rawName: string) => {
+      const trimmed = rawName.trim().slice(0, MAX_PARTICIPANT_NAME_LENGTH);
       if (trimmed === "") return;
-      if (duplicateName) {
-        setActionError(t.duplicateName);
-        return;
-      }
       pendingName.current = trimmed;
       setActionError(null);
+      setJoining(true);
       void addParticipant(code, trimmed)
         .then((next) => {
           setRoom(next);
@@ -205,64 +205,31 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
               ? t.duplicateName
               : t.saveError,
           );
+          pendingName.current = null;
+          setJoining(false);
         });
     };
 
+    // El spinner sigue hasta que la identidad se resuelve y se pinta la sala.
+    if (joining) {
+      return <LoadingState label={t.joiningRoom} />;
+    }
+
     return (
       <div className="flex flex-1 flex-col justify-center gap-5">
-        <div className="flex flex-col gap-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t.enterName}
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2 shadow-sm focus-within:border-primary">
-          <input
-            type="text"
-            autoFocus
-            enterKeyHint="go"
-            value={name}
-            maxLength={MAX_PARTICIPANT_NAME_LENGTH}
-            onChange={(e) => {
-              setName(
-                e.target.value
-                  .toUpperCase()
-                  .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
-              );
-              setActionError(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submitName();
-            }}
-            placeholder={t.namePlaceholder}
-            className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base uppercase focus:outline-none"
-          />
-          <button
-            type="button"
-            disabled={trimmed === "" || duplicateName}
-            onClick={submitName}
-            aria-label={t.join}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-40"
-          >
-            <ArrowRight aria-hidden="true" size={20} />
-          </button>
-        </div>
-
-        {duplicateName && trimmed !== "" && (
-          <p className="text-center text-sm text-gold">{t.duplicateName}</p>
-        )}
+        <IdentityPicker
+          participants={room.participants.map((participant) => ({
+            key: participant.id,
+            name: participant.name,
+          }))}
+          onSelect={selectExisting}
+          onAdd={submitName}
+          messages={messages.board}
+        />
 
         {actionError && (
           <p role="alert" className="text-center text-sm text-gold">
             {actionError}
-          </p>
-        )}
-        {room.participants.length > 0 && (
-          <p className="text-center text-xs text-muted-foreground">
-            {t.alreadyHere.replace(
-              "{{names}}",
-              room.participants.map((p) => p.name).join(", "),
-            )}
           </p>
         )}
       </div>
@@ -272,6 +239,10 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   // The bill has to exist before anyone can claim anything, and only the
   // person who opened the room can scan or type it in.
   if (room.items.length === 0) {
+    if (savingBill) {
+      return <LoadingState label={t.savingBill} />;
+    }
+
     if (!self.isOwner) {
       return (
         <div className="flex flex-col items-center gap-4 py-10 text-center">
@@ -312,10 +283,14 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
           type="button"
           disabled={draft.items.filter((item) => item.name.trim()).length === 0}
           onClick={() => {
-            void saveBill(code, draft.items, draft.extras).then((next) => {
-              setDraft(null);
-              setRoom(next);
-            });
+            setSavingBill(true);
+            void saveBill(code, draft.items, draft.extras)
+              .then((next) => {
+                setDraft(null);
+                setRoom(next);
+              })
+              .catch(handleActionError)
+              .finally(() => setSavingBill(false));
           }}
           className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
         >
@@ -397,6 +372,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         events={room.events ?? []}
         selfKey={self.id}
         tableLabel={t.roomCode.replace("{{code}}", room.code)}
+        roomCode={room.code}
         onToggleShare={() => setShowShare((prev) => !prev)}
         onFinish={() => {
           const finalResult = computeSplit({
@@ -444,7 +420,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
             })
             .catch(handleActionError);
         }}
-        onSaveGroup={(itemId, groupId, ownerId, memberIds, units) => {
+        onSaveGroup={(itemId, groupId, ownerId, memberIds, units, shared) => {
           setActionError(null);
           // Aplica el cambio localmente al instante; el servidor confirma o revierte después.
           const remainingClaims = room.claims.filter(
@@ -460,6 +436,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
                     participantId,
                     ownerId,
                     groupKey: groupId,
+                    shared,
                     units,
                     groupIds: memberIds,
                   })),
@@ -472,6 +449,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
             participantIds: memberIds,
             units,
             groupIds: memberIds,
+            shared,
           })
             .then((next) => {
               setRoom(next);

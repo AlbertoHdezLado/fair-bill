@@ -50,6 +50,7 @@ function renderBoard(claims: LocalClaims = {}, overrides = {}) {
       onExtrasChange={vi.fn()}
       onSaveGroup={onSaveGroup}
       tableLabel="Table AB12CD"
+      roomCode="AB12CD"
       onToggleShare={vi.fn()}
       messages={defaultMessages}
       {...overrides}
@@ -65,59 +66,55 @@ describe("SplitBoard", () => {
     });
 
     expect(screen.getByText(/CERVEZA/).closest("article")?.textContent).toMatch(
-      /Quedan 3/,
+      /3 × 2,50/,
     );
   });
 
-  it("keeps every product listed in the 'all' tab", () => {
+  it("hides fully assigned products from the remaining tab", () => {
     renderBoard({
       p1: { i1: [{ owner: "p1", choice: { mode: "units", count: 4 } }] },
     });
 
-    expect(screen.getByText(/CERVEZA/)).toBeTruthy();
+    expect(screen.queryByText(/CERVEZA/)).toBeNull();
     expect(screen.getByText(/TORTILLA/)).toBeTruthy();
-    expect(
-      screen.getByText(/CERVEZA/).closest("article")?.textContent,
-    ).toMatch(/Todo asignado/);
   });
 
-  it("lists the existing groups of a product when it is tapped", () => {
+  it("offers taking the remaining units alone or sharing them", () => {
+    renderBoard();
+
+    fireEvent.click(screen.getByText("CERVEZA"));
+
+    expect(screen.getByRole("button", { name: "Para mí" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Compartir" })).toBeTruthy();
+  });
+
+  it("lists the shared groups of a product on the shared tab", () => {
     renderBoard({
       p2: {
         i1: [
           {
             owner: "p2",
+            shared: true,
             choice: { mode: "units", count: 1, group: ["p2"] },
           },
         ],
       },
     });
 
-    fireEvent.click(screen.getByText("CERVEZA"));
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
 
-    expect(screen.getByText("LUIS")).toBeTruthy();
+    expect(screen.getAllByText("LUIS").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Unirme al grupo" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Para mí" })).toBeTruthy();
   });
 
-  it("lists only the products the user takes part in on the 'mine' tab", () => {
-    renderBoard({
-      p1: { i2: [{ owner: "p1", choice: { mode: "units", count: 1 } }] },
-    });
-
-    fireEvent.click(screen.getByRole("tab", { name: "Lo mío" }));
-
-    expect(screen.getByText(/TORTILLA/)).toBeTruthy();
-    expect(screen.queryByText(/CERVEZA/)).toBeNull();
-  });
-
-  it("shows the members, units and price of each group on the 'mine' tab", () => {
+  it("shows a pencil icon in the edit button for a shared group", () => {
     renderBoard({
       p1: {
         i1: [
           {
             owner: "p1",
-            choice: { mode: "units", count: 2, group: ["p1", "p2"] },
+            shared: true,
+            choice: { mode: "units", count: 1, group: ["p1", "p2"] },
           },
         ],
       },
@@ -125,19 +122,100 @@ describe("SplitBoard", () => {
         i1: [
           {
             owner: "p1",
+            shared: true,
+            choice: { mode: "units", count: 1, group: ["p1", "p2"] },
+          },
+        ],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
+
+    const editButton = screen.getByRole("button", { name: "Editar" });
+    expect(editButton.querySelector("svg")).not.toBeNull();
+  });
+
+  it("keeps private groups out of the shared tab", () => {
+    renderBoard({
+      p2: {
+        i1: [
+          {
+            owner: "p2",
+            shared: false,
+            choice: { mode: "units", count: 1, group: ["p2"] },
+          },
+        ],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
+
+    expect(screen.queryByText(/CERVEZA/)).toBeNull();
+  });
+
+  it("lists only the products that are just for the user on the 'for me' tab", () => {
+    renderBoard({
+      p1: {
+        i2: [{ owner: "p1", shared: false, choice: { mode: "units", count: 1 } }],
+        i1: [
+          {
+            owner: "p1",
+            shared: true,
             choice: { mode: "units", count: 2, group: ["p1", "p2"] },
           },
         ],
       },
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Lo mío" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Para mí" }));
+
+    expect(screen.getByText(/TORTILLA/)).toBeTruthy();
+    expect(screen.queryByText(/CERVEZA/)).toBeNull();
+  });
+
+  it("shows the members, units and price of each shared group", () => {
+    const shared = {
+      owner: "p1",
+      shared: true,
+      choice: { mode: "units" as const, count: 2, group: ["p1", "p2"] },
+    };
+    renderBoard({ p1: { i1: [shared] }, p2: { i1: [shared] } });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
 
     const card = screen.getByText(/CERVEZA/).closest("article")!;
 
     expect(card.textContent).toMatch(/ANA, LUIS/);
     expect(card.textContent).toMatch(/2 uds\./);
     expect(card.textContent).toMatch(/2,50\s?€ por persona/);
+  });
+
+  it("shows each shared group in its own product card", () => {
+    renderBoard({
+      p1: {
+        i1: [
+          {
+            owner: "p1",
+            shared: true,
+            choice: { mode: "units", count: 1, group: ["p1"] },
+          },
+        ],
+      },
+      p2: {
+        i1: [
+          {
+            owner: "p2",
+            shared: true,
+            choice: { mode: "units", count: 1, group: ["p2"] },
+          },
+        ],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
+
+    expect(screen.getAllByText("CERVEZA")).toHaveLength(2);
+    expect(screen.getAllByText(/1 uds\./)).toHaveLength(2);
   });
 
   it("keeps the user's own total in the floating bar", () => {
@@ -170,7 +248,7 @@ describe("SplitBoard", () => {
     expect(document.body.textContent).toMatch(/LUIS/);
   });
 
-  it("creates a group of one with the chosen number of units", () => {
+  it("creates a private group with the chosen number of units", () => {
     const { onSaveGroup } = renderBoard();
 
     fireEvent.click(screen.getByText("CERVEZA"));
@@ -183,6 +261,23 @@ describe("SplitBoard", () => {
       "p1",
       ["p1"],
       2,
+      false,
+    );
+  });
+
+  it("creates a shared group when the units are shared", () => {
+    const { onSaveGroup } = renderBoard();
+
+    fireEvent.click(screen.getByText("CERVEZA"));
+    fireEvent.click(screen.getByRole("button", { name: "Compartir" }));
+
+    expect(onSaveGroup).toHaveBeenCalledWith(
+      "i1",
+      expect.any(String),
+      "p1",
+      ["p1"],
+      1,
+      true,
     );
   });
 
@@ -192,16 +287,24 @@ describe("SplitBoard", () => {
         i1: [
           {
             owner: "p2",
+            shared: true,
             choice: { mode: "units", count: 2, group: ["p2"] },
           },
         ],
       },
     });
 
-    fireEvent.click(screen.getByText("CERVEZA"));
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
     fireEvent.click(screen.getByRole("button", { name: "Unirme al grupo" }));
 
-    expect(onSaveGroup).toHaveBeenCalledWith("i1", "p2", "p2", ["p2", "p1"], 2);
+    expect(onSaveGroup).toHaveBeenCalledWith(
+      "i1",
+      "p2",
+      "p2",
+      ["p2", "p1"],
+      2,
+      true,
+    );
   });
 
   it("still offers more units when the user already owns a group", () => {
@@ -211,6 +314,7 @@ describe("SplitBoard", () => {
           {
             owner: "p1",
             groupId: "g1",
+            shared: false,
             choice: { mode: "units", count: 1, group: ["p1"] },
           },
         ],
@@ -218,9 +322,6 @@ describe("SplitBoard", () => {
     });
 
     fireEvent.click(screen.getByText("CERVEZA"));
-
-    expect(screen.getByText("Ya estás")).toBeTruthy();
-
     fireEvent.click(screen.getByRole("button", { name: "Para mí" }));
 
     // A brand new group, kept apart from the one the user already owns.
@@ -230,41 +331,52 @@ describe("SplitBoard", () => {
       "p1",
       ["p1"],
       1,
+      false,
     );
   });
 
-  it("updates the units of a group from the 'mine' tab", () => {
+  it("updates the units of a group from the 'for me' tab", () => {
     const { onSaveGroup } = renderBoard({
       p1: {
         i1: [
           {
             owner: "p1",
+            shared: false,
             choice: { mode: "units", count: 1, group: ["p1"] },
           },
         ],
       },
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Lo mío" }));
-    fireEvent.click(screen.getByText("CERVEZA"));
-    fireEvent.click(screen.getAllByRole("button", { name: "+" })[0]);
+    fireEvent.click(screen.getByRole("tab", { name: "Para mí" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("button", { name: "+" }));
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
 
-    expect(onSaveGroup).toHaveBeenCalledWith("i1", "p1", "p1", ["p1"], 2);
+    expect(onSaveGroup).toHaveBeenCalledWith(
+      "i1",
+      "p1",
+      "p1",
+      ["p1"],
+      2,
+      false,
+    );
   });
 
-  it("keeps several groups of the same person apart on one product", () => {
+  it("keeps the private and the shared group of a product apart", () => {
     renderBoard({
       p1: {
         i1: [
           {
             owner: "p1",
             groupId: "g1",
+            shared: false,
             choice: { mode: "units", count: 1, group: ["p1"] },
           },
           {
             owner: "p1",
             groupId: "g2",
+            shared: true,
             choice: { mode: "units", count: 2, group: ["p1", "p2"] },
           },
         ],
@@ -274,23 +386,26 @@ describe("SplitBoard", () => {
           {
             owner: "p1",
             groupId: "g2",
+            shared: true,
             choice: { mode: "units", count: 2, group: ["p1", "p2"] },
           },
         ],
       },
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Lo mío" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Para mí" }));
 
-    const card = screen.getByText(/CERVEZA/).closest("article")!;
+    const mineCard = screen.getByText(/CERVEZA/).closest("article")!;
 
-    expect(card.textContent).toMatch(/Quedan 1/);
-    expect(card.textContent).toMatch(/ANA1 uds\./);
-    expect(card.textContent).toMatch(/ANA, LUIS2 uds\./);
+    expect(mineCard.textContent).not.toMatch(/Quedan|Todo asignado/);
+    expect(mineCard.textContent).toMatch(/ANA1 uds\./);
+    expect(mineCard.textContent).not.toMatch(/ANA, LUIS/);
 
-    fireEvent.click(screen.getByText("CERVEZA"));
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
 
-    expect(screen.getAllByRole("button", { name: "Guardar" })).toHaveLength(2);
+    const sharedCard = screen.getByText(/CERVEZA/).closest("article")!;
+
+    expect(sharedCard.textContent).toMatch(/ANA, LUIS2 uds\./);
   });
 
   it("shrinks the group by the leaving member's share", () => {
@@ -303,11 +418,19 @@ describe("SplitBoard", () => {
       p2: { i1: [shared] },
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Lo mío" }));
-    fireEvent.click(screen.getByText("CERVEZA"));
-    fireEvent.click(screen.getByRole("button", { name: "Salir" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Quitar mi selección" }),
+    );
 
-    expect(onSaveGroup).toHaveBeenCalledWith("i1", "p1", "p1", ["p2"], 1);
+    expect(onSaveGroup).toHaveBeenCalledWith(
+      "i1",
+      "p1",
+      "p1",
+      ["p2"],
+      1,
+      true,
+    );
   });
 
   it("drops the group when its last member leaves", () => {
@@ -316,17 +439,26 @@ describe("SplitBoard", () => {
         i1: [
           {
             owner: "p1",
+            shared: false,
             choice: { mode: "units", count: 1, group: ["p1"] },
           },
         ],
       },
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Lo mío" }));
-    fireEvent.click(screen.getByText("CERVEZA"));
-    fireEvent.click(screen.getByRole("button", { name: "Salir" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Para mí" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Quitar mi selección" }),
+    );
 
-    expect(onSaveGroup).toHaveBeenCalledWith("i1", "p1", "p1", [], null);
+    expect(onSaveGroup).toHaveBeenCalledWith(
+      "i1",
+      "p1",
+      "p1",
+      [],
+      null,
+      false,
+    );
   });
 
   it("alerts the rest of the group when someone else changes it", () => {
@@ -362,6 +494,7 @@ function renderTree(claims: LocalClaims) {
       onExtrasChange={vi.fn()}
       onSaveGroup={vi.fn()}
       tableLabel="Table AB12CD"
+      roomCode="AB12CD"
       onToggleShare={vi.fn()}
       messages={defaultMessages}
     />

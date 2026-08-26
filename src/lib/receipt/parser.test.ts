@@ -78,7 +78,7 @@ describe("parseReceipt", () => {
     expect(result.mismatchDeltaCents).toBe(650);
   });
 
-  it("drops the worst-scored item when that alone reconciles the total", () => {
+  it("keeps every item and reports a mismatch when the total does not reconcile", () => {
     const words = receiptWords([
       "1 Cafe 1,50",
       "1 Tostada 2,00",
@@ -88,11 +88,11 @@ describe("parseReceipt", () => {
 
     const result = parseReceipt(words);
 
-    expect(result.items).toHaveLength(2);
-    expect(result.items.map((i) => i.name)).toEqual(["CAFE", "TOSTADA"]);
-    expect(result.itemsSubtotalCents).toBe(350);
-    expect(result.mismatch).toBe(false);
-    expect(result.mismatchDeltaCents).toBe(0);
+    expect(result.items).toHaveLength(3);
+    expect(result.items.map((i) => i.name)).toEqual(["CAFE", "TOSTADA", "999"]);
+    expect(result.itemsSubtotalCents).toBe(1250);
+    expect(result.mismatch).toBe(true);
+    expect(result.mismatchDeltaCents).toBe(-900);
   });
 
   it("keeps every item when no single one can fix the mismatch", () => {

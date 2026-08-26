@@ -258,6 +258,7 @@ function TotalField({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const field = useMoneyField(cents, onChange);
+
   if (!isEditing) {
     return (
       <span className="flex items-center gap-2 font-mono text-xl tabular-nums">
@@ -274,6 +275,7 @@ function TotalField({
       </span>
     );
   }
+
   return (
     <span className="flex items-center gap-2">
       <input
@@ -294,3 +296,4 @@ function TotalField({
     </span>
   );
 }
+
