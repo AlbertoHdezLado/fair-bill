@@ -1,0 +1,29 @@
+src/i18n.ts
+  s_7447a1a2a3d7c9::t_f3e27dfab7620d 20-21,150-152,171-175,218-219,347-349,368-372
+supabase/migrations/0006_claim_shared.sql
+  s_119014c9fb4ae2::t_1b60e98195a31f 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "898c1e39f0a8b5f49f06ec3bd16b07b81c67747b",
+  "prompts": {},
+  "sessions": {
+    "s_119014c9fb4ae2": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "87369fe4-7734-4862-af47-6c5f2fa2cb96",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_7447a1a2a3d7c9": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "63715c92-7732-457a-9175-eee72ef6abb0",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
