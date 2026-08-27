@@ -1,0 +1,28 @@
+src/components/board/AssignedBar.tsx
+  h_fed6a40af368f7 3,30-48,102,107-124
+src/components/board/BillProgress.tsx
+  h_fed6a40af368f7 3-5,8,38-39,45-62,66-72,88-119,144-190
+src/components/board/IdentityPicker.tsx
+  h_fed6a40af368f7 49-53
+src/components/board/ProductCard.tsx
+  h_fed6a40af368f7 3
+src/components/room/RoomFlow.tsx
+  h_fed6a40af368f7 21,86-88
+src/components/room/RoomHome.tsx
+  h_fed6a40af368f7 3,6,17-21,36,44-48,184-269
+src/i18n.ts
+  h_fed6a40af368f7 30-31,192-195,232-233,393-396
+src/lib/rooms/recent-rooms.ts
+  h_fed6a40af368f7 1-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "751d8405ce51dd228f09f3b5fbccc076daa7c6c4",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
