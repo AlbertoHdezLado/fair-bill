@@ -1,0 +1,23 @@
+next-env.d.ts
+  s_c0e38c7e99fcb1::t_934dbc0ef1f53d 3-4
+package.json
+  s_c0e38c7e99fcb1::t_e506b7abbc2565 17
+pnpm-lock.yaml
+  s_c0e38c7e99fcb1::t_65b0697a74a32f 17-19,1597-1607,2144-2160,4478-4486,4974-4987
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8cdb0ead96916fa2201664f2cc05dd442b8970ad",
+  "prompts": {},
+  "sessions": {
+    "s_c0e38c7e99fcb1": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f8e88023-515b-4ff0-ab89-133839cc2945",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
