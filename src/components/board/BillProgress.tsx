@@ -95,6 +95,7 @@ export function BillProgress({
         >
           <motion.div
             className="h-full rounded-full bg-primary"
+            initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
             transition={{ type: "spring", stiffness: 300, damping: 32 }}
           />

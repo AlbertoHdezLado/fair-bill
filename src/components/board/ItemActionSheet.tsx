@@ -187,6 +187,7 @@ export function ItemActionSheet({
                 nameOf={nameOf}
                 onSaveGroup={onSaveGroup}
                 onLeave={() => leaveGroup(directGroup)}
+                variant="shared"
                 messages={messages}
               />
             ) : (
@@ -359,6 +360,7 @@ export function ItemActionSheet({
                   leaveGroup(editingGroup);
                   setEditingGroupId(null);
                 }}
+                variant={tab === "mine" ? "private" : "shared"}
                 messages={messages}
               />
             </motion.div>
@@ -437,6 +439,7 @@ function GroupEditor({
   nameOf,
   onSaveGroup,
   onLeave,
+  variant,
   messages,
 }: {
   readonly item: EditableItem;
@@ -451,6 +454,8 @@ function GroupEditor({
     shared: boolean,
   ) => void;
   readonly onLeave: () => void;
+  /** Shared groups can be left; private (mine) claims are simply removed. */
+  readonly variant: "shared" | "private";
   readonly messages: Messages["board"];
 }) {
   const [units, setUnits] = useState(group.units);
@@ -459,16 +464,18 @@ function GroupEditor({
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-surface p-3">
-      <div className="flex items-center gap-2 text-sm">
-        <Users
-          aria-hidden="true"
-          size={14}
-          className="shrink-0 text-primary"
-        />
-        <span className="min-w-0 truncate font-semibold">
-          {group.memberIds.map(nameOf).join(", ")}
-        </span>
-      </div>
+      {variant === "shared" && (
+        <div className="flex items-center gap-2 text-sm">
+          <Users
+            aria-hidden="true"
+            size={14}
+            className="shrink-0 text-primary"
+          />
+          <span className="min-w-0 truncate font-semibold">
+            {group.memberIds.map(nameOf).join(", ")}
+          </span>
+        </div>
+      )}
 
       <UnitStepper
         units={capped}
@@ -488,9 +495,13 @@ function GroupEditor({
         <button
           type="button"
           onClick={onLeave}
-          className="rounded-full border border-primary/50 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+          className={
+            variant === "shared"
+              ? "rounded-full border border-primary/50 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+              : "rounded-full border border-red-500/60 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-500/10"
+          }
         >
-          {messages.leaveGroup}
+          {variant === "shared" ? messages.leaveGroup : messages.removeClaim}
         </button>
         <button
           type="button"

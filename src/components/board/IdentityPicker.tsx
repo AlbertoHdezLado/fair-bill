@@ -99,7 +99,7 @@ export function IdentityPicker({
                 )
               }
               placeholder={messages.newUserPlaceholder}
-              className="min-w-0 flex-1 rounded border-2 border-primary/70 bg-transparent px-3 py-2 text-sm uppercase focus:border-primary focus:outline-none"
+              className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
             <button
               type="button"

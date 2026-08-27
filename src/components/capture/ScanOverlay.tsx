@@ -58,6 +58,7 @@ export function ScanOverlay({
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
           <motion.div
             className="h-full rounded-full bg-primary"
+            initial={{ width: 0 }}
             animate={{
               width: `${stage === "recognizing" ? Math.round(progress * 100) : stage === "parsing" ? 100 : 8}%`,
             }}

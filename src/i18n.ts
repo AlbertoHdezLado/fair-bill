@@ -179,6 +179,7 @@ export const messages = {
       perPerson: "{{amount}} por persona",
       newGroupTitle: "Coge de lo que queda",
       leaveGroup: "Salir",
+      removeClaim: "Quitar",
       groupChangedBy:
         "{{actor}} cambió {{item}}: ahora {{units}} uds. entre {{people}} personas.",
       groupRemovedBy: "{{actor}} dejó {{item}}: ya no estás en el grupo.",
@@ -380,6 +381,7 @@ export const messages = {
       perPerson: "{{amount}} each",
       newGroupTitle: "Take from what's left",
       leaveGroup: "Leave",
+      removeClaim: "Remove",
       groupChangedBy:
         "{{actor}} changed {{item}}: now {{units}} units between {{people}} people.",
       groupRemovedBy: "{{actor}} changed {{item}}: you're no longer in the group.",
