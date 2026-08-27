@@ -36,6 +36,7 @@ interface BillPayload {
 }
 
 interface IncomingItem {
+  id: string;
   name: string;
   quantity: number;
   unitPriceCents: number;
@@ -90,34 +91,66 @@ export async function PUT(
     }
   }
 
-  // Claims cascade from items, so replacing the list also clears the shares of
-  // any line that no longer exists.
-  const { error: deleteError } = await supabase
-    .from("items")
-    .delete()
-    .eq("room_id", room.id);
-  if (deleteError) {
+  const itemsError = await saveItems(supabase, room.id, items);
+  if (itemsError) {
     return NextResponse.json({ error: "Could not save" }, { status: 500 });
-  }
-
-  if (items.length > 0) {
-    const { error: insertError } = await supabase.from("items").insert(
-      items.map((item, position) => ({
-        room_id: room.id,
-        name: item.name,
-        quantity: item.quantity,
-        unit_price_cents: item.unitPriceCents,
-        edited: item.edited,
-        position,
-      })),
-    );
-    if (insertError) {
-      return NextResponse.json({ error: "Could not save" }, { status: 500 });
-    }
   }
 
   await broadcastRoomUpdate(supabase, code);
   return NextResponse.json(await loadRoomState(supabase, room));
+}
+
+type SupabaseClientLike = ReturnType<typeof createServiceClient>;
+
+/**
+ * Claims cascade from items, so we preserve each existing item's id across the
+ * save (upsert) instead of deleting and reinserting everything: that way an
+ * edit that only touches the extras (e.g. the detected total) never disturbs
+ * the item rows or the claims/shares built on top of them. Only lines the
+ * user actually removed get deleted.
+ */
+async function saveItems(
+  supabase: SupabaseClientLike,
+  roomId: string,
+  items: readonly IncomingItem[],
+): Promise<boolean> {
+  const { data: existingRows, error: existingError } = await supabase
+    .from("items")
+    .select("id")
+    .eq("room_id", roomId);
+  if (existingError) return true;
+  const existingIds = new Set(
+    (existingRows ?? []).map((row) => row.id as string),
+  );
+
+  const rows = items.map((item, position) => ({
+    id: existingIds.has(item.id) ? item.id : crypto.randomUUID(),
+    room_id: roomId,
+    name: item.name,
+    quantity: item.quantity,
+    unit_price_cents: item.unitPriceCents,
+    edited: item.edited,
+    position,
+  }));
+
+  if (rows.length > 0) {
+    const { error: upsertError } = await supabase
+      .from("items")
+      .upsert(rows, { onConflict: "id" });
+    if (upsertError) return true;
+  }
+
+  const keepIds = new Set(rows.map((row) => row.id));
+  const idsToDelete = [...existingIds].filter((id) => !keepIds.has(id));
+  if (idsToDelete.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("items")
+      .delete()
+      .in("id", idsToDelete);
+    if (deleteError) return true;
+  }
+
+  return false;
 }
 
 function parseItems(value: unknown): IncomingItem[] | null {
@@ -128,12 +161,19 @@ function parseItems(value: unknown): IncomingItem[] | null {
     if (typeof raw !== "object" || raw === null) return null;
     const item = raw as Record<string, unknown>;
     const name = typeof item.name === "string" ? item.name : null;
+    const id = typeof item.id === "string" && item.id.length > 0 ? item.id : null;
     const quantity = toFiniteNumber(item.quantity);
     const unitPriceCents = toFiniteNumber(item.unitPriceCents);
-    if (name === null || quantity === null || unitPriceCents === null) {
+    if (
+      name === null ||
+      id === null ||
+      quantity === null ||
+      unitPriceCents === null
+    ) {
       return null;
     }
     items.push({
+      id,
       name: name.slice(0, MAX_PRODUCT_NAME_LENGTH),
       quantity: Math.max(0, quantity),
       unitPriceCents: Math.max(0, Math.round(unitPriceCents)),

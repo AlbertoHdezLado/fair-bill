@@ -12,7 +12,7 @@ export default async function RoomPage({
   if (!isValidRoomCode(code)) notFound();
 
   return (
-    <main className="mx-auto flex h-[100svh] max-h-[100svh] min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 overflow-hidden px-4 py-6">
+    <main className="mx-auto flex h-[100svh] max-h-[100svh] min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 overflow-hidden px-4 pt-2 pb-4">
       <RoomFlow
         code={normalizeRoomCode(code)}
         messages={await getRequestMessages()}

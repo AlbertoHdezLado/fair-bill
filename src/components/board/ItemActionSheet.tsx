@@ -27,6 +27,8 @@ interface ItemActionSheetProps {
     units: number | null,
     shared: boolean,
   ) => void;
+  /** When set (a specific group's card was tapped in the shared tab), skip the group picker. */
+  readonly initialGroupId?: string;
   readonly messages: Messages["board"];
 }
 
@@ -39,9 +41,14 @@ export function ItemActionSheet({
   participantNames,
   onClose,
   onSaveGroup,
+  initialGroupId,
   messages,
 }: ItemActionSheetProps) {
   const myGroups = groups.filter((group) => group.memberIds.includes(selfKey));
+  const directGroup =
+    tab === "shared" && initialGroupId
+      ? groups.find((group) => group.groupId === initialGroupId)
+      : undefined;
   const nameOf = (key: string) => participantNames[key] ?? key;
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
@@ -170,7 +177,63 @@ export function ItemActionSheet({
           </section>
         )}
 
-        {tab === "shared" && (
+        {tab === "shared" && directGroup && (
+          <section className="flex flex-col gap-2">
+            {directGroup.memberIds.includes(selfKey) ? (
+              <GroupEditor
+                item={item}
+                group={directGroup}
+                remainingUnits={remainingUnits}
+                nameOf={nameOf}
+                onSaveGroup={onSaveGroup}
+                onLeave={() => leaveGroup(directGroup)}
+                messages={messages}
+              />
+            ) : (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-surface px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {directGroup.memberIds.map(nameOf).join(", ")}
+                  </p>
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    {messages.groupUnits.replace(
+                      "{{count}}",
+                      formatUnits(directGroup.units),
+                    )}
+                    {" · "}
+                    {messages.perPerson.replace(
+                      "{{amount}}",
+                      formatCents(
+                        perPersonCents(
+                          item,
+                          directGroup.units,
+                          directGroup.memberIds.length,
+                        ),
+                      ),
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSaveGroup(
+                      directGroup.groupId,
+                      directGroup.ownerId,
+                      [...directGroup.memberIds, selfKey],
+                      directGroup.units,
+                      true,
+                    )
+                  }
+                  className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
+                >
+                  {messages.joinShared}
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {tab === "shared" && !directGroup && (
           <section className="flex flex-col gap-2">
             <p className="text-xs font-medium uppercase text-muted-foreground">
               {messages.sharedGroupsTitle}

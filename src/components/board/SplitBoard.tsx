@@ -104,7 +104,10 @@ export function SplitBoard({
 }: SplitBoardProps) {
   const t = messages.board;
   const [tab, setTab] = useState<BoardTab>("remaining");
-  const [sheet, setSheet] = useState<{ itemId: string } | null>(null);
+  const [sheet, setSheet] = useState<{
+    itemIds: readonly string[];
+    groupId?: string;
+  } | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
   const [notifications, setNotifications] = useState<
@@ -183,6 +186,31 @@ export function SplitBoard({
     setSheet(null);
   };
 
+  // Un mismo producto puede venir repetido en varias líneas del ticket; una
+  // nueva reserva se reparte entre esas líneas en orden hasta cubrir las
+  // unidades pedidas, generando un grupo distinto por cada línea que aporta.
+  const distributeNewGroup = (
+    targetItems: readonly EditableItem[],
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
+    shared: boolean,
+  ) => {
+    let remaining = units ?? 0;
+    let nextGroupId = groupId;
+    for (const item of targetItems) {
+      if (remaining <= 0) break;
+      const capacity = Math.max(0, item.quantity - assignedUnits(item, claims));
+      const take = Math.min(remaining, capacity);
+      if (take <= 0) continue;
+      onSaveGroup(item.id, nextGroupId, ownerId, memberIds, take, shared);
+      nextGroupId = crypto.randomUUID();
+      remaining -= take;
+    }
+    setSheet(null);
+  };
+
   // Cada pestaña mira una parte distinta de la misma línea: lo que queda libre,
   // los grupos abiertos y los grupos privados de esta persona.
   const groupsForTab = (itemId: string) => {
@@ -201,6 +229,27 @@ export function SplitBoard({
     return groupsForTab(item.id).length > 0;
   });
 
+  // Varias líneas del ticket pueden ser el mismo producto (mismo nombre y
+  // precio); en "sin asignar" se muestran fusionadas en una sola tarjeta.
+  const remainingGroups = useMemo(() => {
+    const map = new Map<string, EditableItem[]>();
+    for (const item of items) {
+      if (item.quantity - assignedUnits(item, claims) <= 0) continue;
+      const key = `${item.name.trim().toLowerCase()}|${item.unitPriceCents}`;
+      const list = map.get(key);
+      if (list) list.push(item);
+      else map.set(key, [item]);
+    }
+    return [...map.values()].map((group) => ({
+      key: group.map((item) => item.id).join("+"),
+      items: group,
+      remainingUnits: group.reduce(
+        (sum, item) => sum + Math.max(0, item.quantity - assignedUnits(item, claims)),
+        0,
+      ),
+    }));
+  }, [items, claims]);
+
   const emptyMessages: Record<BoardTab, string> = {
     remaining: items.length === 0 ? t.nothingRemaining : t.nothingLeft,
     shared: t.nothingShared,
@@ -208,9 +257,14 @@ export function SplitBoard({
   };
   const emptyMessage = emptyMessages[tab];
 
-  const sheetItem = sheet
-    ? (items.find((item) => item.id === sheet.itemId) ?? null)
-    : null;
+  const sheetItems = sheet
+    ? items.filter((item) => sheet.itemIds.includes(item.id))
+    : [];
+  const primarySheetItem = sheetItems[0] ?? null;
+  const sheetRemainingUnits = sheetItems.reduce(
+    (sum, item) => sum + Math.max(0, item.quantity - assignedUnits(item, claims)),
+    0,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -249,39 +303,54 @@ export function SplitBoard({
             <BoardTabs tab={tab} onTabChange={setTab} messages={t} />
           </div>
           <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
-            {visibleItems.flatMap((item) => {
-              const groups = groupsForTab(item.id);
-              const cards = tab === "remaining" ? [null] : groups;
-
-              return cards.map((group) => (
-                <ProductCard
-                    key={`${item.id}-${group?.groupId ?? "remaining"}`}
-                    item={item}
-                    displayUnits={group?.units}
-                    remainingUnits={Math.max(
+            {tab === "remaining"
+              ? remainingGroups.map(({ key, items: group, remainingUnits }) => (
+                  <ProductCard
+                    key={key}
+                    item={group[0]}
+                    remainingUnits={remainingUnits}
+                    myUnits={group.reduce(
+                      (sum, item) => sum + claimedUnits(item, claims, selfKey),
                       0,
-                      item.quantity - assignedUnits(item, claims),
                     )}
-                    myUnits={claimedUnits(item, claims, selfKey)}
-                    groups={
-                      group
-                        ? [
-                            {
-                              groupId: group.groupId,
-                              memberNames: group.memberIds.map(nameOf),
-                              units: group.units,
-                              includesSelf: group.memberIds.includes(selfKey),
-                            },
-                          ]
-                        : []
+                    groups={[]}
+                    showGroups={false}
+                    onSelect={() =>
+                      setSheet({ itemIds: group.map((item) => item.id) })
                     }
-                  showGroups={tab !== "remaining"}
-                  onSelect={() => setSheet({ itemId: item.id })}
-                  messages={t}
-                />
-              ));
-            })}
-            {visibleItems.length === 0 && (
+                    messages={t}
+                  />
+                ))
+              : visibleItems.flatMap((item) => {
+                  const groups = groupsForTab(item.id);
+
+                  return groups.map((group) => (
+                    <ProductCard
+                      key={`${item.id}-${group.groupId}`}
+                      item={item}
+                      displayUnits={group.units}
+                      remainingUnits={Math.max(
+                        0,
+                        item.quantity - assignedUnits(item, claims),
+                      )}
+                      myUnits={claimedUnits(item, claims, selfKey)}
+                      groups={[
+                        {
+                          groupId: group.groupId,
+                          memberNames: group.memberIds.map(nameOf),
+                          units: group.units,
+                          includesSelf: group.memberIds.includes(selfKey),
+                        },
+                      ]}
+                      showGroups={true}
+                      onSelect={() =>
+                        setSheet({ itemIds: [item.id], groupId: group.groupId })
+                      }
+                      messages={t}
+                    />
+                  ));
+                })}
+            {(tab === "remaining" ? remainingGroups.length === 0 : visibleItems.length === 0) && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}
               </p>
@@ -301,26 +370,40 @@ export function SplitBoard({
       </div>
 
       <AnimatePresence>
-        {sheetItem && (
+        {primarySheetItem && (
           <ItemActionSheet
             key="item-action-sheet"
             tab={tab}
-            item={sheetItem}
+            item={primarySheetItem}
             selfKey={selfKey}
-            groups={groupsForTab(sheetItem.id)}
-            remainingUnits={Math.max(
-              0,
-              sheetItem.quantity - assignedUnits(sheetItem, claims),
-            )}
+            groups={groupsForTab(primarySheetItem.id)}
+            remainingUnits={sheetRemainingUnits}
             participantNames={Object.fromEntries(
               participants.map((participant) => [
                 participant.key,
                 participant.name,
               ]),
             )}
+            initialGroupId={sheet?.groupId}
             onClose={() => setSheet(null)}
             onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>
-              saveGroup(sheetItem.id, groupId, ownerId, memberIds, units, shared)
+              tab === "remaining"
+                ? distributeNewGroup(
+                    sheetItems,
+                    groupId,
+                    ownerId,
+                    memberIds,
+                    units,
+                    shared,
+                  )
+                : saveGroup(
+                    primarySheetItem.id,
+                    groupId,
+                    ownerId,
+                    memberIds,
+                    units,
+                    shared,
+                  )
             }
             messages={t}
           />
