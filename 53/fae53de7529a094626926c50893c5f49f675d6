@@ -1,0 +1,26 @@
+src/components/board/AssignedBar.tsx
+  h_fed6a40af368f7 54
+src/components/board/IdentityPicker.tsx
+  h_fed6a40af368f7 27-28,50,54-64,66-77
+src/components/board/ItemActionSheet.tsx
+  h_fed6a40af368f7 347,349,351-352,358,360,362-363
+src/components/board/NotificationBell.tsx
+  h_fed6a40af368f7 94
+src/components/board/ProductCard.tsx
+  h_fed6a40af368f7 3-4,58-75,77-78,82-100,147
+src/components/board/SplitBoard.tsx
+  h_fed6a40af368f7 252-254,256-257,278-283
+src/i18n.ts
+  h_fed6a40af368f7 145,341
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "53fae53de7529a094626926c50893c5f49f675d6",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
