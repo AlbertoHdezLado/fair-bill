@@ -26,9 +26,6 @@ export function AssignedBar({
   totalsMessages,
 }: AssignedBarProps) {
   const me = split.people.find((person) => person.participantId === selfKey);
-  const others = split.people.filter(
-    (person) => person.participantId !== selfKey,
-  );
 
   return (
     <>
@@ -54,7 +51,7 @@ export function AssignedBar({
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-lg font-bold text-primary">
-                  {messages.breakdownTitle}
+                  {messages.yourTotal}
                 </p>
                 <button
                   type="button"
@@ -72,33 +69,6 @@ export function AssignedBar({
                 <p className="text-sm text-muted-foreground">
                   {messages.nothingAssigned}
                 </p>
-              )}
-
-              {others.length > 0 && (
-                <div className="flex flex-col gap-2 border-t border-primary/20 pt-3">
-                  <p className="text-xs font-semibold uppercase text-muted-foreground">
-                    {messages.othersTitle}
-                  </p>
-                  {others.map((person) => (
-                    <details
-                      key={person.participantId}
-                      className="rounded-lg border border-primary/25 bg-surface p-3"
-                    >
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
-                        {person.name}
-                        <span className="tabular-nums">
-                          {formatCents(person.totalCents)}
-                        </span>
-                      </summary>
-                      <div className="mt-2 border-t border-primary/15 pt-2">
-                        <PersonBreakdown
-                          person={person}
-                          messages={totalsMessages}
-                        />
-                      </div>
-                    </details>
-                  ))}
-                </div>
               )}
             </motion.div>
           </div>

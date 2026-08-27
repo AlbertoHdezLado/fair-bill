@@ -142,6 +142,7 @@ export const messages = {
     board: {
       whoAreYou: "¿Quién eres?",
       whoAreYouHint: "Elige tu nombre de la lista de la sala.",
+      whoAreYouHintEmpty: "Sé el primero: escribe tu nombre para empezar.",
       addUser: "No estoy en la lista",
       newUserPlaceholder: "Tu nombre",
       duplicateName: "Ese nombre ya está en la lista.",
@@ -164,8 +165,6 @@ export const messages = {
       divide: "Divide",
       edit: "Editar",
       yourTotal: "Total",
-      breakdownTitle: "De dónde sale tu total",
-      othersTitle: "Resto de la sala",
       nothingAssigned: "Todavía no has marcado nada.",
       nothingRemaining: "No hay productos en el ticket.",
       nothingLeft: "Ya no queda nada por asignar.",
@@ -339,6 +338,7 @@ export const messages = {
     board: {
       whoAreYou: "Who are you?",
       whoAreYouHint: "Pick your name from the table list.",
+      whoAreYouHintEmpty: "Be the first one: type your name to start.",
       addUser: "I'm not on the list",
       newUserPlaceholder: "Your name",
       duplicateName: "That name is already on the list.",
@@ -361,8 +361,6 @@ export const messages = {
       divide: "Divide",
       edit: "Edit",
       yourTotal: "Total",
-      breakdownTitle: "Where your total comes from",
-      othersTitle: "Rest of the table",
       nothingAssigned: "You haven't claimed anything yet.",
       nothingRemaining: "There are no products on the receipt.",
       nothingLeft: "Nothing left to assign.",

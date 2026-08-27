@@ -344,23 +344,23 @@ function NewGroupForm({
           type="button"
           disabled={remainingUnits <= 0}
           onClick={() =>
-            onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped, false)
-          }
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-40"
-        >
-          <User aria-hidden="true" size={16} />
-          {messages.forMe}
-        </button>
-        <button
-          type="button"
-          disabled={remainingUnits <= 0}
-          onClick={() =>
             onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped, true)
           }
           className="flex flex-1 items-center justify-center gap-2 rounded-full border border-primary px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-40"
         >
           <Users aria-hidden="true" size={16} />
           {messages.shareUnits}
+        </button>
+        <button
+          type="button"
+          disabled={remainingUnits <= 0}
+          onClick={() =>
+            onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped, false)
+          }
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-40"
+        >
+          <User aria-hidden="true" size={16} />
+          {messages.forMe}
         </button>
       </div>
     </section>

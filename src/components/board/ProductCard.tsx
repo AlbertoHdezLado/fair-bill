@@ -1,11 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { motion } from "motion/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { Messages } from "@/i18n";
-import { fadeInUpVariants, springTransition } from "@/lib/motion";
 
 export interface ProductCardGroup {
   readonly groupId: string;
@@ -56,18 +55,49 @@ export function ProductCard({
     quantityLine = messages.allAssigned;
   }
 
+  // Muestra un "+" o "-" fugaz cuando cambian mis unidades, como si el
+  // producto entrase o saliese de mi cuenta.
+  const [delta, setDelta] = useState<{ id: number; value: number } | null>(
+    null,
+  );
+  const prevMyUnitsRef = useRef(myUnits);
+  const deltaIdRef = useRef(0);
+
+  useEffect(() => {
+    const diff = myUnits - prevMyUnitsRef.current;
+    prevMyUnitsRef.current = myUnits;
+    if (diff === 0) return;
+    deltaIdRef.current += 1;
+    setDelta({ id: deltaIdRef.current, value: diff });
+    const timeout = setTimeout(() => setDelta(null), 900);
+    return () => clearTimeout(timeout);
+  }, [myUnits]);
+
   return (
-    <motion.article
-      layout
-      variants={fadeInUpVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      transition={springTransition}
-      className={`w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
+    <article
+      className={`relative w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
         isMine ? "border-gold" : "border-primary/45"
       }`}
     >
+      <AnimatePresence>
+        {delta && (
+          <motion.span
+            key={delta.id}
+            initial={{ opacity: 0, y: 0, scale: 0.85 }}
+            animate={{ opacity: 1, y: -20, scale: 1 }}
+            exit={{ opacity: 0, y: -32 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className={`pointer-events-none absolute right-3 top-2 z-10 text-sm font-bold tabular-nums ${
+              delta.value > 0 ? "text-gold" : "text-primary"
+            }`}
+          >
+            {delta.value > 0
+              ? `+${formatUnits(delta.value)}`
+              : formatUnits(delta.value)}
+          </motion.span>
+        )}
+      </AnimatePresence>
+
       {onSelect ? (
         <button
           type="button"
@@ -114,7 +144,7 @@ export function ProductCard({
       )}
 
       {footer && <div className="border-t border-primary/20 px-3 py-2">{footer}</div>}
-    </motion.article>
+    </article>
   );
 }
 

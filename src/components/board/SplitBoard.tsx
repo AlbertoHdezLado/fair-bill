@@ -249,13 +249,12 @@ export function SplitBoard({
             <BoardTabs tab={tab} onTabChange={setTab} messages={t} />
           </div>
           <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
-            <AnimatePresence initial={false}>
-              {visibleItems.flatMap((item) => {
-                const groups = groupsForTab(item.id);
-                const cards = tab === "remaining" ? [null] : groups;
+            {visibleItems.flatMap((item) => {
+              const groups = groupsForTab(item.id);
+              const cards = tab === "remaining" ? [null] : groups;
 
-                return cards.map((group) => (
-                  <ProductCard
+              return cards.map((group) => (
+                <ProductCard
                     key={`${item.id}-${group?.groupId ?? "remaining"}`}
                     item={item}
                     displayUnits={group?.units}
@@ -276,13 +275,12 @@ export function SplitBoard({
                           ]
                         : []
                     }
-                    showGroups={tab !== "remaining"}
-                    onSelect={() => setSheet({ itemId: item.id })}
-                    messages={t}
-                  />
-                ));
-              })}
-            </AnimatePresence>
+                  showGroups={tab !== "remaining"}
+                  onSelect={() => setSheet({ itemId: item.id })}
+                  messages={t}
+                />
+              ));
+            })}
             {visibleItems.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}

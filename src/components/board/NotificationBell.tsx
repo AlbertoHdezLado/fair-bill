@@ -91,7 +91,7 @@ export function NotificationBell({
 
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-30 flex items-center justify-center bg-foreground/40 p-4">
+          <div className="fixed inset-0 z-30 flex items-center justify-center bg-ink/70 p-4">
             <motion.button
               variants={backdropVariants}
               initial="hidden"

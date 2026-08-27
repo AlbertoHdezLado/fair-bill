@@ -24,7 +24,8 @@ export function IdentityPicker({
   onAdd,
   messages,
 }: IdentityPickerProps) {
-  const [adding, setAdding] = useState(false);
+  const hasParticipants = participants.length > 0;
+  const [adding, setAdding] = useState(!hasParticipants);
   const [name, setName] = useState("");
 
   const trimmed = name.trim();
@@ -46,32 +47,34 @@ export function IdentityPicker({
       >
         <p className="text-xl font-bold text-primary">{messages.whoAreYou}</p>
         <p className="text-sm text-muted-foreground">
-          {messages.whoAreYouHint}
+          {hasParticipants ? messages.whoAreYouHint : messages.whoAreYouHintEmpty}
         </p>
       </motion.div>
 
-      <ul className="grid grid-cols-2 gap-2">
-        <AnimatePresence initial={false}>
-          {participants.map((participant) => (
-            <motion.li
-              key={participant.key}
-              layout
-              variants={fadeInUpVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-            >
-              <button
-                type="button"
-                onClick={() => onSelect(participant.key)}
-                className="flex min-h-16 w-full items-center justify-center rounded-2xl border border-primary/40 bg-surface px-3 py-4 text-base font-bold hover:border-primary hover:bg-primary/10"
+      {hasParticipants && (
+        <ul className="grid grid-cols-2 gap-2">
+          <AnimatePresence initial={false}>
+            {participants.map((participant) => (
+              <motion.li
+                key={participant.key}
+                layout
+                variants={fadeInUpVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
-                <span className="min-w-0 truncate">{participant.name}</span>
-              </button>
-            </motion.li>
-          ))}
-        </AnimatePresence>
-      </ul>
+                <button
+                  type="button"
+                  onClick={() => onSelect(participant.key)}
+                  className="flex min-h-16 w-full items-center justify-center rounded-2xl border border-primary/40 bg-surface px-3 py-4 text-base font-bold hover:border-primary hover:bg-primary/10"
+                >
+                  <span className="min-w-0 truncate">{participant.name}</span>
+                </button>
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      )}
 
       {adding ? (
         <motion.div
