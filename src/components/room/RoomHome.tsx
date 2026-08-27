@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, ImageUp, PencilLine } from "lucide-react";
+import { ArrowRight, ImageUp, PencilLine, X } from "lucide-react";
 import { ScanOverlay } from "@/components/capture/ScanOverlay";
 import { LoadingState } from "@/components/Spinner";
 import { CodeInput } from "@/components/room/CodeInput";
@@ -14,6 +14,11 @@ import {
   setPendingCapture,
   type PendingCapture,
 } from "@/lib/rooms/pending-capture";
+import {
+  forgetRoom,
+  getRecentRooms,
+  type RecentRoom,
+} from "@/lib/rooms/recent-rooms";
 import { fadeInUpVariants, listStagger } from "@/lib/motion";
 import type { Messages } from "@/i18n";
 
@@ -28,12 +33,18 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shakeSignal, setShakeSignal] = useState(0);
+  const [recentRooms, setRecentRooms] = useState<readonly RecentRoom[]>([]);
   const [scan, setScan] = useState<{
     stage: ScanStage;
     progress: number;
     previewUrl: string;
   } | null>(null);
   const busy = busyLabel !== null || scan !== null;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura puntual al montar
+    setRecentRooms(getRecentRooms());
+  }, []);
 
   function start(capture: PendingCapture) {
     setBusyLabel(messages.creatingRoom);
@@ -150,45 +161,6 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
 
         <motion.section
           variants={fadeInUpVariants}
-          className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5"
-        >
-          <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {messages.howTitle}
-          </h2>
-          <ol className="flex flex-col gap-4">
-            {messages.steps.map((step, index) => (
-              <li key={step.title} className="flex items-start gap-3">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                  {index + 1}
-                </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold">{step.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {step.detail}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </motion.section>
-
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              key="room-home-error"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              role="alert"
-              className="text-center text-sm text-gold"
-            >
-              {error}
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        <motion.section
-          variants={fadeInUpVariants}
           className="flex flex-col gap-3 border-t border-border pt-6"
         >
           <p className="text-center text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -209,6 +181,92 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
               router.push(`/room/${normalizeRoomCode(code)}`);
             }}
           />
+
+          {recentRooms.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {messages.recentRoomsTitle}
+              </p>
+              <ul className="flex flex-col gap-2">
+                {recentRooms.map((room) => (
+                  <li
+                    key={room.code}
+                    className="flex items-center gap-2 rounded-2xl border border-border/60 bg-surface/30 pr-2"
+                  >
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setBusyLabel(messages.joiningRoom);
+                        router.push(`/room/${room.code}`);
+                      }}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left disabled:opacity-60"
+                    >
+                      <span className="min-w-0 truncate text-sm font-medium">
+                        {room.merchantName || room.code}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {room.code}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      aria-label={messages.forgetRoomLabel}
+                      onClick={() => {
+                        forgetRoom(room.code);
+                        setRecentRooms((prev) =>
+                          prev.filter((entry) => entry.code !== room.code),
+                        );
+                      }}
+                      className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-60"
+                    >
+                      <X aria-hidden="true" size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                key="room-home-error"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                role="alert"
+                className="text-center text-sm text-gold"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </motion.section>
+
+        <motion.section
+          variants={fadeInUpVariants}
+          className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5"
+        >
+          <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {messages.howTitle}
+          </h2>
+          <ol className="flex flex-col gap-4">
+            {messages.steps.map((step, index) => (
+              <li key={step.title} className="flex items-start gap-3">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                  {index + 1}
+                </span>
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">{step.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {step.detail}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
         </motion.section>
       </motion.div>
 

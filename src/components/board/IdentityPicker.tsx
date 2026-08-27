@@ -46,9 +46,11 @@ export function IdentityPicker({
         className="flex flex-col gap-1 text-center"
       >
         <p className="text-xl font-bold text-primary">{messages.whoAreYou}</p>
-        <p className="text-sm text-muted-foreground">
-          {hasParticipants ? messages.whoAreYouHint : messages.whoAreYouHintEmpty}
-        </p>
+        {hasParticipants && (
+          <p className="text-sm text-muted-foreground">
+            {messages.whoAreYouHint}
+          </p>
+        )}
       </motion.div>
 
       {hasParticipants && (

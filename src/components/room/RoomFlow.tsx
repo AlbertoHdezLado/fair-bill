@@ -18,6 +18,7 @@ import {
   saveClaim,
 } from "@/lib/rooms/api";
 import { takePendingCapture } from "@/lib/rooms/pending-capture";
+import { rememberRoom } from "@/lib/rooms/recent-rooms";
 import { toLocalClaims } from "@/lib/rooms/claims";
 import type { RoomState } from "@/lib/rooms/types";
 import {
@@ -82,7 +83,9 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
 
   const reload = useCallback(async () => {
     try {
-      setRoom(await fetchRoom(code));
+      const next = await fetchRoom(code);
+      setRoom(next);
+      rememberRoom(next.code, next.extras.merchantName);
       setError(null);
     } catch {
       setError(t.notFound);

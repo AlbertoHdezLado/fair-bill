@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronUp, X } from "lucide-react";
 import { formatCents } from "@/lib/money";
@@ -26,6 +27,25 @@ export function AssignedBar({
   totalsMessages,
 }: AssignedBarProps) {
   const me = split.people.find((person) => person.participantId === selfKey);
+  const myTotalCents = me?.totalCents ?? 0;
+
+  // Muestra un "+X €" o "-X €" fugaz cuando cambia tu total, como si el
+  // importe entrase o saliese de tu cuenta.
+  const [delta, setDelta] = useState<{ id: number; value: number } | null>(
+    null,
+  );
+  const prevTotalRef = useRef(myTotalCents);
+  const deltaIdRef = useRef(0);
+
+  useEffect(() => {
+    const diff = myTotalCents - prevTotalRef.current;
+    prevTotalRef.current = myTotalCents;
+    if (diff === 0) return;
+    deltaIdRef.current += 1;
+    setDelta({ id: deltaIdRef.current, value: diff });
+    const timeout = setTimeout(() => setDelta(null), 1200);
+    return () => clearTimeout(timeout);
+  }, [myTotalCents]);
 
   return (
     <>
@@ -79,11 +99,29 @@ export function AssignedBar({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="-mx-4 -mb-6 flex w-[calc(100%+2rem)] shrink-0 items-center justify-between gap-3 border-t border-primary/40 bg-primary px-5 py-3 text-primary-foreground shadow-[0_-2px_12px_rgba(0,0,0,0.18)]"
+        className="relative -mx-4 -mb-6 flex w-[calc(100%+2rem)] shrink-0 items-center justify-between gap-3 border-t border-primary/40 bg-primary px-5 py-3 text-primary-foreground shadow-[0_-2px_12px_rgba(0,0,0,0.18)]"
         style={{
           paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
         }}
       >
+        <AnimatePresence>
+          {delta && (
+            <motion.span
+              key={delta.id}
+              initial={{ opacity: 0, y: 8, scale: 0.9 }}
+              animate={{ opacity: 1, y: -8, scale: 1 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+              className={`pointer-events-none absolute right-5 top-0 z-10 -translate-y-full text-sm font-bold tabular-nums ${
+                delta.value > 0 ? "text-gold" : "text-primary"
+              }`}
+            >
+              {delta.value > 0
+                ? `+${formatCents(delta.value)}`
+                : formatCents(delta.value)}
+            </motion.span>
+          )}
+        </AnimatePresence>
         <span className="text-lg font-bold">{messages.yourTotal}</span>
         <span className="flex items-center gap-2">
           <AnimatePresence mode="popLayout" initial={false}>

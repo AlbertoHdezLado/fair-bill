@@ -1,9 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { motion } from "motion/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { Receipt, Share2 } from "lucide-react";
 import { formatCents } from "@/lib/money";
+import { backdropVariants, sheetVariants } from "@/lib/motion";
 import type { Messages } from "@/i18n";
 
 export type BoardTab = "remaining" | "shared" | "mine";
@@ -33,15 +35,41 @@ export function BillProgress({
   notifications,
   messages,
 }: BillProgressProps) {
+  const router = useRouter();
+  const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   const percent =
     totalCents > 0
       ? Math.min(100, Math.round((assignedCents / totalCents) * 100))
       : 0;
 
+  // Muestra un "+X €" o "-X €" fugaz junto al progreso cuando cambia lo
+  // asignado en la sala.
+  const [delta, setDelta] = useState<{ id: number; value: number } | null>(
+    null,
+  );
+  const prevAssignedRef = useRef(assignedCents);
+  const deltaIdRef = useRef(0);
+
+  useEffect(() => {
+    const diff = assignedCents - prevAssignedRef.current;
+    prevAssignedRef.current = assignedCents;
+    if (diff === 0) return;
+    deltaIdRef.current += 1;
+    setDelta({ id: deltaIdRef.current, value: diff });
+    const timeout = setTimeout(() => setDelta(null), 1200);
+    return () => clearTimeout(timeout);
+  }, [assignedCents]);
+
   return (
     <div className="flex w-full flex-col gap-3 pt-3">
       <div className="flex items-center justify-between gap-3">
-        <img src="/logo.svg" alt="fairBill" className="h-9 w-auto" />
+        <button
+          type="button"
+          onClick={() => setConfirmHomeOpen(true)}
+          aria-label={messages.backHomeTitle}
+        >
+          <img src="/logo.svg" alt="fairBill" className="h-9 w-auto" />
+        </button>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
@@ -57,18 +85,38 @@ export function BillProgress({
         </div>
       </div>
 
-      <div
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
-        className="h-2 w-full overflow-hidden rounded-full bg-primary/20"
-      >
-        <motion.div
-          className="h-full rounded-full bg-primary"
-          animate={{ width: `${percent}%` }}
-          transition={{ type: "spring", stiffness: 300, damping: 32 }}
-        />
+      <div className="relative">
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          className="h-2 w-full overflow-hidden rounded-full bg-primary/20"
+        >
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            animate={{ width: `${percent}%` }}
+            transition={{ type: "spring", stiffness: 300, damping: 32 }}
+          />
+        </div>
+        <AnimatePresence>
+          {delta && (
+            <motion.span
+              key={delta.id}
+              initial={{ opacity: 0, y: 4, scale: 0.9 }}
+              animate={{ opacity: 1, y: -14, scale: 1 }}
+              exit={{ opacity: 0, y: -24 }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+              className={`pointer-events-none absolute right-0 top-0 z-10 text-xs font-bold tabular-nums ${
+                delta.value > 0 ? "text-gold" : "text-primary"
+              }`}
+            >
+              {delta.value > 0
+                ? `+${formatCents(delta.value)}`
+                : formatCents(delta.value)}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="flex items-center justify-between gap-3">
@@ -93,6 +141,53 @@ export function BillProgress({
           {messages.viewTableBill}
         </button>
       </div>
+
+      <AnimatePresence>
+        {confirmHomeOpen && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={messages.close}
+              onClick={() => setConfirmHomeOpen(false)}
+              className="absolute inset-0 bg-ink/70"
+            />
+            <motion.div
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/40 bg-background p-5 shadow-2xl"
+            >
+              <p className="text-lg font-bold text-primary">
+                {messages.backHomeTitle}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {messages.backHomeDescription}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmHomeOpen(false)}
+                  className="flex-1 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+                >
+                  {messages.backHomeCancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/")}
+                  className="flex-1 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                >
+                  {messages.backHomeConfirm}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
