@@ -1,0 +1,19 @@
+src/components/board/ItemActionSheet.tsx
+  s_c0e38c7e99fcb1::t_75dd946fc73353 30-31,44,48-51,180-236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "005c2504a4b872a4621c693c9d280add7ee7bfe7",
+  "prompts": {},
+  "sessions": {
+    "s_c0e38c7e99fcb1": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f8e88023-515b-4ff0-ab89-133839cc2945",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
