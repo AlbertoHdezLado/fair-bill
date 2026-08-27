@@ -1,0 +1,24 @@
+src/components/board/AssignedBar.tsx
+  h_fed6a40af368f7 102
+src/components/board/BillProgress.tsx
+  h_fed6a40af368f7 98
+src/components/board/IdentityPicker.tsx
+  h_fed6a40af368f7 102
+src/components/board/ItemActionSheet.tsx
+  h_fed6a40af368f7 190,363,442,457-458,467-478,498-502,504
+src/components/capture/ScanOverlay.tsx
+  h_fed6a40af368f7 61
+src/i18n.ts
+  h_fed6a40af368f7 182,384
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "82653bbb75f553713c30d135ede4f7d118c51858",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
