@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "motion/react";
 import { ImageUp, PencilLine } from "lucide-react";
 import { scanReceipt, type ScanStage } from "@/lib/ocr/scan";
 import {
@@ -95,14 +96,17 @@ export function ReceiptScanner({ onScanned, messages }: ReceiptScannerProps) {
         </p>
       )}
 
-      {stage && (
-        <ScanOverlay
-          stage={stage}
-          progress={progress}
-          previewUrl={previewUrl}
-          messages={messages}
-        />
-      )}
+      <AnimatePresence>
+        {stage && (
+          <ScanOverlay
+            key="scan-overlay"
+            stage={stage}
+            progress={progress}
+            previewUrl={previewUrl}
+            messages={messages}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { MotionProvider } from "@/components/MotionProvider";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { getRequestLocale, getRequestMessages } from "@/lib/server-locale";
@@ -55,7 +56,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <ServiceWorkerRegister />
         <OfflineBanner message={messages.room.offline} />
-        {children}
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   );

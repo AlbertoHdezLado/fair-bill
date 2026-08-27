@@ -1,18 +1,26 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { motion } from "motion/react";
 import { ROOM_CODE_LENGTH } from "@/lib/rooms/code";
 
 interface CodeInputProps {
   readonly onComplete: (code: string) => void;
   readonly digitLabel: string;
   readonly disabled?: boolean;
+  /** Bump this value (e.g. an error counter) to trigger a shake animation. */
+  readonly shakeSignal?: number;
 }
 
 const SLOTS = Array.from({ length: ROOM_CODE_LENGTH }, (_, index) => index);
 
 /** Six single-character boxes that advance on their own and submit when full. */
-export function CodeInput({ onComplete, digitLabel, disabled }: CodeInputProps) {
+export function CodeInput({
+  onComplete,
+  digitLabel,
+  disabled,
+  shakeSignal,
+}: CodeInputProps) {
   const [digits, setDigits] = useState<readonly string[]>(() =>
     SLOTS.map(() => ""),
   );
@@ -48,7 +56,12 @@ export function CodeInput({ onComplete, digitLabel, disabled }: CodeInputProps) 
   }
 
   return (
-    <div className="flex justify-center gap-2">
+    <motion.div
+      key={shakeSignal}
+      animate={{ x: [0, -8, 8, -6, 6, -3, 3, 0] }}
+      transition={{ duration: 0.4 }}
+      className="flex justify-center gap-2"
+    >
       {SLOTS.map((index) => (
         <input
           key={index}
@@ -87,6 +100,6 @@ export function CodeInput({ onComplete, digitLabel, disabled }: CodeInputProps) 
           className="h-14 w-11 rounded-2xl border border-border bg-surface text-center font-mono text-2xl font-semibold uppercase tabular-nums shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 sm:w-12"
         />
       ))}
-    </div>
+    </motion.div>
   );
 }

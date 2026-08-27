@@ -1,9 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { Messages } from "@/i18n";
+import { fadeInUpVariants, springTransition } from "@/lib/motion";
 
 export interface ProductCardGroup {
   readonly groupId: string;
@@ -55,7 +57,13 @@ export function ProductCard({
   }
 
   return (
-    <article
+    <motion.article
+      layout
+      variants={fadeInUpVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      transition={springTransition}
       className={`w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
         isMine ? "border-gold" : "border-primary/45"
       }`}
@@ -106,7 +114,7 @@ export function ProductCard({
       )}
 
       {footer && <div className="border-t border-primary/20 px-3 py-2">{footer}</div>}
-    </article>
+    </motion.article>
   );
 }
 

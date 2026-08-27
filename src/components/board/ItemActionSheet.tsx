@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { User, Users, X } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { ItemGroup } from "@/lib/local-claims";
+import { backdropVariants, sheetVariants } from "@/lib/motion";
 import { formatUnits, perPersonCents } from "./ProductCard";
 import type { BoardTab } from "./BillProgress";
 import type { Messages } from "@/i18n";
@@ -80,13 +82,23 @@ export function ItemActionSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button
+      <motion.button
+        variants={backdropVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
         type="button"
         aria-label={messages.close}
         onClick={onClose}
         className="absolute inset-0 bg-ink/70"
       />
-      <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
+      <motion.div
+        variants={sheetVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl"
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-lg font-bold text-primary">
@@ -236,48 +248,60 @@ export function ItemActionSheet({
             })}
           </section>
         )}
-      </div>
+      </motion.div>
 
-      {editingGroup && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
-          <button
-            type="button"
-            aria-label={messages.close}
-            onClick={() => setEditingGroupId(null)}
-            className="absolute inset-0 bg-ink/70"
-          />
-          <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
-            <div className="flex items-center justify-between gap-3">
-              <p className="min-w-0 truncate text-sm font-semibold text-primary">
-                {editingGroup.memberIds.map(nameOf).join(", ")}
-              </p>
-              <button
-                type="button"
-                onClick={() => setEditingGroupId(null)}
-                aria-label={messages.close}
-                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              >
-                <X aria-hidden="true" size={20} />
-              </button>
-            </div>
-            <GroupEditor
-              item={item}
-              group={editingGroup}
-              remainingUnits={remainingUnits}
-              nameOf={nameOf}
-              onSaveGroup={(groupId, ownerId, memberIds, units, shared) => {
-                onSaveGroup(groupId, ownerId, memberIds, units, shared);
-                setEditingGroupId(null);
-              }}
-              onLeave={() => {
-                leaveGroup(editingGroup);
-                setEditingGroupId(null);
-              }}
-              messages={messages}
+      <AnimatePresence>
+        {editingGroup && (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={messages.close}
+              onClick={() => setEditingGroupId(null)}
+              className="absolute inset-0 bg-ink/70"
             />
+            <motion.div
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-semibold text-primary">
+                  {editingGroup.memberIds.map(nameOf).join(", ")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingGroupId(null)}
+                  aria-label={messages.close}
+                  className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                >
+                  <X aria-hidden="true" size={20} />
+                </button>
+              </div>
+              <GroupEditor
+                item={item}
+                group={editingGroup}
+                remainingUnits={remainingUnits}
+                nameOf={nameOf}
+                onSaveGroup={(groupId, ownerId, memberIds, units, shared) => {
+                  onSaveGroup(groupId, ownerId, memberIds, units, shared);
+                  setEditingGroupId(null);
+                }}
+                onLeave={() => {
+                  leaveGroup(editingGroup);
+                  setEditingGroupId(null);
+                }}
+                messages={messages}
+              />
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

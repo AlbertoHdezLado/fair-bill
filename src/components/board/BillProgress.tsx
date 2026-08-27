@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import { Receipt, Share2 } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { Messages } from "@/i18n";
@@ -63,9 +64,10 @@ export function BillProgress({
         aria-valuenow={percent}
         className="h-2 w-full overflow-hidden rounded-full bg-primary/20"
       >
-        <div
-          className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${percent}%` }}
+        <motion.div
+          className="h-full rounded-full bg-primary"
+          animate={{ width: `${percent}%` }}
+          transition={{ type: "spring", stiffness: 300, damping: 32 }}
         />
       </div>
 
@@ -143,13 +145,18 @@ function Tab({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-        active
-          ? "bg-primary text-primary-foreground"
-          : "text-primary hover:bg-primary/10"
+      className={`relative rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+        active ? "text-primary-foreground" : "text-primary hover:bg-primary/10"
       }`}
     >
-      {label}
+      {active && (
+        <motion.span
+          layoutId="board-tab-indicator"
+          transition={{ type: "spring", stiffness: 400, damping: 34 }}
+          className="absolute inset-0 rounded-full bg-primary"
+        />
+      )}
+      <span className="relative">{label}</span>
     </button>
   );
 }

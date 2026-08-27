@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 import {
   assignedUnits,
@@ -15,6 +16,7 @@ import {
   type EditableItem,
 } from "@/lib/receipt/editable";
 import { computeSplit } from "@/lib/split";
+import { backdropVariants, sheetVariants } from "@/lib/motion";
 import { AssignedBar } from "./AssignedBar";
 import { BillProgress, BoardTabs, type BoardTab } from "./BillProgress";
 import { ItemActionSheet } from "./ItemActionSheet";
@@ -247,38 +249,40 @@ export function SplitBoard({
             <BoardTabs tab={tab} onTabChange={setTab} messages={t} />
           </div>
           <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
-            {visibleItems.flatMap((item) => {
-              const groups = groupsForTab(item.id);
-              const cards = tab === "remaining" ? [null] : groups;
+            <AnimatePresence initial={false}>
+              {visibleItems.flatMap((item) => {
+                const groups = groupsForTab(item.id);
+                const cards = tab === "remaining" ? [null] : groups;
 
-              return cards.map((group) => (
-                <ProductCard
-                  key={`${item.id}-${group?.groupId ?? "remaining"}`}
-                  item={item}
-                  displayUnits={group?.units}
-                  remainingUnits={Math.max(
-                    0,
-                    item.quantity - assignedUnits(item, claims),
-                  )}
-                  myUnits={claimedUnits(item, claims, selfKey)}
-                  groups={
-                    group
-                      ? [
-                          {
-                            groupId: group.groupId,
-                            memberNames: group.memberIds.map(nameOf),
-                            units: group.units,
-                            includesSelf: group.memberIds.includes(selfKey),
-                          },
-                        ]
-                      : []
-                  }
-                  showGroups={tab !== "remaining"}
-                  onSelect={() => setSheet({ itemId: item.id })}
-                  messages={t}
-                />
-              ));
-            })}
+                return cards.map((group) => (
+                  <ProductCard
+                    key={`${item.id}-${group?.groupId ?? "remaining"}`}
+                    item={item}
+                    displayUnits={group?.units}
+                    remainingUnits={Math.max(
+                      0,
+                      item.quantity - assignedUnits(item, claims),
+                    )}
+                    myUnits={claimedUnits(item, claims, selfKey)}
+                    groups={
+                      group
+                        ? [
+                            {
+                              groupId: group.groupId,
+                              memberNames: group.memberIds.map(nameOf),
+                              units: group.units,
+                              includesSelf: group.memberIds.includes(selfKey),
+                            },
+                          ]
+                        : []
+                    }
+                    showGroups={tab !== "remaining"}
+                    onSelect={() => setSheet({ itemId: item.id })}
+                    messages={t}
+                  />
+                ));
+              })}
+            </AnimatePresence>
             {visibleItems.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}
@@ -298,61 +302,75 @@ export function SplitBoard({
         </div>
       </div>
 
-      {sheetItem && (
-        <ItemActionSheet
-          tab={tab}
-          item={sheetItem}
-          selfKey={selfKey}
-          groups={groupsForTab(sheetItem.id)}
-          remainingUnits={Math.max(
-            0,
-            sheetItem.quantity - assignedUnits(sheetItem, claims),
-          )}
-          participantNames={Object.fromEntries(
-            participants.map((participant) => [
-              participant.key,
-              participant.name,
-            ]),
-          )}
-          onClose={() => setSheet(null)}
-          onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>
-            saveGroup(sheetItem.id, groupId, ownerId, memberIds, units, shared)
-          }
-          messages={t}
-        />
-      )}
-
-      {tableBillOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <button
-            type="button"
-            aria-label={t.close}
-            onClick={() => setTableBillOpen(false)}
-            className="absolute inset-0 bg-ink/70"
+      <AnimatePresence>
+        {sheetItem && (
+          <ItemActionSheet
+            key="item-action-sheet"
+            tab={tab}
+            item={sheetItem}
+            selfKey={selfKey}
+            groups={groupsForTab(sheetItem.id)}
+            remainingUnits={Math.max(
+              0,
+              sheetItem.quantity - assignedUnits(sheetItem, claims),
+            )}
+            participantNames={Object.fromEntries(
+              participants.map((participant) => [
+                participant.key,
+                participant.name,
+              ]),
+            )}
+            onClose={() => setSheet(null)}
+            onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>
+              saveGroup(sheetItem.id, groupId, ownerId, memberIds, units, shared)
+            }
+            messages={t}
           />
-          <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-2xl border border-primary/40 bg-background p-4 pb-8 shadow-2xl">
-            <div className="flex items-start justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setTableBillOpen(false)}
-                aria-label={t.close}
-                className="-mr-1 -mt-1 ml-auto rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              >
-                <X aria-hidden="true" size={20} />
-              </button>
-            </div>
-            <ReceiptEditor
-              items={[...items]}
-              extras={extras}
-              onItemsChange={onItemsChange}
-              onExtrasChange={onExtrasChange}
-              messages={messages.receiptEditor}
-              itemRowMessages={messages.itemRow}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
+      <AnimatePresence>
+        {tableBillOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={t.close}
+              onClick={() => setTableBillOpen(false)}
+              className="absolute inset-0 bg-ink/70"
+            />
+            <motion.div
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-2xl border border-primary/40 bg-background p-4 pb-8 shadow-2xl"
+            >
+              <div className="flex items-start justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTableBillOpen(false)}
+                  aria-label={t.close}
+                  className="-mr-1 -mt-1 ml-auto rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                >
+                  <X aria-hidden="true" size={20} />
+                </button>
+              </div>
+              <ReceiptEditor
+                items={[...items]}
+                extras={extras}
+                onItemsChange={onItemsChange}
+                onExtrasChange={onExtrasChange}
+                messages={messages.receiptEditor}
+                itemRowMessages={messages.itemRow}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
+import { AnimatePresence, motion } from "motion/react";
 import { ChevronUp, X } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { PersonSplit, SplitResult } from "@/lib/split";
+import { backdropVariants, sheetVariants } from "@/lib/motion";
 import { formatUnits } from "./ProductCard";
 import type { Messages } from "@/i18n";
 
@@ -30,66 +32,78 @@ export function AssignedBar({
 
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center">
-          <button
-            type="button"
-            aria-label={messages.close}
-            onClick={onToggle}
-            className="absolute inset-0 bg-ink/70"
-          />
-          <div className="relative mb-16 flex max-h-[70vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-lg font-bold text-primary">
-                {messages.breakdownTitle}
-              </p>
-              <button
-                type="button"
-                onClick={onToggle}
-                aria-label={messages.close}
-                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              >
-                <X aria-hidden="true" size={20} />
-              </button>
-            </div>
-
-            {me && me.items.length > 0 ? (
-              <PersonBreakdown person={me} messages={totalsMessages} />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {messages.nothingAssigned}
-              </p>
-            )}
-
-            {others.length > 0 && (
-              <div className="flex flex-col gap-2 border-t border-primary/20 pt-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  {messages.othersTitle}
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-30 flex items-end justify-center">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={messages.close}
+              onClick={onToggle}
+              className="absolute inset-0 bg-ink/70"
+            />
+            <motion.div
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative mb-16 flex max-h-[70vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-lg font-bold text-primary">
+                  {messages.breakdownTitle}
                 </p>
-                {others.map((person) => (
-                  <details
-                    key={person.participantId}
-                    className="rounded-lg border border-primary/25 bg-surface p-3"
-                  >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
-                      {person.name}
-                      <span className="tabular-nums">
-                        {formatCents(person.totalCents)}
-                      </span>
-                    </summary>
-                    <div className="mt-2 border-t border-primary/15 pt-2">
-                      <PersonBreakdown
-                        person={person}
-                        messages={totalsMessages}
-                      />
-                    </div>
-                  </details>
-                ))}
+                <button
+                  type="button"
+                  onClick={onToggle}
+                  aria-label={messages.close}
+                  className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                >
+                  <X aria-hidden="true" size={20} />
+                </button>
               </div>
-            )}
+
+              {me && me.items.length > 0 ? (
+                <PersonBreakdown person={me} messages={totalsMessages} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {messages.nothingAssigned}
+                </p>
+              )}
+
+              {others.length > 0 && (
+                <div className="flex flex-col gap-2 border-t border-primary/20 pt-3">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">
+                    {messages.othersTitle}
+                  </p>
+                  {others.map((person) => (
+                    <details
+                      key={person.participantId}
+                      className="rounded-lg border border-primary/25 bg-surface p-3"
+                    >
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
+                        {person.name}
+                        <span className="tabular-nums">
+                          {formatCents(person.totalCents)}
+                        </span>
+                      </summary>
+                      <div className="mt-2 border-t border-primary/15 pt-2">
+                        <PersonBreakdown
+                          person={person}
+                          messages={totalsMessages}
+                        />
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <button
         type="button"
@@ -102,9 +116,18 @@ export function AssignedBar({
       >
         <span className="text-lg font-bold">{messages.yourTotal}</span>
         <span className="flex items-center gap-2">
-          <span className="text-lg font-bold tabular-nums">
-            {formatCents(me?.totalCents ?? 0)}
-          </span>
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={me?.totalCents ?? 0}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.15 }}
+              className="text-lg font-bold tabular-nums"
+            >
+              {formatCents(me?.totalCents ?? 0)}
+            </motion.span>
+          </AnimatePresence>
           <ChevronUp
             aria-hidden="true"
             size={18}

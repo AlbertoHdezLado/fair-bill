@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Bell, X } from "lucide-react";
 import type { Messages } from "@/i18n";
+import { backdropVariants, popVariants } from "@/lib/motion";
 
 export interface BoardNotification {
   readonly id: string;
@@ -71,81 +73,100 @@ export function NotificationBell({
         className="relative rounded-full border border-primary p-2 text-primary hover:bg-primary/10"
       >
         <Bell aria-hidden="true" size={16} />
-        {unread > 0 && (
-          <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-gold px-1 text-[10px] font-semibold leading-4 text-foreground">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
+        <AnimatePresence>
+          {unread > 0 && (
+            <motion.span
+              key="unread-badge"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="absolute -right-1 -top-1 min-w-4 rounded-full bg-gold px-1 text-[10px] font-semibold leading-4 text-foreground"
+            >
+              {unread > 9 ? "9+" : unread}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-foreground/40 p-4">
-          <button
-            type="button"
-            aria-label={messages.close}
-            onClick={onClose}
-            className="absolute inset-0 cursor-default"
-          />
-          <div
-            ref={panelRef}
-            className="relative flex max-h-[70vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-primary/20 bg-surface p-2 shadow-lg"
-          >
-            <span
-              aria-hidden="true"
-              className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-primary/20 bg-surface"
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-30 flex items-center justify-center bg-foreground/40 p-4">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={messages.close}
+              onClick={onClose}
+              className="absolute inset-0 cursor-default"
             />
-            <div className="flex items-center justify-between gap-2 px-1 pb-2">
-              <p className="text-xs font-semibold">{messages.notifications}</p>
-              <div className="flex items-center gap-1">
-                {notifications.length > 0 && (
+            <motion.div
+              ref={panelRef}
+              variants={popVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative flex max-h-[70vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-primary/20 bg-surface p-2 shadow-lg"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-primary/20 bg-surface"
+              />
+              <div className="flex items-center justify-between gap-2 px-1 pb-2">
+                <p className="text-xs font-semibold">{messages.notifications}</p>
+                <div className="flex items-center gap-1">
+                  {notifications.length > 0 && (
+                    <button
+                      type="button"
+                      aria-label={messages.notificationsClear}
+                      onClick={onClear}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/10"
+                    >
+                      {messages.notificationsClear}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    aria-label={messages.notificationsClear}
-                    onClick={onClear}
-                    className="rounded px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/10"
+                    aria-label={messages.close}
+                    onClick={onClose}
+                    className="rounded p-0.5 hover:bg-primary/10"
                   >
-                    {messages.notificationsClear}
+                    <X aria-hidden="true" size={14} />
                   </button>
-                )}
-                <button
-                  type="button"
-                  aria-label={messages.close}
-                  onClick={onClose}
-                  className="rounded p-0.5 hover:bg-primary/10"
-                >
-                  <X aria-hidden="true" size={14} />
-                </button>
+                </div>
               </div>
-            </div>
 
-            {notifications.length === 0 ? (
-              <p className="px-1 py-3 text-center text-xs text-muted-foreground">
-                {messages.notificationsEmpty}
-              </p>
-            ) : (
-              <ul className="space-y-1 overflow-y-auto pr-1">
-                {notifications.map((notification) => (
-                  <li
-                    key={notification.id}
-                    role="alert"
-                    className={`rounded-xl px-2 py-1.5 text-xs ${
-                      notification.read ? "bg-primary/5" : "bg-gold/15"
-                    }`}
-                  >
-                    <p>{notification.text}</p>
-                    <p className="pt-0.5 text-[10px] tabular-nums text-muted-foreground">
-                      {new Date(notification.at).toLocaleTimeString(undefined, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
+              {notifications.length === 0 ? (
+                <p className="px-1 py-3 text-center text-xs text-muted-foreground">
+                  {messages.notificationsEmpty}
+                </p>
+              ) : (
+                <ul className="space-y-1 overflow-y-auto pr-1">
+                  {notifications.map((notification) => (
+                    <li
+                      key={notification.id}
+                      role="alert"
+                      className={`rounded-xl px-2 py-1.5 text-xs ${
+                        notification.read ? "bg-primary/5" : "bg-gold/15"
+                      }`}
+                    >
+                      <p>{notification.text}</p>
+                      <p className="pt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                        {new Date(notification.at).toLocaleTimeString(undefined, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

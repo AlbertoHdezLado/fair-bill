@@ -1,5 +1,8 @@
 "use client";
 
+"use client";
+
+import { motion } from "motion/react";
 import type { ScanStage } from "@/lib/ocr/scan";
 import type { Messages } from "@/i18n";
 
@@ -22,7 +25,13 @@ export function ScanOverlay({
       aria-live="polite"
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
     >
-      <div className="flex w-full max-w-xs flex-col items-center gap-4 rounded-3xl border border-border bg-background p-6 text-center shadow-2xl">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.15 }}
+        className="flex w-full max-w-xs flex-col items-center gap-4 rounded-3xl border border-border bg-background p-6 text-center shadow-2xl"
+      >
         <div className="relative w-32 overflow-hidden rounded-2xl border border-primary/40 bg-surface">
           {previewUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -47,14 +56,15 @@ export function ScanOverlay({
           {stage === "parsing" && messages.parsing}
         </p>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            animate={{
               width: `${stage === "recognizing" ? Math.round(progress * 100) : stage === "parsing" ? 100 : 8}%`,
             }}
+            transition={{ duration: 0.3 }}
           />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
