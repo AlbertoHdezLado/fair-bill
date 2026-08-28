@@ -1,0 +1,29 @@
+src/components/board/SplitBoard.tsx
+  s_370d3a11f5b11d::t_92599f2cc75522 28-33,137-143,217-219,223,228-230,233,354-360,363-364
+src/lib/rooms/review-state.ts
+  s_4976bc1bdb6822::t_d7730ef3c5d269 1-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "34faefad81e32f4914ba8a876999c170e52aab3f",
+  "prompts": {},
+  "sessions": {
+    "s_370d3a11f5b11d": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "428aada1-7d09-4eda-a983-6dcd86db5d56",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_4976bc1bdb6822": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "ea90cb4a-a3e6-4317-97b9-e10e2eb2649a",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
