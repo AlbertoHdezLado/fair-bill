@@ -1,0 +1,32 @@
+src/components/ItemRow.tsx
+  h_fed6a40af368f7 4,114-116,135,139,165,177,186,188,193
+src/components/ReceiptEditor.tsx
+  h_fed6a40af368f7 4,66-88,90-93,102-107,114-120,294-302,310-313,330-333,339
+src/components/Spinner.tsx
+  h_fed6a40af368f7 8,27,29-30
+src/components/board/AssignedBar.tsx
+  h_fed6a40af368f7 5,159-170,191-198
+src/components/board/BillProgress.tsx
+  h_fed6a40af368f7 65
+src/components/board/ItemActionSheet.tsx
+  h_fed6a40af368f7 3,5,92-94,280-282
+src/components/board/NotificationBell.tsx
+  h_fed6a40af368f7 14-15,119-126,134-147,156-192
+src/components/board/ProfileButton.tsx
+  h_fed6a40af368f7 9,107,109
+src/components/board/SplitBoard.tsx
+  h_fed6a40af368f7 91-93,206-207,211-218,220,471,487
+src/i18n.ts
+  h_fed6a40af368f7 193-194,220,402-403,429
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8c9425157b513c07fe65407cfe9dc6cb3e8d25d2",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
