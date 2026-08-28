@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronUp, X } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { PersonSplit, SplitResult } from "@/lib/split";
 import { backdropVariants, sheetVariants } from "@/lib/motion";
@@ -74,17 +74,6 @@ export function AssignedBar({
               exit="exit"
               className="relative mb-16 flex max-h-[70vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl"
             >
-              <div className="flex items-start justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onToggle}
-                  aria-label={messages.close}
-                  className="-mr-1 -mt-1 ml-auto rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                >
-                  <X aria-hidden="true" size={20} />
-                </button>
-              </div>
-
               {me && me.items.length > 0 ? (
                 <PersonBreakdown
                   person={me}
@@ -167,8 +156,18 @@ function PersonBreakdown({
   readonly messages: Messages["totals"];
   readonly boardMessages: Messages["board"];
 }) {
-  const unclaimedShareCents =
-    personWithUnclaimed.subtotalCents - person.subtotalCents;
+  const claimedShareByItemId = new Map(
+    person.items.map((item) => [item.itemId, item.shareCents]),
+  );
+  // Desglosa, línea a línea, la parte que te toca de lo que nadie ha
+  // reclamado (siempre en el mismo tono dorado que el resto de avisos).
+  const unclaimedBreakdown = personWithUnclaimed.items
+    .map((item) => ({
+      itemId: item.itemId,
+      itemName: item.itemName,
+      cents: item.shareCents - (claimedShareByItemId.get(item.itemId) ?? 0),
+    }))
+    .filter((entry) => entry.cents > 0);
 
   return (
     <div className="flex flex-col gap-1 text-sm">
@@ -189,12 +188,14 @@ function PersonBreakdown({
           {formatCents(person.subtotalCents)}
         </span>
       </div>
-      {unclaimedShareCents > 0 && (
-        <div className="flex justify-between gap-2 text-gold">
-          <span>+ {boardMessages.unclaimedShareSubtotal}</span>
-          <span className="tabular-nums">
-            {formatCents(unclaimedShareCents)}
-          </span>
+      {unclaimedBreakdown.length > 0 && (
+        <div className="flex flex-col gap-1 text-gold">
+          {unclaimedBreakdown.map((entry) => (
+            <div key={entry.itemId} className="flex justify-between gap-2">
+              <span className="truncate">+ {entry.itemName}</span>
+              <span className="tabular-nums">{formatCents(entry.cents)}</span>
+            </div>
+          ))}
         </div>
       )}
       {personWithUnclaimed.taxCents > 0 && (

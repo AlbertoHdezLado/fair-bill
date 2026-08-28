@@ -88,6 +88,9 @@ function toBoardNotification(
     text,
     at: event.at,
     read: false,
+    // Un cambio con más de una persona implicada es un aviso "compartido";
+    // el resto son movimientos privados (para ti).
+    scope: (event.peopleCount ?? 0) > 1 ? "shared" : "personal",
   };
 }
 
@@ -200,18 +203,21 @@ export function SplitBoard({
 
   useEffect(() => {
     // Keeps read/unread flags for already seen events while reflecting
-    // persisted history from the server.
+    // persisted history from the server. Tus propias acciones no generan
+    // aviso: solo interesan los cambios que hacen los demás.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza avisos locales con historial remoto persistido
     setNotifications((previous) => {
       const previousById = new Map(previous.map((notice) => [notice.id, notice]));
-      return events.map((event) => {
-        const next = toBoardNotification(event, participants, t);
-        return previousById.get(next.id)
-          ? { ...next, read: previousById.get(next.id)!.read }
-          : next;
-      });
+      return events
+        .filter((event) => event.actorId !== selfKey)
+        .map((event) => {
+          const next = toBoardNotification(event, participants, t);
+          return previousById.get(next.id)
+            ? { ...next, read: previousById.get(next.id)!.read }
+            : next;
+        });
     });
-  }, [events, participants, t]);
+  }, [events, participants, selfKey, t]);
 
   const saveGroup = (
     itemId: string,
@@ -340,7 +346,6 @@ export function SplitBoard({
                     );
                   }}
                   onClose={() => setNotificationsOpen(false)}
-                  onClear={() => setNotifications([])}
                   messages={t}
                 />
               }
@@ -463,7 +468,7 @@ export function SplitBoard({
 
       <AnimatePresence>
         {tableBillOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
             <motion.button
               variants={backdropVariants}
               initial="hidden"
@@ -479,7 +484,7 @@ export function SplitBoard({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-primary/40 bg-background shadow-2xl"
+              className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-2xl"
             >
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 <ReceiptEditor

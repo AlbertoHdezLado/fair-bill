@@ -1,7 +1,7 @@
 "use client";
 
 import { Pencil, TriangleAlert, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ItemRow } from "@/components/ItemRow";
 import { formatCents, useMoneyField } from "@/lib/money";
 import {
@@ -63,11 +63,34 @@ export function ReceiptEditor({
     setEditingItemId(newItem.id);
   }
 
-  function updateMerchantName(name: string) {
+  // El nombre no se propaga hasta salir del campo o cerrar la edición del
+  // ticket, para no reescribir la sala en cada pulsación.
+  const extrasRef = useRef(extras);
+  const onExtrasChangeRef = useRef(onExtrasChange);
+  useEffect(() => {
+    extrasRef.current = extras;
+    onExtrasChangeRef.current = onExtrasChange;
+  });
+  const [merchantDraft, setMerchantDraft] = useState(
+    extras.merchantName || extras.receiptHeader[0] || "",
+  );
+  const [merchantFocused, setMerchantFocused] = useState(false);
+  const merchantDraftRef = useRef(merchantDraft);
+  useEffect(() => {
+    merchantDraftRef.current = merchantDraft;
+  });
+  useEffect(() => {
+    if (!merchantFocused)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ver useMoneyField
+      setMerchantDraft(extras.merchantName || extras.receiptHeader[0] || "");
+  }, [extras.merchantName, extras.receiptHeader, merchantFocused]);
+
+  function commitMerchantName(name: string) {
     const merchantName = name.trim();
-    const remainingHeader = extras.receiptHeader.slice(1);
-    onExtrasChange({
-      ...extras,
+    const currentExtras = extrasRef.current;
+    const remainingHeader = currentExtras.receiptHeader.slice(1);
+    onExtrasChangeRef.current({
+      ...currentExtras,
       merchantName,
       receiptHeader:
         merchantName || remainingHeader.length > 0
@@ -76,14 +99,25 @@ export function ReceiptEditor({
     });
   }
 
+  useEffect(() => {
+    // Vuelca cualquier cambio pendiente si el editor del ticket se cierra
+    // (el input se desmonta al ocultar el modal).
+    return () => commitMerchantName(merchantDraftRef.current);
+  }, []);
+
   return (
     <div className="flex flex-col gap-1 text-[13px]">
       <div className="ticket-paper mx-auto w-full max-w-md px-4 pb-6 pt-5 shadow-lg">
         <div className="pb-3 text-center font-mono text-[11px] uppercase">
           <input
             type="text"
-            value={extras.merchantName || extras.receiptHeader[0] || ""}
-            onChange={(event) => updateMerchantName(event.target.value)}
+            value={merchantDraft}
+            onFocus={() => setMerchantFocused(true)}
+            onChange={(event) => setMerchantDraft(event.target.value)}
+            onBlur={() => {
+              setMerchantFocused(false);
+              commitMerchantName(merchantDraft);
+            }}
             placeholder={messages.merchantNamePlaceholder}
             className="w-full border-b border-dashed border-primary/35 bg-transparent px-1 py-1 text-center font-mono text-sm font-semibold uppercase outline-none placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground/70 focus:border-primary"
           />
@@ -257,7 +291,15 @@ function TotalField({
   readonly saveLabel: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const field = useMoneyField(cents, onChange);
+  // El total no se propaga hasta salir del campo o pulsar guardar, para que
+  // el resto de la app (reparto, barra inferior) no "baile" en cada dígito.
+  const [pendingCents, setPendingCents] = useState(cents);
+  const field = useMoneyField(pendingCents, setPendingCents);
+
+  function commit() {
+    onChange(pendingCents);
+    setIsEditing(false);
+  }
 
   if (!isEditing) {
     return (
@@ -265,7 +307,10 @@ function TotalField({
         {formatCents(cents)}
         <button
           type="button"
-          onClick={() => setIsEditing(true)}
+          onClick={() => {
+            setPendingCents(cents);
+            setIsEditing(true);
+          }}
           aria-label={editLabel}
           title={editLabel}
           className="flex h-8 w-8 items-center justify-center rounded border border-primary/30 text-primary hover:bg-primary/10"
@@ -282,12 +327,16 @@ function TotalField({
         type="text"
         inputMode="decimal"
         {...field}
+        onBlur={() => {
+          field.onBlur();
+          commit();
+        }}
         autoFocus
         className="w-24 rounded border border-border bg-transparent px-2 py-1 text-right text-lg tabular-nums"
       />
       <button
         type="button"
-        onClick={() => setIsEditing(false)}
+        onClick={commit}
         aria-label={saveLabel}
         className="rounded border border-primary px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
       >

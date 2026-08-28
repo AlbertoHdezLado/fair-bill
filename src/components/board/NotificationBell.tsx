@@ -11,6 +11,8 @@ export interface BoardNotification {
   readonly text: string;
   readonly at: number;
   readonly read: boolean;
+  /** Whether it concerns a shared group (visible to everyone) or a private claim. */
+  readonly scope: "shared" | "personal";
 }
 
 interface NotificationBellProps {
@@ -18,7 +20,6 @@ interface NotificationBellProps {
   readonly open: boolean;
   readonly onToggle: () => void;
   readonly onClose: () => void;
-  readonly onClear: () => void;
   readonly messages: Messages["board"];
 }
 
@@ -27,7 +28,6 @@ export function NotificationBell({
   open,
   onToggle,
   onClose,
-  onClear,
   messages,
 }: NotificationBellProps) {
   const bellRef = useRef<HTMLButtonElement>(null);
@@ -116,26 +116,14 @@ export function NotificationBell({
               />
               <div className="flex items-center justify-between gap-2 px-1 pb-2">
                 <p className="text-xs font-semibold">{messages.notifications}</p>
-                <div className="flex items-center gap-1">
-                  {notifications.length > 0 && (
-                    <button
-                      type="button"
-                      aria-label={messages.notificationsClear}
-                      onClick={onClear}
-                      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/10"
-                    >
-                      {messages.notificationsClear}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    aria-label={messages.close}
-                    onClick={onClose}
-                    className="rounded p-0.5 hover:bg-primary/10"
-                  >
-                    <X aria-hidden="true" size={14} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  aria-label={messages.close}
+                  onClick={onClose}
+                  className="rounded p-0.5 hover:bg-primary/10"
+                >
+                  <X aria-hidden="true" size={14} />
+                </button>
               </div>
 
               {notifications.length === 0 ? (
@@ -143,30 +131,62 @@ export function NotificationBell({
                   {messages.notificationsEmpty}
                 </p>
               ) : (
-                <ul className="space-y-1 overflow-y-auto pr-1">
-                  {notifications.map((notification) => (
-                    <li
-                      key={notification.id}
-                      role="alert"
-                      className={`rounded-xl px-2 py-1.5 text-xs ${
-                        notification.read ? "bg-primary/5" : "bg-gold/15"
-                      }`}
-                    >
-                      <p>{notification.text}</p>
-                      <p className="pt-0.5 text-[10px] tabular-nums text-muted-foreground">
-                        {new Date(notification.at).toLocaleTimeString(undefined, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-3 overflow-y-auto pr-1">
+                  <NotificationGroup
+                    title={messages.notificationsShared}
+                    notifications={notifications.filter(
+                      (notification) => notification.scope === "shared",
+                    )}
+                  />
+                  <NotificationGroup
+                    title={messages.notificationsForYou}
+                    notifications={notifications.filter(
+                      (notification) => notification.scope === "personal",
+                    )}
+                  />
+                </div>
               )}
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function NotificationGroup({
+  title,
+  notifications,
+}: {
+  readonly title: string;
+  readonly notifications: readonly BoardNotification[];
+}) {
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </p>
+      <ul className="space-y-1">
+        {notifications.map((notification) => (
+          <li
+            key={notification.id}
+            role="alert"
+            className={`rounded-xl px-2 py-1.5 text-xs ${
+              notification.read ? "bg-primary/5" : "bg-gold/15"
+            }`}
+          >
+            <p>{notification.text}</p>
+            <p className="pt-0.5 text-[10px] tabular-nums text-muted-foreground">
+              {new Date(notification.at).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

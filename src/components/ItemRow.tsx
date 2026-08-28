@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Pencil, X } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { formatCents, useMoneyField } from "@/lib/money";
 import { itemTotalCents, type EditableItem } from "@/lib/receipt/editable";
 import { defaultMessages, type Messages } from "@/i18n";
@@ -32,10 +32,6 @@ export function ItemRow({
       state: "editado",
     });
   }
-
-  const unitPriceField = useMoneyField(item.unitPriceCents, (unitPriceCents) =>
-    edit({ unitPriceCents }),
-  );
 
   // Igual que los campos de dinero: se guarda el texto propio mientras el
   // input tiene el foco para poder borrarlo del todo, y si se deja vacío se
@@ -115,19 +111,9 @@ export function ItemRow({
           className="absolute inset-0 bg-ink/70"
         />
         <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 pb-6 shadow-2xl sm:rounded-2xl">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-base font-bold text-primary">
-              {item.name || messages.descriptionPlaceholder}
-            </p>
-            <button
-              type="button"
-              onClick={closeEditor}
-              aria-label={messages.removeLineLabel}
-              className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-            >
-              <X aria-hidden="true" size={18} />
-            </button>
-          </div>
+          <p className="text-center text-base font-bold text-primary">
+            {item.name || messages.descriptionPlaceholder}
+          </p>
 
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1">
@@ -146,11 +132,11 @@ export function ItemRow({
                   })
                 }
                 placeholder={messages.descriptionPlaceholder}
-                className={`w-full rounded border bg-transparent px-3 py-2 text-[13px] uppercase ${nameInputBorder}`}
+                className={`w-full rounded-xl border bg-transparent px-3 py-2 text-[13px] uppercase ${nameInputBorder}`}
               />
             </label>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Uds.
@@ -176,19 +162,7 @@ export function ItemRow({
                     setQuantityText(String(quantity));
                     if (quantity !== item.quantity) edit({ quantity });
                   }}
-                  className={`w-full rounded border bg-transparent px-2 py-2 text-[13px] ${inputBorder}`}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Precio
-                </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  {...unitPriceField}
-                  className={`w-full rounded border bg-transparent px-2 py-2 text-[13px] ${inputBorder}`}
+                  className={`w-full rounded-xl border bg-transparent px-2 py-2 text-[13px] ${inputBorder}`}
                 />
               </label>
 
@@ -200,7 +174,7 @@ export function ItemRow({
                   type="text"
                   inputMode="decimal"
                   {...totalField}
-                  className={`w-full rounded border bg-transparent px-2 py-2 text-right text-[13px] tabular-nums ${inputBorder}`}
+                  className={`w-full rounded-xl border bg-transparent px-2 py-2 text-right text-[13px] tabular-nums ${inputBorder}`}
                 />
               </label>
             </div>
@@ -209,16 +183,15 @@ export function ItemRow({
               <button
                 type="button"
                 onClick={onRemove}
-                className="flex-1 rounded-full border border-primary/40 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+                className="flex-1 rounded-full border border-ink px-3 py-2 text-sm font-medium text-ink hover:bg-ink/10"
               >
-                {messages.removeLineLabel}
+                Eliminar
               </button>
               <button
                 type="button"
                 onClick={closeEditor}
-                className="flex flex-1 items-center justify-center gap-1 rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                className="flex-1 rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
               >
-                <Check aria-hidden="true" size={14} />
                 {messages.saveLine}
               </button>
             </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { User, Users, X } from "lucide-react";
+import { User, Users } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { ItemGroup } from "@/lib/local-claims";
@@ -70,23 +70,6 @@ export function ItemActionSheet({
     );
   };
 
-  let quantityLine: ReactNode;
-  if (tab !== "remaining") {
-    quantityLine = (
-      <>
-        {formatUnits(item.quantity)} × {formatCents(item.unitPriceCents)}
-      </>
-    );
-  } else if (remainingUnits > 0) {
-    quantityLine = (
-      <>
-        {formatUnits(remainingUnits)} × {formatCents(item.unitPriceCents)}
-      </>
-    );
-  } else {
-    quantityLine = messages.allAssigned;
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <motion.button
@@ -106,24 +89,9 @@ export function ItemActionSheet({
         exit="exit"
         className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-primary">
-              {item.name || messages.unnamedItem}
-            </p>
-            <p className="text-xs tabular-nums text-muted-foreground">
-              {quantityLine}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={messages.close}
-            className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-          >
-            <X aria-hidden="true" size={20} />
-          </button>
-        </div>
+        <p className="truncate text-center text-lg font-bold text-primary">
+          {item.name || messages.unnamedItem}
+        </p>
 
         {tab === "remaining" && (
           <NewGroupForm
@@ -309,19 +277,9 @@ export function ItemActionSheet({
               exit="exit"
               className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl"
             >
-              <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-sm font-semibold text-primary">
-                  {editingGroup.memberIds.map(nameOf).join(", ")}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setEditingGroupId(null)}
-                  aria-label={messages.close}
-                  className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                >
-                  <X aria-hidden="true" size={20} />
-                </button>
-              </div>
+              <p className="truncate text-center text-sm font-semibold text-primary">
+                {editingGroup.memberIds.map(nameOf).join(", ")}
+              </p>
               <GroupEditor
                 item={item}
                 group={editingGroup}

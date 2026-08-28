@@ -6,6 +6,7 @@ import { User, X } from "lucide-react";
 import type { Messages } from "@/i18n";
 import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
 import { backdropVariants, sheetVariants } from "@/lib/motion";
+import { Spinner } from "@/components/Spinner";
 
 interface ProfileButtonProps {
   readonly currentName: string;
@@ -103,8 +104,9 @@ export function ProfileButton({
                     .catch(() => setError(messages.duplicateName))
                     .finally(() => setSaving(false));
                 }}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
+                {saving && <Spinner size={16} />}
                 {messages.saveName}
               </button>
             </motion.div>

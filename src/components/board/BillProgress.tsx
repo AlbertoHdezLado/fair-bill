@@ -62,7 +62,7 @@ export function BillProgress({
             title={tableLabel}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
           >
-            {roomCode}
+            <span className="font-bold">{roomCode}</span>
             <Share2 aria-hidden="true" size={14} />
           </button>
           {profile}
