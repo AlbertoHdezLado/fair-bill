@@ -25,8 +25,8 @@ export function IdentityPicker({
   messages,
 }: IdentityPickerProps) {
   const hasParticipants = participants.length > 0;
-  const [adding, setAdding] = useState(!hasParticipants);
   const [name, setName] = useState("");
+  const isOdd = participants.length % 2 === 1;
 
   const trimmed = name.trim();
   const isDuplicate = participants.some(
@@ -54,9 +54,9 @@ export function IdentityPicker({
       </motion.div>
 
       {hasParticipants && (
-        <ul className="grid grid-cols-2 gap-2">
+        <ul className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto p-1">
           <AnimatePresence initial={false}>
-            {participants.map((participant) => (
+            {participants.map((participant, index) => (
               <motion.li
                 key={participant.key}
                 layout
@@ -64,11 +64,20 @@ export function IdentityPicker({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
+                className={
+                  isOdd && index === participants.length - 1
+                    ? "col-span-2"
+                    : undefined
+                }
               >
                 <button
                   type="button"
                   onClick={() => onSelect(participant.key)}
-                  className="flex min-h-16 w-full items-center justify-center rounded-2xl border border-primary/40 bg-surface px-3 py-4 text-base font-bold hover:border-primary hover:bg-primary/10"
+                  className={`flex min-h-16 w-full items-center justify-center rounded-2xl border border-primary/40 bg-surface px-3 py-4 text-base font-bold hover:border-primary hover:bg-primary/10 ${
+                    isOdd && index === participants.length - 1
+                      ? "mx-auto max-w-[calc(50%-0.25rem)]"
+                      : ""
+                  }`}
                 >
                   <span className="min-w-0 truncate">{participant.name}</span>
                 </button>
@@ -78,55 +87,43 @@ export function IdentityPicker({
         </ul>
       )}
 
-      {adding ? (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          className="flex flex-col gap-2"
-        >
-          <div className="flex gap-2">
-            <input
-              type="text"
-              autoFocus
-              value={name}
-              maxLength={MAX_PARTICIPANT_NAME_LENGTH}
-              onChange={(e) =>
-                setName(
-                  e.target.value
-                    .toUpperCase()
-                    .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
-                )
-              }
-              placeholder={messages.newUserPlaceholder}
-              className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-            />
-            <button
-              type="button"
-              disabled={trimmed === "" || isDuplicate}
-              onClick={() => {
-                onAdd(trimmed);
-                setName("");
-                setAdding(false);
-              }}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            >
-              {messages.add}
-            </button>
-          </div>
-          {isDuplicate && (
-            <p className="text-xs text-gold">{messages.duplicateName}</p>
-          )}
-        </motion.div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="self-center text-sm text-primary underline"
-        >
-          {messages.addUser}
-        </button>
-      )}
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        className="flex flex-col gap-2"
+      >
+        <div className="flex gap-2">
+          <input
+            type="text"
+            autoFocus
+            value={name}
+            maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+            onChange={(e) =>
+              setName(
+                e.target.value
+                  .toUpperCase()
+                  .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
+              )
+            }
+            placeholder={messages.newUserPlaceholder}
+            className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+          />
+          <button
+            type="button"
+            disabled={trimmed === "" || isDuplicate}
+            onClick={() => {
+              onAdd(trimmed);
+              setName("");
+            }}
+            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          >
+            {messages.add}
+          </button>
+        </div>
+        {isDuplicate && (
+          <p className="text-xs text-gold">{messages.duplicateName}</p>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

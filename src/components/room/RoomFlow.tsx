@@ -14,10 +14,14 @@ import { buildSplitClaims } from "@/lib/local-claims";
 import {
   addParticipant,
   fetchRoom,
+  renameParticipant,
   saveBill,
   saveClaim,
 } from "@/lib/rooms/api";
-import { takePendingCapture } from "@/lib/rooms/pending-capture";
+import {
+  takePendingCapture,
+  takePendingReceiptImage,
+} from "@/lib/rooms/pending-capture";
 import { rememberRoom } from "@/lib/rooms/recent-rooms";
 import { toLocalClaims } from "@/lib/rooms/claims";
 import type { RoomState } from "@/lib/rooms/types";
@@ -46,6 +50,11 @@ function identityStorageKey(code: string): string {
   return `fairBill.identity.${code}`;
 }
 
+/** Compressed copy of the scanned photo, kept only on the device that captured it. */
+function receiptImageStorageKey(code: string): string {
+  return `fairBill.receiptImage.${code}`;
+}
+
 export function RoomFlow({ code, messages }: RoomFlowProps) {
   const t = messages.room;
   const router = useRouter();
@@ -63,6 +72,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   } | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [result, setResult] = useState<SplitResult | null>(null);
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const pendingName = useRef<string | null>(null);
   const hasAutoSavedDraft = useRef(false);
 
@@ -70,16 +80,21 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   // the navigation boundary.
   useEffect(() => {
     const pending = takePendingCapture();
+    const pendingImage = takePendingReceiptImage();
+    if (pendingImage) {
+      window.localStorage.setItem(receiptImageStorageKey(code), pendingImage);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- traspaso puntual al montar
+      setReceiptImage(pendingImage);
+    }
     if (!pending) return;
 
     if (pending === "manual") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- traspaso puntual al montar
       setDraft({ items: [], extras: EMPTY_EXTRAS });
       return;
     }
 
     setDraft({ items: pending.items, extras: pending.extras });
-  }, []);
+  }, [code]);
 
   const reload = useCallback(async () => {
     try {
@@ -109,6 +124,10 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     const stored = window.localStorage.getItem(identityStorageKey(code));
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura puntual al montar
     if (stored) setSelfId(stored);
+    const storedImage = window.localStorage.getItem(
+      receiptImageStorageKey(code),
+    );
+    if (storedImage) setReceiptImage(storedImage);
   }, [code]);
 
   // Auto-save scanned receipts once the room is loaded
@@ -267,6 +286,13 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
           <ReceiptScanner
             messages={messages.capture}
             onScanned={(items, extras) => setDraft({ items, extras })}
+            onImageCaptured={(dataUrl) => {
+              window.localStorage.setItem(
+                receiptImageStorageKey(code),
+                dataUrl,
+              );
+              setReceiptImage(dataUrl);
+            }}
           />
         </div>
       );
@@ -377,6 +403,13 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         tableLabel={t.roomCode.replace("{{code}}", room.code)}
         roomCode={room.code}
         onToggleShare={() => setShowShare((prev) => !prev)}
+        isOwner={self.isOwner}
+        receiptImageUrl={receiptImage}
+        onRenameSelf={(name) =>
+          renameParticipant(code, self.id, name).then((next) => {
+            setRoom(next);
+          })
+        }
         onFinish={() => {
           const finalResult = computeSplit({
             items: room.items.map((item) => ({

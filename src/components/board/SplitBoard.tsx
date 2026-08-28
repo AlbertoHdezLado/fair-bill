@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X } from "lucide-react";
 import {
   assignedUnits,
   buildSplitClaims,
@@ -21,6 +20,7 @@ import { AssignedBar } from "./AssignedBar";
 import { BillProgress, BoardTabs, type BoardTab } from "./BillProgress";
 import { ItemActionSheet } from "./ItemActionSheet";
 import { NotificationBell, type BoardNotification } from "./NotificationBell";
+import { ProfileButton } from "./ProfileButton";
 import { formatUnits, ProductCard } from "./ProductCard";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
 import type { Messages } from "@/i18n";
@@ -53,6 +53,11 @@ interface SplitBoardProps {
   readonly roomCode: string;
   readonly onToggleShare: () => void;
   readonly onFinish?: () => void;
+  /** The first person to open the room; the full receipt is shown to them automatically. */
+  readonly isOwner?: boolean;
+  /** Data URL of the scanned receipt photo, if this device captured it. */
+  readonly receiptImageUrl?: string | null;
+  readonly onRenameSelf?: (name: string) => Promise<void>;
   readonly messages: Messages;
 }
 
@@ -100,6 +105,9 @@ export function SplitBoard({
   roomCode,
   onToggleShare,
   onFinish,
+  isOwner,
+  receiptImageUrl,
+  onRenameSelf,
   messages,
 }: SplitBoardProps) {
   const t = messages.board;
@@ -110,10 +118,18 @@ export function SplitBoard({
   } | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
+  const [originalImageOpen, setOriginalImageOpen] = useState(false);
   const [notifications, setNotifications] = useState<
     readonly BoardNotification[]
   >([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  useEffect(() => {
+    // Muestra el ticket completo nada más entrar, solo a quien lo subió.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- apertura automática una única vez al montar
+    if (isOwner) setTableBillOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, []);
 
   const nameOf = (key: string) =>
     participants.find((participant) => participant.key === key)?.name ?? key;
@@ -157,6 +173,29 @@ export function SplitBoard({
       discountCents: extras.discountCents,
     },
     distributeUnclaimed: false,
+  });
+
+  // Misma cuenta pero repartiendo lo no reclamado, para mostrar el total
+  // global (incluida tu parte de lo que nadie ha marcado todavía).
+  const splitWithUnclaimed = computeSplit({
+    items: items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+    })),
+    claims: buildSplitClaims(
+      [...items],
+      participants.map((p) => p.key),
+      claims,
+    ),
+    participants: participants.map((p) => ({ id: p.key, name: p.name })),
+    extras: {
+      taxCents: extras.taxCents,
+      tipCents: extras.tipCents + extras.serviceCents,
+      discountCents: extras.discountCents,
+    },
+    distributeUnclaimed: true,
   });
 
   useEffect(() => {
@@ -280,6 +319,13 @@ export function SplitBoard({
               tableLabel={tableLabel}
               roomCode={roomCode}
               onToggleShare={onToggleShare}
+              profile={
+                <ProfileButton
+                  currentName={nameOf(selfKey)}
+                  onRename={onRenameSelf ?? (async () => {})}
+                  messages={t}
+                />
+              }
               notifications={
                 <NotificationBell
                   notifications={notifications}
@@ -334,14 +380,18 @@ export function SplitBoard({
                         item.quantity - assignedUnits(item, claims),
                       )}
                       myUnits={claimedUnits(item, claims, selfKey)}
-                      groups={[
-                        {
-                          groupId: group.groupId,
-                          memberNames: group.memberIds.map(nameOf),
-                          units: group.units,
-                          includesSelf: group.memberIds.includes(selfKey),
-                        },
-                      ]}
+                      groups={
+                        tab === "mine"
+                          ? []
+                          : [
+                              {
+                                groupId: group.groupId,
+                                memberNames: group.memberIds.map(nameOf),
+                                units: group.units,
+                                includesSelf: group.memberIds.includes(selfKey),
+                              },
+                            ]
+                      }
                       showGroups={true}
                       onSelect={() =>
                         setSheet({ itemIds: [item.id], groupId: group.groupId })
@@ -360,6 +410,7 @@ export function SplitBoard({
         <div className="mt-auto">
           <AssignedBar
             split={split}
+            splitWithUnclaimed={splitWithUnclaimed}
             selfKey={selfKey}
             open={breakdownOpen}
             onToggle={() => setBreakdownOpen((prev) => !prev)}
@@ -428,26 +479,76 @@ export function SplitBoard({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-2xl border border-primary/40 bg-background p-4 pb-8 shadow-2xl"
+              className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-primary/40 bg-background shadow-2xl"
             >
-              <div className="flex items-start justify-end gap-3">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <ReceiptEditor
+                  items={[...items]}
+                  extras={extras}
+                  onItemsChange={onItemsChange}
+                  onExtrasChange={onExtrasChange}
+                  messages={messages.receiptEditor}
+                  itemRowMessages={messages.itemRow}
+                />
+              </div>
+              <div className="flex shrink-0 gap-2 border-t border-primary/20 p-4">
+                {receiptImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setOriginalImageOpen(true)}
+                    className="flex-1 rounded-full border border-primary px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+                  >
+                    {t.viewOriginalTicket}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setTableBillOpen(false)}
-                  aria-label={t.close}
-                  className="-mr-1 -mt-1 ml-auto rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
                 >
-                  <X aria-hidden="true" size={20} />
+                  {t.close}
                 </button>
               </div>
-              <ReceiptEditor
-                items={[...items]}
-                extras={extras}
-                onItemsChange={onItemsChange}
-                onExtrasChange={onExtrasChange}
-                messages={messages.receiptEditor}
-                itemRowMessages={messages.itemRow}
-              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {originalImageOpen && receiptImageUrl && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={t.close}
+              onClick={() => setOriginalImageOpen(false)}
+              className="absolute inset-0 bg-ink/70"
+            />
+            <motion.div
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative flex max-h-[85vh] w-full max-w-md flex-col gap-3 overflow-hidden rounded-2xl border border-primary/40 bg-background p-3 shadow-2xl"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {/* eslint-disable-next-line @next/next/no-img-element -- data URL, not an optimizable remote image */}
+                <img
+                  src={receiptImageUrl}
+                  alt={t.viewOriginalTicket}
+                  className="w-full rounded-lg object-contain"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setOriginalImageOpen(false)}
+                className="shrink-0 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+              >
+                {t.close}
+              </button>
             </motion.div>
           </div>
         )}
@@ -455,3 +556,4 @@ export function SplitBoard({
     </div>
   );
 }
+

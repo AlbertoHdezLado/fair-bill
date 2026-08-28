@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Receipt, Share2 } from "lucide-react";
@@ -20,6 +20,7 @@ interface BillProgressProps {
   readonly roomCode: string;
   readonly onToggleShare: () => void;
   readonly notifications?: ReactNode;
+  readonly profile?: ReactNode;
   readonly messages: Messages["board"];
 }
 
@@ -33,6 +34,7 @@ export function BillProgress({
   roomCode,
   onToggleShare,
   notifications,
+  profile,
   messages,
 }: BillProgressProps) {
   const router = useRouter();
@@ -41,24 +43,6 @@ export function BillProgress({
     totalCents > 0
       ? Math.min(100, Math.round((assignedCents / totalCents) * 100))
       : 0;
-
-  // Muestra un "+X €" o "-X €" fugaz junto al progreso cuando cambia lo
-  // asignado en la sala.
-  const [delta, setDelta] = useState<{ id: number; value: number } | null>(
-    null,
-  );
-  const prevAssignedRef = useRef(assignedCents);
-  const deltaIdRef = useRef(0);
-
-  useEffect(() => {
-    const diff = assignedCents - prevAssignedRef.current;
-    prevAssignedRef.current = assignedCents;
-    if (diff === 0) return;
-    deltaIdRef.current += 1;
-    setDelta({ id: deltaIdRef.current, value: diff });
-    const timeout = setTimeout(() => setDelta(null), 1200);
-    return () => clearTimeout(timeout);
-  }, [assignedCents]);
 
   return (
     <div className="flex w-full flex-col gap-3 pt-3">
@@ -81,6 +65,7 @@ export function BillProgress({
             {roomCode}
             <Share2 aria-hidden="true" size={14} />
           </button>
+          {profile}
           {notifications}
         </div>
       </div>
@@ -100,24 +85,6 @@ export function BillProgress({
             transition={{ type: "spring", stiffness: 300, damping: 32 }}
           />
         </div>
-        <AnimatePresence>
-          {delta && (
-            <motion.span
-              key={delta.id}
-              initial={{ opacity: 0, y: 4, scale: 0.9 }}
-              animate={{ opacity: 1, y: -14, scale: 1 }}
-              exit={{ opacity: 0, y: -24 }}
-              transition={{ duration: 0.9, ease: "easeOut" }}
-              className={`pointer-events-none absolute right-0 top-0 z-10 text-xs font-bold tabular-nums ${
-                delta.value > 0 ? "text-gold" : "text-primary"
-              }`}
-            >
-              {delta.value > 0
-                ? `+${formatCents(delta.value)}`
-                : formatCents(delta.value)}
-            </motion.span>
-          )}
-        </AnimatePresence>
       </div>
 
       <div className="flex items-center justify-between gap-3">

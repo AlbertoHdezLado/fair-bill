@@ -11,6 +11,7 @@ import type { Messages } from "@/i18n";
 
 interface AssignedBarProps {
   readonly split: SplitResult;
+  readonly splitWithUnclaimed: SplitResult;
   readonly selfKey: string;
   readonly open: boolean;
   readonly onToggle: () => void;
@@ -20,6 +21,7 @@ interface AssignedBarProps {
 
 export function AssignedBar({
   split,
+  splitWithUnclaimed,
   selfKey,
   open,
   onToggle,
@@ -27,6 +29,9 @@ export function AssignedBar({
   totalsMessages,
 }: AssignedBarProps) {
   const me = split.people.find((person) => person.participantId === selfKey);
+  const meWithUnclaimed = splitWithUnclaimed.people.find(
+    (person) => person.participantId === selfKey,
+  );
   const myTotalCents = me?.totalCents ?? 0;
 
   // Muestra un "+X €" o "-X €" fugaz cuando cambia tu total, como si el
@@ -69,22 +74,24 @@ export function AssignedBar({
               exit="exit"
               className="relative mb-16 flex max-h-[70vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl"
             >
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-lg font-bold text-primary">
-                  {messages.yourTotal}
-                </p>
+              <div className="flex items-start justify-end gap-3">
                 <button
                   type="button"
                   onClick={onToggle}
                   aria-label={messages.close}
-                  className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  className="-mr-1 -mt-1 ml-auto rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
                 >
                   <X aria-hidden="true" size={20} />
                 </button>
               </div>
 
               {me && me.items.length > 0 ? (
-                <PersonBreakdown person={me} messages={totalsMessages} />
+                <PersonBreakdown
+                  person={me}
+                  personWithUnclaimed={meWithUnclaimed ?? me}
+                  messages={totalsMessages}
+                  boardMessages={messages}
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {messages.nothingAssigned}
@@ -151,20 +158,22 @@ export function AssignedBar({
 
 function PersonBreakdown({
   person,
+  personWithUnclaimed,
   messages,
+  boardMessages,
 }: {
   readonly person: PersonSplit;
+  readonly personWithUnclaimed: PersonSplit;
   readonly messages: Messages["totals"];
+  readonly boardMessages: Messages["board"];
 }) {
+  const unclaimedShareCents =
+    personWithUnclaimed.subtotalCents - person.subtotalCents;
+
   return (
     <div className="flex flex-col gap-1 text-sm">
       {person.items.map((item) => (
-        <div
-          key={item.itemId}
-          className={`flex justify-between gap-2 ${
-            item.hasUnclaimedShare ? "text-gold" : "text-foreground"
-          }`}
-        >
+        <div key={item.itemId} className="flex justify-between gap-2">
           <span className="truncate">
             {item.itemName} ×{formatUnits(item.effectiveUnits)}
           </span>
@@ -174,22 +183,45 @@ function PersonBreakdown({
       {person.items.length === 0 && (
         <p className="text-muted-foreground">{messages.noItems}</p>
       )}
-      {person.taxCents > 0 && (
-        <ExtraRow label={messages.tax} cents={person.taxCents} />
+      <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1">
+        <span>{boardMessages.yourProductsSubtotal}</span>
+        <span className="tabular-nums">
+          {formatCents(person.subtotalCents)}
+        </span>
+      </div>
+      {unclaimedShareCents > 0 && (
+        <div className="flex justify-between gap-2 text-gold">
+          <span>+ {boardMessages.unclaimedShareSubtotal}</span>
+          <span className="tabular-nums">
+            {formatCents(unclaimedShareCents)}
+          </span>
+        </div>
       )}
-      {person.tipCents > 0 && (
-        <ExtraRow label={messages.tipService} cents={person.tipCents} />
+      {personWithUnclaimed.taxCents > 0 && (
+        <ExtraRow label={messages.tax} cents={personWithUnclaimed.taxCents} />
       )}
-      {person.discountCents > 0 && (
-        <ExtraRow label={messages.discount} cents={-person.discountCents} />
+      {personWithUnclaimed.tipCents > 0 && (
+        <ExtraRow
+          label={messages.tipService}
+          cents={personWithUnclaimed.tipCents}
+        />
+      )}
+      {personWithUnclaimed.discountCents > 0 && (
+        <ExtraRow
+          label={messages.discount}
+          cents={-personWithUnclaimed.discountCents}
+        />
       )}
       <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1 font-bold">
-        <span>{person.name}</span>
-        <span className="tabular-nums">{formatCents(person.totalCents)}</span>
+        <span>{boardMessages.globalTotal}</span>
+        <span className="tabular-nums">
+          {formatCents(personWithUnclaimed.totalCents)}
+        </span>
       </div>
     </div>
   );
 }
+
 
 function ExtraRow({
   label,

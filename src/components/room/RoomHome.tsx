@@ -12,8 +12,10 @@ import { scanReceipt, type ScanOutcome, type ScanStage } from "@/lib/ocr/scan";
 import { isValidRoomCode, normalizeRoomCode } from "@/lib/rooms/code";
 import {
   setPendingCapture,
+  setPendingReceiptImage,
   type PendingCapture,
 } from "@/lib/rooms/pending-capture";
+import { fileToPreviewDataUrl } from "@/lib/receipt/image";
 import {
   forgetRoom,
   getRecentRooms,
@@ -64,6 +66,9 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
     const previewUrl = URL.createObjectURL(file);
     setError(null);
     setScan({ stage: "preprocessing", progress: 0, previewUrl });
+    void fileToPreviewDataUrl(file)
+      .then(setPendingReceiptImage)
+      .catch(() => {});
     void scanReceipt(file, (stage, progress) =>
       setScan({ stage, progress, previewUrl }),
     )

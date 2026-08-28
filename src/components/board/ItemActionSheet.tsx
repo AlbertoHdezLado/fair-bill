@@ -46,7 +46,7 @@ export function ItemActionSheet({
 }: ItemActionSheetProps) {
   const myGroups = groups.filter((group) => group.memberIds.includes(selfKey));
   const directGroup =
-    tab === "shared" && initialGroupId
+    (tab === "shared" || tab === "mine") && initialGroupId
       ? groups.find((group) => group.groupId === initialGroupId)
       : undefined;
   const nameOf = (key: string) => participantNames[key] ?? key;
@@ -135,46 +135,21 @@ export function ItemActionSheet({
           />
         )}
 
-        {tab === "mine" && (
-          <section className="flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
-              {messages.myGroupsTitle}
-            </p>
-            {myGroups.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                {messages.noGroups}
-              </p>
-            )}
-            {myGroups.map((group) => (
-              <button
-                key={group.groupId}
-                type="button"
-                onClick={() => setEditingGroupId(group.groupId)}
-                className="rounded-lg border border-primary/20 bg-surface px-3 py-2 text-left"
-              >
-                <p className="truncate text-sm font-semibold">
-                  {group.memberIds.map(nameOf).join(", ")}
-                </p>
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  {messages.groupUnits.replace(
-                    "{{count}}",
-                    formatUnits(group.units),
-                  )}
-                  {" · "}
-                  {messages.perPerson.replace(
-                    "{{amount}}",
-                    formatCents(
-                      perPersonCents(
-                        item,
-                        group.units,
-                        group.memberIds.length,
-                      ),
-                    ),
-                  )}
-                </p>
-              </button>
-            ))}
-          </section>
+        {tab === "mine" && directGroup && (
+          <GroupEditor
+            item={item}
+            group={directGroup}
+            remainingUnits={remainingUnits}
+            nameOf={nameOf}
+            onSaveGroup={onSaveGroup}
+            onLeave={() => leaveGroup(directGroup)}
+            variant="private"
+            messages={messages}
+          />
+        )}
+
+        {tab === "mine" && !directGroup && myGroups.length === 0 && (
+          <p className="text-sm text-muted-foreground">{messages.noGroups}</p>
         )}
 
         {tab === "shared" && directGroup && (

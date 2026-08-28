@@ -54,6 +54,20 @@ export async function addParticipant(
   );
 }
 
+export async function renameParticipant(
+  code: string,
+  participantId: string,
+  name: string,
+): Promise<RoomState> {
+  return readState(
+    await fetch(`/api/rooms/${normalizeRoomCode(code)}/participants`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ participantId, name }),
+    }),
+  );
+}
+
 export async function saveClaim(
   code: string,
   claim: {

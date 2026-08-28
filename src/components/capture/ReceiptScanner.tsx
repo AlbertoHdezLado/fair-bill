@@ -9,15 +9,22 @@ import {
   type EditableExtras,
   type EditableItem,
 } from "@/lib/receipt/editable";
+import { fileToPreviewDataUrl } from "@/lib/receipt/image";
 import { ScanOverlay } from "@/components/capture/ScanOverlay";
 import type { Messages } from "@/i18n";
 
 interface ReceiptScannerProps {
   readonly onScanned: (items: EditableItem[], extras: EditableExtras) => void;
+  /** Fires with a compressed copy of the captured photo, kept only on this device. */
+  readonly onImageCaptured?: (dataUrl: string) => void;
   readonly messages: Messages["capture"];
 }
 
-export function ReceiptScanner({ onScanned, messages }: ReceiptScannerProps) {
+export function ReceiptScanner({
+  onScanned,
+  onImageCaptured,
+  messages,
+}: ReceiptScannerProps) {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [stage, setStage] = useState<ScanStage | null>(null);
@@ -34,6 +41,9 @@ export function ReceiptScanner({ onScanned, messages }: ReceiptScannerProps) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(URL.createObjectURL(file));
     setScanError(null);
+    if (onImageCaptured) {
+      void fileToPreviewDataUrl(file).then(onImageCaptured).catch(() => {});
+    }
     void scan(file);
   }
 

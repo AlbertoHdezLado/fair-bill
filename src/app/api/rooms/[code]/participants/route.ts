@@ -78,3 +78,65 @@ export async function POST(
   await broadcastRoomUpdate(supabase, code);
   return NextResponse.json(await loadRoomState(supabase, room));
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ code: string }> },
+) {
+  const { code } = await params;
+  if (!isValidRoomCode(code)) {
+    return NextResponse.json({ error: "Invalid room code" }, { status: 400 });
+  }
+
+  const body = (await request.json().catch(() => null)) as {
+    participantId?: unknown;
+    name?: unknown;
+  } | null;
+  const participantId =
+    typeof body?.participantId === "string" ? body.participantId : "";
+  const name =
+    typeof body?.name === "string"
+      ? body.name.trim().slice(0, MAX_PARTICIPANT_NAME_LENGTH)
+      : "";
+  if (participantId === "" || name === "") {
+    return NextResponse.json({ error: "Missing name" }, { status: 400 });
+  }
+
+  const supabase = createServiceClient();
+  const room = await findRoom(supabase, code);
+  if (!room) {
+    return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  }
+
+  const { data: existingParticipants, error: existingParticipantsError } =
+    await supabase.from("participants").select("id, name").eq("room_id", room.id);
+  if (existingParticipantsError) {
+    return NextResponse.json({ error: "Could not save" }, { status: 500 });
+  }
+
+  const normalizedName = name.trim().replace(/\s+/g, " ").toUpperCase();
+  const hasDuplicateName = existingParticipants?.some(
+    (participant) =>
+      participant.id !== participantId &&
+      participant.name.trim().replace(/\s+/g, " ").toUpperCase() ===
+        normalizedName,
+  );
+  if (hasDuplicateName) {
+    return NextResponse.json(
+      { error: "Participant name already exists" },
+      { status: 409 },
+    );
+  }
+
+  const { error } = await supabase
+    .from("participants")
+    .update({ name })
+    .eq("id", participantId)
+    .eq("room_id", room.id);
+  if (error) {
+    return NextResponse.json({ error: "Could not save" }, { status: 500 });
+  }
+
+  await broadcastRoomUpdate(supabase, code);
+  return NextResponse.json(await loadRoomState(supabase, room));
+}

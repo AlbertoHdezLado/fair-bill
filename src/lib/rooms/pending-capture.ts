@@ -19,3 +19,16 @@ export function takePendingCapture(): PendingCapture | null {
   pending = null;
   return value;
 }
+
+/** Compressed copy of the scanned photo, handed off the same way as the parsed bill. */
+let pendingImage: string | null = null;
+
+export function setPendingReceiptImage(dataUrl: string): void {
+  pendingImage = dataUrl;
+}
+
+export function takePendingReceiptImage(): string | null {
+  const value = pendingImage;
+  pendingImage = null;
+  return value;
+}
