@@ -25,6 +25,12 @@ import { formatUnits, ProductCard } from "./ProductCard";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
 import type { Messages } from "@/i18n";
 import type { RoomEvent } from "@/lib/rooms/types";
+import {
+  getReadEventIds,
+  hasReviewedTicket,
+  markEventsRead,
+  markTicketReviewed,
+} from "@/lib/rooms/review-state";
 
 interface Participant {
   readonly key: string;
@@ -128,9 +134,13 @@ export function SplitBoard({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
-    // Muestra el ticket completo nada más entrar, solo a quien lo subió.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- apertura automática una única vez al montar
-    if (isOwner) setTableBillOpen(true);
+    // Muestra el ticket completo nada más entrar, solo a quien lo subió, y
+    // solo la primera vez: una vez revisado queda marcado para no reaparecer.
+    if (isOwner && !hasReviewedTicket(roomCode, selfKey)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- apertura automática una única vez al montar
+      setTableBillOpen(true);
+      markTicketReviewed(roomCode, selfKey);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
 
@@ -204,20 +214,23 @@ export function SplitBoard({
   useEffect(() => {
     // Keeps read/unread flags for already seen events while reflecting
     // persisted history from the server. Tus propias acciones no generan
-    // aviso: solo interesan los cambios que hacen los demás.
+    // aviso: solo interesan los cambios que hacen los demás. El estado de
+    // lectura de cada aviso se guarda por participante en este dispositivo,
+    // para que no reaparezca como no leído en otra visita.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza avisos locales con historial remoto persistido
     setNotifications((previous) => {
       const previousById = new Map(previous.map((notice) => [notice.id, notice]));
+      const readIds = getReadEventIds(roomCode, selfKey);
       return events
         .filter((event) => event.actorId !== selfKey)
         .map((event) => {
           const next = toBoardNotification(event, participants, t);
-          return previousById.get(next.id)
-            ? { ...next, read: previousById.get(next.id)!.read }
-            : next;
+          const alreadyRead =
+            previousById.get(next.id)?.read ?? readIds.has(next.id);
+          return { ...next, read: alreadyRead };
         });
     });
-  }, [events, participants, selfKey, t]);
+  }, [events, participants, selfKey, t, roomCode]);
 
   const saveGroup = (
     itemId: string,
@@ -338,12 +351,17 @@ export function SplitBoard({
                   open={notificationsOpen}
                   onToggle={() => {
                     setNotificationsOpen((prev) => !prev);
-                    setNotifications((prev) =>
-                      prev.map((notification) => ({
+                    setNotifications((prev) => {
+                      markEventsRead(
+                        roomCode,
+                        selfKey,
+                        prev.map((notification) => notification.id),
+                      );
+                      return prev.map((notification) => ({
                         ...notification,
                         read: true,
-                      })),
-                    );
+                      }));
+                    });
                   }}
                   onClose={() => setNotificationsOpen(false)}
                   messages={t}
