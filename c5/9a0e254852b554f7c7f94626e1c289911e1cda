@@ -1,0 +1,16 @@
+src/lib/receipt/parser.test.ts
+  h_fed6a40af368f7 161-171
+src/lib/receipt/parser.ts
+  h_fed6a40af368f7 136-138,140,162-164,166,192-194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c59a0e254852b554f7c7f94626e1c289911e1cda",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
