@@ -133,11 +133,11 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     if (inTotalsSection || (!seenFirstItem && isHeaderLine(line))) {
       unmatchedLines.push(raw);
       if (!seenFirstItem) headerLines.push(raw);
-      // A bare amount below the tax breakdown is very likely the grand total
-      // printed without a legible keyword, so it still feeds the fallback.
-      if (inTotalsSection && priceTokens.length === 1) {
+      // The last amount below the tax breakdown is the ticket total even if
+      // its keyword was lost or the line contains other monetary values.
+      if (inTotalsSection && priceTokens.length > 0) {
         numericCandidates.push({
-          amountCents: priceTokens[0],
+          amountCents: priceTokens.at(-1)!,
           raw,
         });
       }
@@ -159,11 +159,11 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     } else {
       unmatchedLines.push(raw);
       if (!seenFirstItem) headerLines.push(raw);
-      // A bare number with no product name is often the grand total when
-      // its keyword wasn't recognized (e.g. "TOTAL" misread as garbage).
-      if (priceTokens.length === 1) {
+      // The last amount on an unclassified line is often the grand total
+      // when its keyword wasn't recognized (e.g. "TOTAL" misread as garbage).
+      if (priceTokens.length > 0) {
         numericCandidates.push({
-          amountCents: priceTokens[0],
+          amountCents: priceTokens.at(-1)!,
           raw,
         });
       }
@@ -189,10 +189,9 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
     });
   }
 
-  const detectedTotalCents =
-    hasSummaryTotal || lastPricedLine?.itemIndex === undefined
-      ? (lastPricedLine?.amountCents ?? null)
-      : null;
+  // Receipt totals are conventionally the last monetary value printed,
+  // whether or not OCR preserved a preceding "TOTAL" label.
+  const detectedTotalCents = lastPricedLine?.amountCents ?? null;
 
   const itemsSubtotalCents = items.reduce((sum, i) => sum + i.totalCents, 0);
 

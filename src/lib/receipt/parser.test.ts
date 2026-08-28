@@ -158,6 +158,17 @@ describe("parseReceipt", () => {
     expect(result.detectedTotalCents).toBe(200);
   });
 
+  it("uses the lowest price when its line has no total keyword", () => {
+    const words = receiptWords([
+      "1 Menu 10,00",
+      "PAGO TARJETA 5,00 12,00",
+    ]);
+
+    const result = parseReceipt(words);
+
+    expect(result.detectedTotalCents).toBe(1200);
+  });
+
   it("strips a unit marker attached to a leading quantity", () => {
     const words = receiptWords(["2x Cerveza 4,00", "2 Uds Vino 8,00"]);
 
