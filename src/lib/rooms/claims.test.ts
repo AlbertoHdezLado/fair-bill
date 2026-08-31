@@ -123,6 +123,7 @@ describe("toLocalClaims", () => {
         memberIds: ["p1"],
         units: 1,
         shared: false,
+        allParticipants: false,
       },
       {
         groupId: "g2",
@@ -130,6 +131,7 @@ describe("toLocalClaims", () => {
         memberIds: ["p1", "p2"],
         units: 2,
         shared: true,
+        allParticipants: false,
       },
     ]);
   });
