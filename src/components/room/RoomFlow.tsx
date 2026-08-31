@@ -214,7 +214,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
+          className="rounded-2xl border border-red-600 px-5 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-600/10"
         >
           {t.backHome}
         </button>

@@ -142,7 +142,7 @@ export function BillProgress({
                 <button
                   type="button"
                   onClick={() => router.push("/")}
-                  className="flex-1 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  className="flex-1 rounded-full border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-600/10"
                 >
                   {messages.backHomeConfirm}
                 </button>
