@@ -1,0 +1,32 @@
+src/app/api/rooms/route.ts
+  h_fed6a40af368f7 9-16,25
+src/components/PersonTotals.tsx
+  h_fed6a40af368f7 57,59
+src/components/board/AssignedBar.tsx
+  h_fed6a40af368f7 5,47,87,89,139,146,183,214,222,226,232-234,242,245,251-263,268
+src/components/board/ItemActionSheet.tsx
+  h_fed6a40af368f7 20,41,52,55-60,96-98,122,166,227-242,253-255,263-265,285-286,291,295,328,341,347,373-374,382,446,455,479
+src/components/board/ProductCard.tsx
+  h_fed6a40af368f7 4,22,36,60-64,66,79-85,95-101,125
+src/components/board/SplitBoard.tsx
+  h_fed6a40af368f7 484,520-523,574
+src/components/room/CodeInput.tsx
+  h_fed6a40af368f7 61-65
+src/components/room/RoomHome.tsx
+  h_fed6a40af368f7 38-41,55,58,90-95,140,163,287-328
+src/i18n.ts
+  h_fed6a40af368f7 18-20,59-60,67,95,196,222-226,247-249,288-289,296,323,450-454
+src/lib/rooms/api.ts
+  h_fed6a40af368f7 17-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "106864f64b8380f5e6b923574eae99cc66096d34",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
