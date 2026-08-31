@@ -1,0 +1,33 @@
+src/components/room/AssignedBar.tsx
+  s_3a1c6143486adf::t_f22aac7ebd29e1 28,96,168,175,192,229,253,268
+src/components/room/IdentityPicker.tsx
+  s_3a1c6143486adf::t_59c13805042612 18
+src/components/room/ItemActionSheet.tsx
+  s_3a1c6143486adf::t_05dbe9d1a7893d 9,13,29,31,60-67,76,211,242-257,291,293,307,314,339-346,375-379,402,458,489,492,542,563
+src/components/room/NotificationBell.tsx
+  s_3a1c6143486adf::t_3538fc488d134a 9,19,23,162
+src/components/room/ProductCard.tsx
+  s_3a1c6143486adf::t_6f011191372fa1 27
+src/components/room/ProfileButton.tsx
+  s_3a1c6143486adf::t_516702c6a2b582 23
+src/i18n.ts
+  s_3a1c6143486adf::t_e594f4d480e3a5 156,384
+src/lib/rooms/claims.ts
+  s_3a1c6143486adf::t_dd2c8f3ea5af9c 4,15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "50d163f2355ad9c755a5632ad49f3f3a9f41e5c3",
+  "prompts": {},
+  "sessions": {
+    "s_3a1c6143486adf": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "50a9e26a-6b69-4c09-9151-6ba4badfe6cc",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
