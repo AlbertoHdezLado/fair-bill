@@ -148,4 +148,34 @@ describe("ReceiptEditor", () => {
     expect(item.quantity).toBe(3);
     expect(item.unitPriceCents).toBe(100);
   });
+
+  it("advances through a line with Enter and closes after confirming its total", () => {
+    render(
+      <ReceiptEditor
+        items={[{
+          id: "item-1",
+          name: "Café",
+          quantity: 1,
+          unitPriceCents: 300,
+          state: "editado",
+        }]}
+        extras={EMPTY_EXTRAS}
+        onItemsChange={vi.fn()}
+        onExtrasChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /editar café/i }));
+    const name = screen.getByDisplayValue("Café");
+    const quantity = screen.getByLabelText(/uds\./i);
+    const total = screen.getByDisplayValue("3.00");
+
+    fireEvent.keyDown(name, { key: "Enter" });
+    expect(document.activeElement).toBe(quantity);
+    fireEvent.keyDown(quantity, { key: "Enter" });
+    expect(document.activeElement).toBe(total);
+    fireEvent.keyDown(total, { key: "Enter" });
+
+    expect(screen.queryByLabelText(/uds\./i)).toBeNull();
+  });
 });

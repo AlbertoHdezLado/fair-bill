@@ -108,6 +108,7 @@ export function IdentityPicker({
             placeholder={messages.newUserPlaceholder}
             onKeyDown={(e) => {
               if (e.key === "Enter" && trimmed !== "" && !isDuplicate) {
+                e.preventDefault();
                 onAdd(trimmed);
                 setName("");
               }

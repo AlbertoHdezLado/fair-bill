@@ -99,6 +99,13 @@ export function CodeInput({
             } else if (event.key === "ArrowRight") {
               event.preventDefault();
               focusSlot(index + 1);
+            } else if (event.key === "Enter") {
+              event.preventDefault();
+              if (digits.every((digit) => digit !== "")) {
+                onComplete(digits.join(""));
+              } else {
+                focusSlot(digits.findIndex((digit) => digit === ""));
+              }
             }
           }}
           className="h-14 w-11 rounded-2xl border border-border bg-surface text-center font-mono text-2xl font-semibold uppercase tabular-nums shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 sm:w-12"

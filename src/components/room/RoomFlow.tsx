@@ -576,6 +576,7 @@ function BulkAddNames({
 }) {
   const [names, setNames] = useState([""]);
   const [adding, setAdding] = useState(false);
+  const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const updateName = (index: number, value: string) => {
     setNames((current) =>
@@ -586,6 +587,13 @@ function BulkAddNames({
       ),
     );
   };
+
+  function continueWithNames() {
+    setAdding(true);
+    void onContinue(
+      names.map((line) => line.trim()).filter((line) => line !== ""),
+    );
+  }
 
   if (adding) {
     return <LoadingState label={addingLabel} />;
@@ -601,10 +609,22 @@ function BulkAddNames({
         {names.map((name, index) => (
           <div key={index} className="flex gap-2">
             <input
+              ref={(element) => {
+                nameInputRefs.current[index] = element;
+              }}
               autoFocus={index === 0}
               value={name}
               maxLength={MAX_PARTICIPANT_NAME_LENGTH}
               onChange={(event) => updateName(index, event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                if (index === names.length - 1) {
+                  continueWithNames();
+                } else {
+                  nameInputRefs.current[index + 1]?.focus();
+                }
+              }}
               placeholder={messages.bulkAddNamePlaceholder.replace(
                 "{{index}}",
                 String(index + 1),
@@ -638,14 +658,7 @@ function BulkAddNames({
       </div>
       <button
         type="button"
-        onClick={() => {
-          setAdding(true);
-          void onContinue(
-            names
-              .map((line) => line.trim())
-              .filter((line) => line !== ""),
-          );
-        }}
+        onClick={continueWithNames}
         className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
       >
         {messages.bulkAddContinue}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { formatCents, useMoneyField } from "@/lib/money";
 import { itemTotalCents, type EditableItem } from "@/lib/receipt/editable";
@@ -39,6 +39,9 @@ export function ItemRow({
   const [quantityText, setQuantityText] = useState(String(item.quantity));
   const [quantityFocused, setQuantityFocused] = useState(false);
   const [isEditing, setIsEditing] = useState(forceOpen);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const totalInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- this prop drives a modal open state for a newly created item
     setIsEditing(forceOpen);
@@ -127,6 +130,7 @@ export function ItemRow({
                 Producto
               </span>
               <input
+                ref={nameInputRef}
                 type="text"
                 value={item.name}
                 maxLength={MAX_PRODUCT_NAME_LENGTH}
@@ -137,6 +141,12 @@ export function ItemRow({
                       .slice(0, MAX_PRODUCT_NAME_LENGTH),
                   })
                 }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    quantityInputRef.current?.focus();
+                  }
+                }}
                 placeholder={messages.descriptionPlaceholder}
                 className={`w-full rounded-xl border bg-transparent px-3 py-2 text-[13px] uppercase ${nameInputBorder}`}
               />
@@ -148,6 +158,7 @@ export function ItemRow({
                   Uds.
                 </span>
                 <input
+                  ref={quantityInputRef}
                   type="number"
                   inputMode="numeric"
                   min={0}
@@ -168,6 +179,13 @@ export function ItemRow({
                     setQuantityText(String(quantity));
                     if (quantity !== item.quantity) editQuantity(quantity);
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                      totalInputRef.current?.focus();
+                    }
+                  }}
                   className={`w-full rounded-xl border bg-transparent px-2 py-2 text-[13px] ${inputBorder}`}
                 />
               </label>
@@ -178,9 +196,17 @@ export function ItemRow({
                 </span>
                 <span className={`flex w-full items-center rounded-xl border bg-transparent ${moneyInputBorder}`}>
                   <input
+                    ref={totalInputRef}
                     type="text"
                     inputMode="decimal"
                     {...totalField}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                        closeEditor();
+                      }
+                    }}
                     className="min-w-0 flex-1 bg-transparent px-2 py-2 text-right text-[13px] tabular-nums outline-none"
                   />
                   <span className="shrink-0 pr-2 text-[13px] tabular-nums text-muted-foreground">

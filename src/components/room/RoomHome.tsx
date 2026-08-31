@@ -321,6 +321,12 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                   maxLength={120}
                   placeholder={messages.establishmentPlaceholder}
                   onChange={(event) => setMerchantName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      confirmCreation();
+                    }
+                  }}
                   className="rounded-xl border border-primary/30 bg-surface px-3 py-3 font-normal text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </label>

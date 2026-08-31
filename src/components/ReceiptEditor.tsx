@@ -42,6 +42,34 @@ export function ReceiptEditor({
     extras.detectedTotalCents === null || hasMismatch,
   );
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const extraFieldRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const extraFields: ReadonlyArray<{
+    readonly label: string;
+    readonly cents: number;
+    readonly onChange: (cents: number) => void;
+  }> = [
+    {
+      label: messages.tax,
+      cents: extras.taxCents,
+      onChange: (cents) => onExtrasChange({ ...extras, taxCents: cents }),
+    },
+    {
+      label: messages.tip,
+      cents: extras.tipCents,
+      onChange: (cents) => onExtrasChange({ ...extras, tipCents: cents }),
+    },
+    {
+      label: messages.service,
+      cents: extras.serviceCents,
+      onChange: (cents) => onExtrasChange({ ...extras, serviceCents: cents }),
+    },
+    {
+      label: messages.discount,
+      cents: extras.discountCents,
+      onChange: (cents) =>
+        onExtrasChange({ ...extras, discountCents: cents }),
+    },
+  ];
 
   function updateItem(index: number, next: EditableItem) {
     onItemsChange(items.map((item, i) => (i === index ? next : item)));
@@ -118,6 +146,12 @@ export function ReceiptEditor({
               setMerchantFocused(false);
               commitMerchantName(merchantDraft);
             }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
+            }}
             placeholder={messages.merchantNamePlaceholder}
             className="w-full border-b border-dashed border-primary/35 bg-transparent px-1 py-1 text-center font-mono text-sm font-semibold uppercase outline-none placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground/70 focus:border-primary"
           />
@@ -149,30 +183,20 @@ export function ReceiptEditor({
       </div>
 
       <div className="grid grid-cols-1 gap-y-0.5 border-b border-dashed border-primary/35 py-3 text-[12px] sm:grid-cols-2 sm:gap-x-4 sm:gap-y-1">
-        <ExtraField
-          label={messages.tax}
-          cents={extras.taxCents}
-          onChange={(cents) => onExtrasChange({ ...extras, taxCents: cents })}
-        />
-        <ExtraField
-          label={messages.tip}
-          cents={extras.tipCents}
-          onChange={(cents) => onExtrasChange({ ...extras, tipCents: cents })}
-        />
-        <ExtraField
-          label={messages.service}
-          cents={extras.serviceCents}
-          onChange={(cents) =>
-            onExtrasChange({ ...extras, serviceCents: cents })
-          }
-        />
-        <ExtraField
-          label={messages.discount}
-          cents={extras.discountCents}
-          onChange={(cents) =>
-            onExtrasChange({ ...extras, discountCents: cents })
-          }
-        />
+        {extraFields.map(({ label, cents, onChange }, index) => (
+          <ExtraField
+            key={label}
+            label={label}
+            cents={cents}
+            onChange={onChange}
+            inputRef={(element) => {
+              extraFieldRefs.current[index] = element;
+            }}
+            onEnter={() => {
+              extraFieldRefs.current[index + 1]?.focus();
+            }}
+          />
+        ))}
       </div>
 
       <div className="flex flex-col gap-0.5 border-b border-dashed border-primary/35 pb-2 pt-3 text-[12px]">
@@ -258,10 +282,14 @@ function ExtraField({
   label,
   cents,
   onChange,
+  inputRef,
+  onEnter,
 }: {
   readonly label: string;
   readonly cents: number;
   readonly onChange: (cents: number) => void;
+  readonly inputRef: (element: HTMLInputElement | null) => void;
+  readonly onEnter: () => void;
 }) {
   const field = useMoneyField(cents, onChange);
   return (
@@ -270,9 +298,17 @@ function ExtraField({
         {label}
       </span>
       <input
+        ref={inputRef}
         type="text"
         inputMode="decimal"
         {...field}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+            onEnter();
+          }
+        }}
         className="w-20 shrink-0 rounded border border-border bg-transparent px-2 py-1 text-right"
       />
     </label>
@@ -330,6 +366,12 @@ function TotalField({
         onBlur={() => {
           field.onBlur();
           commit();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+          }
         }}
         autoFocus
         className="w-24 rounded border border-border bg-transparent px-2 py-1 text-right text-lg tabular-nums"

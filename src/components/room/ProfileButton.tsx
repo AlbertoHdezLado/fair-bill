@@ -51,6 +51,30 @@ export function ProfileButton({
       trimmedNewParticipant.toUpperCase(),
   );
 
+  function saveName() {
+    if (trimmed === "" || saving) return;
+    setSaving(true);
+    setError(null);
+    void onRename(trimmed)
+      .then(() => setOpen(false))
+      .catch(() => setError(messages.duplicateName))
+      .finally(() => setSaving(false));
+  }
+
+  function addNewParticipant() {
+    if (
+      !onAddParticipant ||
+      trimmedNewParticipant === "" ||
+      isDuplicateParticipant ||
+      addingParticipant
+    )
+      return;
+    setAddingParticipant(true);
+    void onAddParticipant(trimmedNewParticipant)
+      .then(() => setNewParticipantName(""))
+      .finally(() => setAddingParticipant(false));
+  }
+
   return (
     <>
       <button
@@ -119,6 +143,12 @@ export function ProfileButton({
                       )
                     }
                     placeholder={messages.newUserPlaceholder}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        saveName();
+                      }
+                    }}
                     className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   />
                   {error && <p className="text-xs text-gold">{error}</p>}
@@ -126,14 +156,7 @@ export function ProfileButton({
                   <button
                     type="button"
                     disabled={trimmed === "" || saving}
-                    onClick={() => {
-                      setSaving(true);
-                      setError(null);
-                      void onRename(trimmed)
-                        .then(() => setOpen(false))
-                        .catch(() => setError(messages.duplicateName))
-                        .finally(() => setSaving(false));
-                    }}
+                    onClick={saveName}
                     className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                   >
                     {saving && <Spinner size={16} />}
@@ -190,6 +213,12 @@ export function ProfileButton({
                             )
                           }
                           placeholder={messages.newUserPlaceholder}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              addNewParticipant();
+                            }
+                          }}
                           className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                         />
                         <button
@@ -199,12 +228,7 @@ export function ProfileButton({
                             isDuplicateParticipant ||
                             addingParticipant
                           }
-                          onClick={() => {
-                            setAddingParticipant(true);
-                            void onAddParticipant(trimmedNewParticipant)
-                              .then(() => setNewParticipantName(""))
-                              .finally(() => setAddingParticipant(false));
-                          }}
+                          onClick={addNewParticipant}
                           className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                         >
                           {messages.add}
