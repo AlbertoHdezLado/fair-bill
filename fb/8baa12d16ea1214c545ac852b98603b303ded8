@@ -1,0 +1,33 @@
+src/components/board/AssignedBar.tsx
+  s_92bb09a607afc4::t_cf272dcdc8b3a4 12-19,26-27,38-39,93-94,165-166,172-173,177,204,235-277
+src/components/board/BillProgress.tsx
+  s_92bb09a607afc4::t_b982d42ae35a68 166-167,171,181,187,193,204,209,229-237
+src/components/board/ItemActionSheet.tsx
+  s_92bb09a607afc4::t_fefda20a5929cd 3-4,20-21,40,47-49,69-85,88,94-112,119,125,127-133,135-163,167,245,247-257,260-283,285-286,295,302,313,315-317,335,337,339-340,345-346,348-349,352-369,374-473,503-512,532,534
+src/components/board/ProductCard.tsx
+  s_92bb09a607afc4::t_77118ac7f0cc1b 59
+src/components/board/ProfileButton.tsx
+  s_92bb09a607afc4::t_5dd17eaca458e7 11-15,19-22,29-32,39-40,43-51,87,136-206
+src/components/board/SplitBoard.tsx
+  s_92bb09a607afc4::t_7a572742c10aa9 67-70,124-125,134-138,246-275,284,302,308-311,358-377,412-418,446-451,484-488,523-524
+src/components/room/RoomFlow.tsx
+  s_92bb09a607afc4::t_692f3a882c7d2d 78-79,167-171,190-205,284-316,469-477,567-607
+src/i18n.ts
+  s_92bb09a607afc4::t_09f16d813ec0d6 41-43,189,205,214-215,226,258-260,405,421,430-431,442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "fb8baa12d16ea1214c545ac852b98603b303ded8",
+  "prompts": {},
+  "sessions": {
+    "s_92bb09a607afc4": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "a8909fab-99ff-4c2c-b76b-991496c24b9e",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
