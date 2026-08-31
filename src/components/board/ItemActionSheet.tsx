@@ -49,9 +49,7 @@ export function ItemActionSheet({
   );
   const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
   const itemName = item.name || messages.unnamedItem;
-  const modalTitle = messages.quantityTitle
-    .replace("{{item}}", itemName)
-    .toUpperCase();
+  const modalTitle = itemName.toUpperCase();
 
   // Salir deja intacta la parte de los demás, así que el grupo encoge justo lo
   // que era mío.
