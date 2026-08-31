@@ -1,0 +1,22 @@
+src/app/globals.css
+  h_fed6a40af368f7 77,88,160-168
+src/components/board/BillProgress.tsx
+  h_fed6a40af368f7 54,64,80,107
+src/components/board/ProductCard.tsx
+  h_fed6a40af368f7 62-63,65-68,75,84
+src/components/room/RoomHome.tsx
+  h_fed6a40af368f7 106,142,144,148,164,166,208,217,236,264,291-293,300-302
+src/lib/motion.ts
+  h_fed6a40af368f7 40-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d29faf75da4df5fe292b4ba86828fca71874c0ba",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
