@@ -84,12 +84,12 @@ export function ReceiptScanner({
       <button
         type="button"
         onClick={() => galleryInputRef.current?.click()}
-        aria-label={messages.uploadImageLabel}
+        aria-label={messages.uploadReceiptLabel}
         className="flex w-full items-center gap-4 rounded-3xl bg-primary px-6 py-7 text-left text-primary-foreground shadow-lg transition-transform active:scale-[0.98]"
       >
         <ImageUp aria-hidden="true" size={28} className="shrink-0" />
         <span className="text-lg font-semibold tracking-tight">
-          {messages.uploadImage}
+          {messages.uploadReceipt}
         </span>
       </button>
 
