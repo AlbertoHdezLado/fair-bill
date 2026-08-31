@@ -1,0 +1,21 @@
+src/components/ItemRow.tsx
+  s_bbe6c8cc800e87::t_bc786c9451ef78 89-90,109-113,117-118,201,242
+src/components/ReceiptEditor.test.tsx
+  s_bbe6c8cc800e87::t_093f53d340ecc1 152-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "bdf9e85278092e158b3d570aa08c45013400f9f5",
+  "prompts": {},
+  "sessions": {
+    "s_bbe6c8cc800e87": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "942cccb2-8597-49f5-a63c-02a702626b26",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
