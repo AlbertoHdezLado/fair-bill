@@ -1,0 +1,16 @@
+src/components/room/IdentityPicker.tsx
+  h_fed6a40af368f7 40,64,91
+src/components/room/RoomHome.tsx
+  h_fed6a40af368f7 229
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ed344576100edd79fa7c9c1597b68c8b35e56ae8",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
