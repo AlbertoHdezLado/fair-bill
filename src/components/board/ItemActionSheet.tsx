@@ -17,6 +17,7 @@ interface ItemActionSheetProps {
   /** Units of the line nobody has taken yet. */
   readonly remainingUnits: number;
   readonly participantNames: Readonly<Record<string, string>>;
+  readonly allParticipantIds: readonly string[];
   /** Opens straight into editing this group, e.g. when tapped from its card. */
   readonly initialGroupId?: string;
   readonly onClose: () => void;
@@ -37,6 +38,7 @@ export function ItemActionSheet({
   groups,
   remainingUnits,
   participantNames,
+  allParticipantIds,
   initialGroupId,
   onClose,
   onSaveGroup,
@@ -47,9 +49,15 @@ export function ItemActionSheet({
   const [editingGroupId, setEditingGroupId] = useState<string | null>(
     initialGroupId ?? null,
   );
+  const [pickingPeople, setPickingPeople] = useState(false);
   const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
   const itemName = item.name || messages.unnamedItem;
-  const modalTitle = itemName.toUpperCase();
+  const modalTitle =
+    editingGroup || pickingPeople ? messages.shareWith : itemName.toUpperCase();
+  const groupLabel = (memberIds: readonly string[]) =>
+    memberIds.length === allParticipantIds.length
+      ? messages.everyoneLiteral
+      : memberIds.map(nameOf).join(", ");
 
   // Salir deja intacta la parte de los demás, así que el grupo encoge justo lo
   // que era mío.
@@ -85,6 +93,9 @@ export function ItemActionSheet({
             selfKey={selfKey}
             remainingUnits={remainingUnits}
             participantNames={participantNames}
+            allParticipantIds={allParticipantIds}
+            pickingPeople={pickingPeople}
+            onPickingPeopleChange={setPickingPeople}
             onSaveGroup={onSaveGroup}
             messages={messages}
           />
@@ -108,7 +119,7 @@ export function ItemActionSheet({
                 className="rounded-lg border border-primary/20 bg-surface px-3 py-2 text-left"
               >
                 <p className="truncate text-sm font-semibold">
-                  {group.memberIds.map(nameOf).join(", ")}
+                  {groupLabel(group.memberIds)}
                 </p>
                 <p className="text-xs tabular-nums text-muted-foreground">
                   {messages.groupUnits.replace(
@@ -152,7 +163,7 @@ export function ItemActionSheet({
               const groupInfo = (
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
-                    {group.memberIds.map(nameOf).join(", ")}
+                    {groupLabel(group.memberIds)}
                   </p>
                   <p className="text-xs tabular-nums text-muted-foreground">
                     {messages.groupUnits.replace(
@@ -213,34 +224,22 @@ export function ItemActionSheet({
       </div>
 
       {editingGroup && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
-          <button
-            type="button"
-            aria-label={messages.close}
-            onClick={() => setEditingGroupId(null)}
-            className="absolute inset-0 bg-ink/70"
-          />
-          <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
-            <p className="min-w-0 truncate text-sm font-semibold text-primary">
-              {editingGroup.memberIds.map(nameOf).join(", ")}
-            </p>
-            <GroupEditor
-              item={item}
-              group={editingGroup}
-              remainingUnits={remainingUnits}
-              nameOf={nameOf}
-              onSaveGroup={(groupId, ownerId, memberIds, units, shared) => {
-                onSaveGroup(groupId, ownerId, memberIds, units, shared);
-                setEditingGroupId(null);
-              }}
-              onLeave={() => {
-                leaveGroup(editingGroup);
-                setEditingGroupId(null);
-              }}
-              messages={messages}
-            />
-          </div>
-        </div>
+        <GroupEditor
+          item={item}
+          group={editingGroup}
+          remainingUnits={remainingUnits}
+          nameOf={nameOf}
+          groupLabel={groupLabel}
+          onSaveGroup={(groupId, ownerId, memberIds, units, shared) => {
+            onSaveGroup(groupId, ownerId, memberIds, units, shared);
+            setEditingGroupId(null);
+          }}
+          onLeave={() => {
+            leaveGroup(editingGroup);
+            setEditingGroupId(null);
+          }}
+          messages={messages}
+        />
       )}
     </div>
   );
@@ -251,6 +250,9 @@ function NewGroupForm({
   selfKey,
   remainingUnits,
   participantNames,
+  allParticipantIds,
+  pickingPeople,
+  onPickingPeopleChange,
   onSaveGroup,
   messages,
 }: {
@@ -258,6 +260,9 @@ function NewGroupForm({
   readonly selfKey: string;
   readonly remainingUnits: number;
   readonly participantNames: Readonly<Record<string, string>>;
+  readonly allParticipantIds: readonly string[];
+  readonly pickingPeople: boolean;
+  readonly onPickingPeopleChange: (picking: boolean) => void;
   readonly onSaveGroup: (
     groupId: string,
     ownerId: string,
@@ -268,7 +273,6 @@ function NewGroupForm({
   readonly messages: Messages["board"];
 }) {
   const [units, setUnits] = useState(1);
-  const [pickingPeople, setPickingPeople] = useState(false);
   const capped = Math.min(units, remainingUnits);
   const others = Object.entries(participantNames).filter(
     ([key]) => key !== selfKey,
@@ -278,16 +282,17 @@ function NewGroupForm({
     return (
       <SharePicker
         others={others}
-        onCancel={() => setPickingPeople(false)}
+        allParticipantIds={allParticipantIds}
+        onCancel={() => onPickingPeopleChange(false)}
         onConfirm={(memberIds) => {
           onSaveGroup(
             crypto.randomUUID(),
             selfKey,
-            [selfKey, ...memberIds],
+            [...new Set([selfKey, ...memberIds])],
             capped,
             true,
           );
-          setPickingPeople(false);
+          onPickingPeopleChange(false);
         }}
         messages={messages}
       />
@@ -320,7 +325,7 @@ function NewGroupForm({
         <button
           type="button"
           disabled={remainingUnits <= 0}
-          onClick={() => setPickingPeople(true)}
+          onClick={() => onPickingPeopleChange(true)}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gold px-4 py-3 text-sm font-medium text-ink hover:bg-gold-hover disabled:opacity-40"
         >
           <Users aria-hidden="true" size={16} />
@@ -333,11 +338,13 @@ function NewGroupForm({
 
 function SharePicker({
   others,
+  allParticipantIds,
   onCancel,
   onConfirm,
   messages,
 }: {
   readonly others: readonly (readonly [string, string])[];
+  readonly allParticipantIds: readonly string[];
   readonly onCancel: () => void;
   readonly onConfirm: (memberIds: readonly string[]) => void;
   readonly messages: Messages["board"];
@@ -363,8 +370,8 @@ function SharePicker({
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => onConfirm([])}
-            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+            onClick={() => onConfirm(allParticipantIds.filter((id) => id !== ""))}
+            className="rounded-full bg-gold px-4 py-2 text-sm font-medium text-ink hover:bg-gold-hover"
           >
             {messages.everyone}
           </button>
@@ -372,7 +379,7 @@ function SharePicker({
             <button
               type="button"
               onClick={() => setSelectMode("select")}
-              className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+              className="rounded-full bg-gold px-4 py-2 text-sm font-medium text-ink hover:bg-gold-hover"
             >
               {messages.selectPeople}
             </button>
@@ -436,6 +443,7 @@ function GroupEditor({
   group,
   remainingUnits,
   nameOf,
+  groupLabel,
   onSaveGroup,
   onLeave,
   messages,
@@ -444,6 +452,7 @@ function GroupEditor({
   readonly group: ItemGroup;
   readonly remainingUnits: number;
   readonly nameOf: (key: string) => string;
+  readonly groupLabel: (memberIds: readonly string[]) => string;
   readonly onSaveGroup: (
     groupId: string,
     ownerId: string,
@@ -467,7 +476,7 @@ function GroupEditor({
           className="shrink-0 text-primary"
         />
         <span className="min-w-0 truncate font-semibold">
-          {group.memberIds.map(nameOf).join(", ")}
+          {groupLabel(group.memberIds)}
         </span>
       </div>
 

@@ -481,6 +481,7 @@ export function SplitBoard({
                     key={key}
                     item={group[0]}
                     remainingUnits={remainingUnits}
+                    isSelected={group.some((item) => assignedUnits(item, claims) > 0)}
                     myUnits={group.reduce(
                       (sum, item) => sum + claimedUnits(item, claims, selfKey),
                       0,
@@ -516,7 +517,10 @@ export function SplitBoard({
                           : [
                               {
                                 groupId: group.groupId,
-                                memberNames: group.memberIds.map(nameOf),
+                                memberNames:
+                                  group.memberIds.length === participants.length
+                                    ? [t.everyoneLiteral]
+                                    : group.memberIds.map(nameOf),
                                 units: group.units,
                                 includesSelf: group.memberIds.includes(selfKey),
                               },
@@ -567,6 +571,7 @@ export function SplitBoard({
                 participant.name,
               ]),
             )}
+            allParticipantIds={participants.map((participant) => participant.key)}
             initialGroupId={sheet?.groupId}
             onClose={() => setSheet(null)}
             onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>

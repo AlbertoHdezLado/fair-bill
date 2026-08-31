@@ -58,7 +58,11 @@ export function CodeInput({
   return (
     <motion.div
       key={shakeSignal}
-      animate={{ x: [0, -8, 8, -6, 6, -3, 3, 0] }}
+      animate={
+        shakeSignal
+          ? { x: [0, -8, 8, -6, 6, -3, 3, 0] }
+          : { x: 0 }
+      }
       transition={{ duration: 0.4 }}
       className="flex justify-center gap-2"
     >

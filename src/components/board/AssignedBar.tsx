@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { PersonSplit, SplitResult } from "@/lib/split";
 import { backdropVariants, sheetVariants } from "@/lib/motion";
@@ -44,7 +44,7 @@ export function AssignedBar({
   const meWithUnclaimed = splitWithUnclaimed.people.find(
     (person) => person.participantId === selfKey,
   );
-  const myTotalCents = me?.totalCents ?? 0;
+  const myTotalCents = meWithUnclaimed?.totalCents ?? 0;
 
   // Muestra un "+X €" o "-X €" fugaz cuando cambia tu total, como si el
   // importe entrase o saliese de tu cuenta.
@@ -84,9 +84,9 @@ export function AssignedBar({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative mb-16 flex max-h-[70vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl"
+              className="relative flex max-h-[55vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-3 shadow-2xl"
             >
-              {me && me.items.length > 0 ? (
+              {me ? (
                 <PersonBreakdown
                   person={me}
                   personWithUnclaimed={meWithUnclaimed ?? me}
@@ -136,14 +136,14 @@ export function AssignedBar({
         <span className="flex items-center gap-2">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.span
-              key={me?.totalCents ?? 0}
+              key={myTotalCents}
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.15 }}
               className="text-lg font-bold tabular-nums"
             >
-              {formatCents(me?.totalCents ?? 0)}
+              {formatCents(myTotalCents)}
             </motion.span>
           </AnimatePresence>
           <ChevronUp
@@ -175,25 +175,12 @@ function PersonBreakdown({
   readonly boardMessages: Messages["board"];
 }) {
   const [unassignedOpen, setUnassignedOpen] = useState(false);
-  const claimedShareByItemId = new Map(
-    person.items.map((item) => [item.itemId, item.shareCents]),
-  );
-  // Desglosa, línea a línea, la parte que te toca de lo que nadie ha
-  // reclamado (siempre en el mismo tono dorado que el resto de avisos).
-  const unclaimedBreakdown = personWithUnclaimed.items
-    .map((item) => ({
-      itemId: item.itemId,
-      itemName: item.itemName,
-      cents: item.shareCents - (claimedShareByItemId.get(item.itemId) ?? 0),
-    }))
-    .filter((entry) => entry.cents > 0);
-
   return (
     <div className="flex flex-col gap-1 text-sm">
       {person.items.map((item) => (
         <div key={item.itemId} className="flex justify-between gap-2">
           <span className="truncate">
-            {item.itemName} ×{formatUnits(item.effectiveUnits)}
+            {formatUnits(item.effectiveUnits)}× {item.itemName}
           </span>
           <span className="tabular-nums">{formatCents(item.shareCents)}</span>
         </div>
@@ -207,16 +194,6 @@ function PersonBreakdown({
           {formatCents(person.subtotalCents)}
         </span>
       </div>
-      {unclaimedBreakdown.length > 0 && (
-        <div className="flex flex-col gap-1 text-gold">
-          {unclaimedBreakdown.map((entry) => (
-            <div key={entry.itemId} className="flex justify-between gap-2">
-              <span className="truncate">+ {entry.itemName}</span>
-              <span className="tabular-nums">{formatCents(entry.cents)}</span>
-            </div>
-          ))}
-        </div>
-      )}
       {personWithUnclaimed.taxCents > 0 && (
         <ExtraRow label={messages.tax} cents={personWithUnclaimed.taxCents} />
       )}
@@ -234,7 +211,7 @@ function PersonBreakdown({
       )}
 
       {unassignedBreakdown.length > 0 && (
-        <div className="mt-1 flex flex-col gap-1 border-t border-primary/20 pt-1">
+        <div className="mt-1 flex flex-col gap-1 border-t border-primary/20 pt-2">
           <button
             type="button"
             onClick={() => setUnassignedOpen((prev) => !prev)}
@@ -242,19 +219,19 @@ function PersonBreakdown({
             className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
           >
             <span className="flex items-center gap-1">
-              <ChevronUp
+              <ChevronDown
                 aria-hidden="true"
                 size={14}
                 className={
-                  unassignedOpen
-                    ? "transition-transform"
-                    : "rotate-180 transition-transform"
+                  unassignedOpen ? "rotate-180 transition-transform" : "transition-transform"
                 }
               />
               {boardMessages.unassignedProducts}
             </span>
             <span className="tabular-nums">
-              {formatCents(unassignedSubtotalCents)}
+              {formatCents(
+                Math.round(unassignedSubtotalCents / Math.max(personWithUnclaimed.participantCount, 1)),
+              )}
             </span>
           </button>
           {unassignedOpen && (
@@ -262,20 +239,33 @@ function PersonBreakdown({
               {unassignedBreakdown.map((entry) => (
                 <div key={entry.key} className="flex justify-between gap-2">
                   <span className="truncate">
-                    {entry.name} ×{formatUnits(entry.remainingUnits)}
+                    {formatUnits(entry.remainingUnits)}× {entry.name}
                   </span>
                   <span className="tabular-nums">
-                    {formatCents(entry.subtotalCents)}
+                    {formatCents(entry.perPersonCents)}
                   </span>
                 </div>
               ))}
             </div>
           )}
+          <div className="flex justify-between gap-2 border-t border-primary/20 pt-1 text-xs font-medium">
+            <span>
+              {boardMessages.dividedBetween.replace(
+                "{{count}}",
+                String(personWithUnclaimed.participantCount),
+              )}
+            </span>
+            <span className="tabular-nums">
+              {formatCents(
+                Math.round(unassignedSubtotalCents / Math.max(personWithUnclaimed.participantCount, 1)),
+              )}
+            </span>
+          </div>
         </div>
       )}
 
       <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-2 text-lg font-bold text-primary">
-        <span>{boardMessages.globalTotal}</span>
+        <span>{boardMessages.yourTotal}</span>
         <span className="tabular-nums">
           {formatCents(personWithUnclaimed.totalCents)}
         </span>

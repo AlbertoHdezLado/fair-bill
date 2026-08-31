@@ -6,7 +6,14 @@ export const runtime = "nodejs";
 
 const MAX_CODE_ATTEMPTS = 5;
 
-export async function POST() {
+export async function POST(request: Request) {
+  const body = (await request.json().catch(() => null)) as {
+    merchantName?: unknown;
+  } | null;
+  const merchantName =
+    typeof body?.merchantName === "string"
+      ? body.merchantName.trim().slice(0, 120)
+      : "";
   const supabase = createServiceClient();
 
   // The unique index on `code` is the real guard against collisions; retry a
@@ -15,7 +22,7 @@ export async function POST() {
     const code = generateRoomCode();
     const { data, error } = await supabase
       .from("rooms")
-      .insert({ code })
+      .insert({ code, merchant_name: merchantName })
       .select("code")
       .maybeSingle<{ code: string }>();
 

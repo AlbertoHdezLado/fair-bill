@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { Messages } from "@/i18n";
@@ -18,6 +19,7 @@ interface ProductCardProps {
   readonly remainingUnits: number;
   readonly myUnits: number;
   readonly groups: readonly ProductCardGroup[];
+  readonly isSelected?: boolean;
   /** The "shared" and "for me" tabs list the groups behind the line. */
   readonly showGroups: boolean;
   readonly onSelect?: () => void;
@@ -31,12 +33,12 @@ export function ProductCard({
   remainingUnits,
   myUnits,
   groups,
+  isSelected = false,
   showGroups,
   onSelect,
   footer,
   messages,
 }: ProductCardProps) {
-  const isMine = myUnits > 0;
   let quantityLine: ReactNode;
   if (showGroups) {
     quantityLine = (
@@ -55,9 +57,13 @@ export function ProductCard({
   }
 
   return (
-    <article
+    <motion.article
+      layout="position"
+      initial={{ opacity: 0, y: 8, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 430, damping: 34 }}
       className={`w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
-        isMine ? "border-gold" : "border-primary/45"
+        "border-primary/45"
       }`}
     >
       {onSelect ? (
@@ -70,8 +76,13 @@ export function ProductCard({
             <span className="block truncate font-semibold">
               {item.name || messages.unnamedItem}
             </span>
-            <span className="mt-0.5 block text-xs tabular-nums text-muted-foreground">
-              {quantityLine}
+            <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+              <span>{quantityLine}</span>
+              {isSelected && (
+                <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {messages.selected}
+                </span>
+              )}
             </span>
           </span>
         </button>
@@ -81,8 +92,13 @@ export function ProductCard({
             <span className="block truncate font-semibold">
               {item.name || messages.unnamedItem}
             </span>
-            <span className="mt-0.5 block text-xs tabular-nums text-muted-foreground">
-              {quantityLine}
+            <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+              <span>{quantityLine}</span>
+              {isSelected && (
+                <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {messages.selected}
+                </span>
+              )}
             </span>
           </span>
         </div>
@@ -106,7 +122,7 @@ export function ProductCard({
       )}
 
       {footer && <div className="border-t border-primary/20 px-3 py-2">{footer}</div>}
-    </article>
+    </motion.article>
   );
 }
 

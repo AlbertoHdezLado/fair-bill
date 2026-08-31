@@ -35,6 +35,10 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shakeSignal, setShakeSignal] = useState(0);
+  const [merchantName, setMerchantName] = useState("");
+  const [createMode, setCreateMode] = useState<"upload" | "manual" | null>(
+    null,
+  );
   const [recentRooms, setRecentRooms] = useState<readonly RecentRoom[]>([]);
   const [scan, setScan] = useState<{
     stage: ScanStage;
@@ -48,10 +52,10 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
     setRecentRooms(getRecentRooms());
   }, []);
 
-  function start(capture: PendingCapture) {
+  function start(capture: PendingCapture, establishment = merchantName) {
     setBusyLabel(messages.creatingRoom);
     setError(null);
-    createRoom()
+    createRoom(establishment)
       .then((created) => {
         setPendingCapture(capture);
         router.push(`/room/${created}`);
@@ -81,6 +85,12 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
         setScan(null);
         URL.revokeObjectURL(previewUrl);
       });
+  }
+
+  function confirmCreation() {
+    if (createMode === "manual") start("manual");
+    else galleryInputRef.current?.click();
+    setCreateMode(null);
   }
 
   // Mientras se crea o se entra en una sala el menú desaparece por completo.
@@ -118,7 +128,6 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="fairBill" className="h-12 w-auto" />
-          <p className="text-sm text-muted-foreground">{messages.tagline}</p>
         </motion.header>
 
         <motion.section
@@ -128,7 +137,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => galleryInputRef.current?.click()}
+            onClick={() => setCreateMode("upload")}
             aria-label={captureMessages.uploadImageLabel}
             className="group relative flex w-full items-center gap-4 overflow-hidden rounded-3xl bg-primary px-5 py-7 text-left text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] ring-1 ring-inset ring-white/15 transition-all duration-200 hover:bg-primary-hover hover:shadow-[0_0_18px_-2px_var(--primary)] active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
           >
@@ -151,7 +160,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => start("manual")}
+              onClick={() => setCreateMode("manual")}
               className="flex w-full items-center gap-3 rounded-3xl border border-border/60 bg-surface/30 px-5 py-3 text-left backdrop-blur-sm transition-colors hover:border-primary disabled:opacity-60"
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-background/40">
@@ -274,6 +283,48 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
           </ol>
         </motion.section>
       </motion.div>
+
+      <AnimatePresence>
+        {createMode && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              type="button"
+              aria-label={captureMessages.closeLabel}
+              onClick={() => setCreateMode(null)}
+              className="absolute inset-0 bg-ink/70"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/40 bg-background p-5 shadow-2xl"
+            >
+              <label className="flex flex-col gap-2 text-sm font-semibold text-primary">
+                {messages.establishmentName}
+                <input
+                  autoFocus
+                  value={merchantName}
+                  maxLength={120}
+                  placeholder={messages.establishmentPlaceholder}
+                  onChange={(event) => setMerchantName(event.target.value)}
+                  className="rounded-xl border border-primary/30 bg-surface px-3 py-3 font-normal text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={confirmCreation}
+                className="rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+              >
+                {captureMessages.continue}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {scan && (

@@ -14,8 +14,12 @@ async function readState(response: Response): Promise<RoomState> {
   return (await response.json()) as RoomState;
 }
 
-export async function createRoom(): Promise<string> {
-  const response = await fetch("/api/rooms", { method: "POST" });
+export async function createRoom(merchantName = ""): Promise<string> {
+  const response = await fetch("/api/rooms", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ merchantName }),
+  });
   if (!response.ok) throw new Error("Could not create the room");
   const { code } = (await response.json()) as { code: string };
   return code;

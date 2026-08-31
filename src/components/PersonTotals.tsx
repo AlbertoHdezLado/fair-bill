@@ -53,10 +53,10 @@ export function PersonTotals({
             }`}
           >
             <span className="truncate">
-              {item.itemName}
               {item.effectiveUnits > 0 && (
-                <span> x{Math.round(item.effectiveUnits * 100) / 100}</span>
+                <span>{Math.round(item.effectiveUnits * 100) / 100}x </span>
               )}
+              {item.itemName}
             </span>
             <span className="tabular-nums">
               {formatCents(item.shareCents, currency)}
