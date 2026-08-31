@@ -244,11 +244,7 @@ export async function broadcastRoomUpdate(
 ): Promise<void> {
   const channel = supabase.channel(roomChannelName(code));
   try {
-    await channel.send({
-      type: "broadcast",
-      event: ROOM_UPDATED_EVENT,
-      payload: {},
-    });
+    await channel.httpSend(ROOM_UPDATED_EVENT, {});
   } catch (error) {
     console.warn("Could not broadcast room update", error);
   } finally {
