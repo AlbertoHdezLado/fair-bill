@@ -37,9 +37,9 @@ export const popVariants: Variants = {
 };
 
 export const fadeInUpVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: springTransition },
-  exit: { opacity: 0, y: -8, transition: fadeTransition },
+  hidden: { y: 12, scale: 0.99 },
+  visible: { y: 0, scale: 1, transition: springTransition },
+  exit: { y: -8, scale: 0.99, transition: fadeTransition },
 };
 
 export const listStagger: Variants = {

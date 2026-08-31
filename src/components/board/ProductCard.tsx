@@ -59,18 +59,20 @@ export function ProductCard({
   return (
     <motion.article
       layout="position"
-      initial={{ opacity: 0, y: 8, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ y: 8, scale: 0.985 }}
+      animate={{ y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 430, damping: 34 }}
-      className={`w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
-        "border-primary/45"
+      className={`w-full overflow-hidden rounded-xl border bg-background shadow-sm transition-[border-color,box-shadow,transform] duration-200 ${
+        isSelected
+          ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
+          : "border-primary/35 hover:border-primary/65 hover:shadow-[0_8px_20px_-18px_var(--primary)]"
       }`}
     >
       {onSelect ? (
         <button
           type="button"
           onClick={onSelect}
-          className="flex w-full items-center gap-3 px-4 py-3 text-left"
+          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold">
@@ -79,7 +81,7 @@ export function ProductCard({
             <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
               <span>{quantityLine}</span>
               {isSelected && (
-                <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                   {messages.selected}
                 </span>
               )}

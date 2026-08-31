@@ -103,7 +103,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 px-5 py-8">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-5 py-8 sm:py-12">
       {/* Sin `capture`, para que el selector abra la galería en vez de la cámara */}
       <input
         ref={galleryInputRef}
@@ -139,13 +139,13 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
             disabled={busy}
             onClick={() => setCreateMode("upload")}
             aria-label={captureMessages.uploadImageLabel}
-            className="group relative flex w-full items-center gap-4 overflow-hidden rounded-3xl bg-primary px-5 py-7 text-left text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] ring-1 ring-inset ring-white/15 transition-all duration-200 hover:bg-primary-hover hover:shadow-[0_0_18px_-2px_var(--primary)] active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+            className="group relative flex w-full items-center gap-4 overflow-hidden rounded-xl bg-primary px-5 py-7 text-left text-primary-foreground shadow-[0_12px_24px_-18px_var(--primary)] ring-1 ring-inset ring-primary-foreground/15 transition-[background-color,box-shadow,transform] duration-200 hover:bg-primary-hover hover:shadow-[0_16px_28px_-18px_var(--primary)] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60 disabled:shadow-none"
           >
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15">
               <ImageUp aria-hidden="true" size={24} />
             </span>
             <span className="flex min-w-0 flex-col">
-              <span className="text-lg font-semibold tracking-tight">
+              <span className="text-lg font-semibold">
                 {captureMessages.uploadImage}
               </span>
             </span>
@@ -161,9 +161,9 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
               type="button"
               disabled={busy}
               onClick={() => setCreateMode("manual")}
-              className="flex w-full items-center gap-3 rounded-3xl border border-border/60 bg-surface/30 px-5 py-3 text-left backdrop-blur-sm transition-colors hover:border-primary disabled:opacity-60"
+              className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface px-5 py-3 text-left transition-[border-color,background-color,transform] duration-200 hover:border-primary/65 hover:bg-primary/5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60"
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-background/40">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                 <PencilLine aria-hidden="true" size={18} className="opacity-70" />
               </span>
               <span className="text-base font-medium text-muted-foreground">
@@ -205,7 +205,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                 {recentRooms.map((room) => (
                   <li
                     key={room.code}
-                    className="flex items-center gap-2 rounded-2xl border border-border/60 bg-surface/30 pr-2"
+                    className="flex items-center gap-2 rounded-xl border border-border bg-surface pr-2 transition-colors hover:border-primary/50"
                   >
                     <button
                       type="button"
@@ -214,7 +214,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                         setBusyLabel(messages.joiningRoom);
                         router.push(`/room/${room.code}`);
                       }}
-                      className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left disabled:opacity-60"
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-60"
                     >
                       <span className="min-w-0 truncate text-sm font-medium">
                         {room.merchantName || room.code}
@@ -233,7 +233,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                           prev.filter((entry) => entry.code !== room.code),
                         );
                       }}
-                      className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-60"
+                      className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                     >
                       <X aria-hidden="true" size={16} />
                     </button>
@@ -261,7 +261,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
 
         <motion.section
           variants={fadeInUpVariants}
-          className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5"
+          className="flex flex-col gap-4 border-t border-border pt-6"
         >
           <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {messages.howTitle}
@@ -288,18 +288,18 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
         {createMode && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ y: 4 }}
+              animate={{ y: 0 }}
+              exit={{ y: 4 }}
               type="button"
               aria-label={captureMessages.closeLabel}
               onClick={() => setCreateMode(null)}
               className="absolute inset-0 bg-ink/70"
             />
             <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              initial={{ y: 16, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 16, scale: 0.98 }}
               transition={{ type: "spring", stiffness: 420, damping: 34 }}
               className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/40 bg-background p-5 shadow-2xl"
             >
