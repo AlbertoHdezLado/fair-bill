@@ -1,0 +1,19 @@
+src/lib/rooms/store.ts
+  s_6a1563345011ef::t_da525e0f0c50d1 247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "fc4f45878a5bf0174a394c7e9910da76330bd0f9",
+  "prompts": {},
+  "sessions": {
+    "s_6a1563345011ef": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "a911f2ee-b58c-4d32-9645-4d352109b9aa",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
