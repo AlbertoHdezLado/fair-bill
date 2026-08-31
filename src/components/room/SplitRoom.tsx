@@ -445,8 +445,6 @@ export function SplitRoom({
               assignedItems={fullyAssignedCount}
               totalItems={items.length}
               onOpenTableBill={openTicketEditor}
-              tableLabel={tableLabel}
-              roomCode={roomCode}
               onToggleShare={onToggleShare}
               profile={
                 <ProfileButton
@@ -545,6 +543,7 @@ export function SplitRoom({
                               },
                             ]
                       }
+                              isMine={tab === "mine"}
                       showGroups={true}
                       onSelect={() =>
                         setSheet({ itemIds: [item.id], groupId: group.groupId })

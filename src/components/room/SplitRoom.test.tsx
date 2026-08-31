@@ -172,7 +172,9 @@ describe("SplitRoom", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Para mí" }));
 
-    expect(screen.getByText(/TORTILLA/)).toBeTruthy();
+    const personalCard = screen.getByText(/TORTILLA/).closest("article");
+    expect(personalCard).toBeTruthy();
+    expect(personalCard?.className).toContain("border-blue-500");
     expect(screen.queryByText(/CERVEZA/)).toBeNull();
   });
 
@@ -249,6 +251,22 @@ describe("SplitRoom", () => {
     expect(document.body.textContent).toMatch(/De dónde sale tu total/);
     expect(document.body.textContent).toMatch(/Resto de la sala/);
     expect(document.body.textContent).toMatch(/LUIS/);
+  });
+
+  it("shows the unassigned split inside its expanded breakdown", () => {
+    renderBoard({
+      p1: { i2: [{ owner: "p1", choice: { mode: "units", count: 1 } }] },
+    });
+
+    const unassigned = screen.getByText(defaultMessages.roomSplit.unassignedProducts)
+      .closest("button")!;
+
+    expect(unassigned.textContent).toMatch(/PRODUCTOS NO ASIGNADOS 7,50\s?€/);
+    expect(unassigned.textContent).not.toMatch(/15,00\s?€\s*\/\s*2/);
+
+    fireEvent.click(unassigned);
+
+    expect(document.body.textContent).toMatch(/15,00\s?€\s*\/\s*2/);
   });
 
   it("creates a private group with the chosen number of units", () => {

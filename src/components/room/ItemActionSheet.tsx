@@ -400,7 +400,7 @@ function SharePicker({
           <button
             type="button"
             onClick={() => onConfirm(others.map(([key]) => key), true)}
-            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+            className="rounded-full bg-gold px-4 py-2 text-sm font-medium text-ink hover:bg-gold-hover"
           >
             {messages.everyone}
           </button>
@@ -408,7 +408,7 @@ function SharePicker({
             <button
               type="button"
               onClick={() => setSelectMode("select")}
-              className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+              className="rounded-full bg-gold px-4 py-2 text-sm font-medium text-ink hover:bg-gold-hover"
             >
               {messages.selectPeople}
             </button>

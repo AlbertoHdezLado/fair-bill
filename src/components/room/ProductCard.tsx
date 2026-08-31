@@ -20,6 +20,7 @@ interface ProductCardProps {
   readonly myUnits: number;
   readonly groups: readonly ProductCardGroup[];
   readonly isSelected?: boolean;
+  readonly isMine?: boolean;
   /** The "shared" and "for me" tabs list the groups behind the line. */
   readonly showGroups: boolean;
   readonly onSelect?: () => void;
@@ -34,6 +35,7 @@ export function ProductCard({
   myUnits,
   groups,
   isSelected = false,
+  isMine = false,
   showGroups,
   onSelect,
   footer,
@@ -63,7 +65,9 @@ export function ProductCard({
       animate={{ y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 430, damping: 34 }}
       className={`w-full overflow-hidden rounded-xl border bg-background shadow-sm transition-[border-color,box-shadow,transform] duration-200 ${
-        isSelected
+        isMine
+          ? "border-blue-500 shadow-[0_8px_20px_-16px_rgb(59_130_246)]"
+          : isSelected
           ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
           : "border-primary/35 hover:border-primary/65 hover:shadow-[0_8px_20px_-18px_var(--primary)]"
       }`}
