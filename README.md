@@ -14,8 +14,8 @@ lo que ha consumido.
 - **Captura y recorte**: foto del ticket con la cámara o desde galería, con ajuste
   manual de las cuatro esquinas y corrección de perspectiva antes del OCR.
 - **OCR en el dispositivo**: [Tesseract.js](https://github.com/naptha/tesseract.js)
-  corre en el navegador por defecto, sin enviar la foto a ningún servidor. Existe un
-  proveedor alternativo (Google Cloud Vision) opcional, vía una API route del servidor.
+  corre en el navegador por defecto, sin enviar la foto a ningún servidor. Gemini y
+  Google Cloud Vision son proveedores opcionales mediante una API route del servidor.
 - **Parser de líneas basado en reglas**: interpreta cantidad/descripción/precio y
   detecta subtotal, IVA, propina, servicio, descuento y total, con una comprobación de
   cuadre y una puntuación de confianza por línea.
@@ -50,12 +50,17 @@ leído y repartirlo entre los participantes pasando el móvil.
 
 ## Variables de entorno (opcional)
 
-Solo hacen falta si quieres usar Google Cloud Vision en vez del OCR por defecto.
+Solo hacen falta si quieres usar Gemini o Google Cloud Vision en vez del OCR por defecto.
 Crea un fichero `.env.local` en la raíz del proyecto:
 
 ```bash
 # Por defecto se usa Tesseract.js en el navegador; no requiere configuración.
-# Para usar Google Cloud Vision en su lugar, descomenta y define ambas:
+# Para usar Gemini en su lugar, descomenta y define ambas:
+# NEXT_PUBLIC_OCR_PROVIDER=gemini
+# GEMINI_API_KEY=<tu api key de Gemini>
+# GEMINI_MODEL=gemini-2.5-flash
+
+# O usa Google Cloud Vision:
 # NEXT_PUBLIC_OCR_PROVIDER=google-vision
 # GOOGLE_VISION_API_KEY=<tu api key de Google Vision>
 ```

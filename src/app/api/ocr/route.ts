@@ -36,11 +36,20 @@ interface VisionResponse {
   }[];
 }
 
+interface GeminiResponse {
+  candidates?: { content?: { parts?: { text?: string }[] } }[];
+  error?: { message?: string };
+}
+
 // Upper bound on accepted uploads: keeps a single request from abusing the
 // (paid, quota-limited) Google Vision API with oversized or unexpected files.
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  if (new URL(request.url).searchParams.get("provider") === "gemini") {
+    return recognizeWithGemini(request);
+  }
+
   const apiKey = process.env.GOOGLE_VISION_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -103,6 +112,96 @@ export async function POST(request: Request) {
 
   const result = toOcrResult(annotation?.fullTextAnnotation);
   return NextResponse.json(result);
+}
+
+async function recognizeWithGemini(request: Request) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "GEMINI_API_KEY is not configured" },
+      { status: 501 },
+    );
+  }
+
+  const formData = await request.formData();
+  const image = formData.get("image");
+  if (!(image instanceof Blob)) {
+    return NextResponse.json({ error: "Missing image" }, { status: 400 });
+  }
+  if (image.type && !image.type.startsWith("image/")) {
+    return NextResponse.json(
+      { error: "File must be an image" },
+      { status: 400 },
+    );
+  }
+  if (image.size > MAX_IMAGE_BYTES) {
+    return NextResponse.json({ error: "Image is too large" }, { status: 413 });
+  }
+
+  const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL ?? "gemini-2.5-flash"}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: "Transcribe this Spanish restaurant receipt exactly, preserving one receipt line per output line. Return only the transcription.",
+              },
+              {
+                inline_data: {
+                  mime_type: image.type || "image/jpeg",
+                  data: base64,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as GeminiResponse | null;
+  if (!response.ok || payload?.error) {
+    return NextResponse.json(
+      { error: payload?.error?.message ?? `Gemini request failed (${response.status})` },
+      { status: 502 },
+    );
+  }
+
+  const text = payload?.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text ?? "")
+    .join("")
+    .trim();
+  if (!text) {
+    return NextResponse.json({ error: "Gemini returned no text" }, { status: 502 });
+  }
+
+  return NextResponse.json(textToOcrResult(text));
+}
+
+function textToOcrResult(text: string): OcrResult {
+  const words: OcrWord[] = [];
+  for (const [lineIndex, line] of text.split(/\r?\n/).entries()) {
+    let x = 0;
+    for (const word of line.match(/\S+/g) ?? []) {
+      words.push({
+        text: word,
+        confidence: 1,
+        bbox: {
+          x0: x,
+          y0: lineIndex * 24,
+          x1: x + word.length * 10,
+          y1: lineIndex * 24 + 16,
+        },
+      });
+      x += word.length * 10 + 8;
+    }
+  }
+  return { words, text };
 }
 
 function toOcrResult(fullTextAnnotation?: {

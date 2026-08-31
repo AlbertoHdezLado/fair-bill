@@ -67,7 +67,7 @@ export function ProductCard({
       initial={
         entryDelay === undefined ? false : { opacity: 0, y: 12, scale: 0.99 }
       }
-      animate={{ y: 0, scale: 1 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{
         type: "spring",
         stiffness: 430,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { ReceiptScanner } from "@/components/capture/ReceiptScanner";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
 import { SplitRoom } from "@/components/room/SplitRoom";
@@ -574,8 +574,18 @@ function BulkAddNames({
   readonly addingLabel: string;
   readonly messages: Messages["room"];
 }) {
-  const [text, setText] = useState("");
+  const [names, setNames] = useState([""]);
   const [adding, setAdding] = useState(false);
+
+  const updateName = (index: number, value: string) => {
+    setNames((current) =>
+      current.map((name, currentIndex) =>
+        currentIndex === index
+          ? value.toUpperCase().slice(0, MAX_PARTICIPANT_NAME_LENGTH)
+          : name,
+      ),
+    );
+  };
 
   if (adding) {
     return <LoadingState label={addingLabel} />;
@@ -587,21 +597,51 @@ function BulkAddNames({
         <p className="text-xl font-bold text-primary">{messages.bulkAddTitle}</p>
         <p className="text-sm text-muted-foreground">{messages.bulkAddHint}</p>
       </div>
-      <textarea
-        autoFocus
-        rows={6}
-        value={text}
-        onChange={(e) => setText(e.target.value.toUpperCase())}
-        placeholder={messages.namePlaceholder}
-        className="min-h-32 w-full resize-none rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-      />
+      <div className="flex flex-col gap-2">
+        {names.map((name, index) => (
+          <div key={index} className="flex gap-2">
+            <input
+              autoFocus={index === 0}
+              value={name}
+              maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+              onChange={(event) => updateName(index, event.target.value)}
+              placeholder={messages.bulkAddNamePlaceholder.replace(
+                "{{index}}",
+                String(index + 1),
+              )}
+              className="min-w-0 flex-1 rounded-xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+            />
+            {names.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setNames((current) =>
+                    current.filter((_, currentIndex) => currentIndex !== index),
+                  )
+                }
+                aria-label={messages.bulkAddRemove}
+                className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <X aria-hidden="true" size={18} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => setNames((current) => [...current, ""])}
+          className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-primary/50 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+        >
+          <Plus aria-hidden="true" size={18} />
+          {messages.bulkAddAnother}
+        </button>
+      </div>
       <button
         type="button"
         onClick={() => {
           setAdding(true);
           void onContinue(
-            text
-              .split("\n")
+            names
               .map((line) => line.trim())
               .filter((line) => line !== ""),
           );

@@ -6,13 +6,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-function imageRequest(blob: BlobPart, options?: { type?: string }) {
+function imageRequest(
+  blob: BlobPart,
+  options?: { type?: string; url?: string },
+) {
   const formData = new FormData();
   formData.append(
     "image",
     new File([blob], "receipt.jpg", { type: options?.type ?? "image/jpeg" }),
   );
-  return new Request("http://localhost/api/ocr", { method: "POST", body: formData });
+  return new Request(options?.url ?? "http://localhost/api/ocr", {
+    method: "POST",
+    body: formData,
+  });
 }
 
 describe("POST /api/ocr", () => {
@@ -24,6 +30,16 @@ describe("POST /api/ocr", () => {
   it("returns 501 when GOOGLE_VISION_API_KEY is not configured", async () => {
     vi.stubEnv("GOOGLE_VISION_API_KEY", "");
     const response = await POST(imageRequest("fake-bytes"));
+    expect(response.status).toBe(501);
+  });
+
+  it("returns 501 when GEMINI_API_KEY is not configured", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "");
+    const response = await POST(
+      imageRequest("fake-bytes", {
+        url: "http://localhost/api/ocr?provider=gemini",
+      }),
+    );
     expect(response.status).toBe(501);
   });
 
@@ -101,6 +117,45 @@ describe("POST /api/ocr", () => {
     expect(body.words).toEqual([
       { text: "HOLA", confidence: 0.9, bbox: { x0: 0, y0: 0, x1: 10, y1: 5 } },
     ]);
+  });
+
+  it("normalizes Gemini's line-based transcription into OCR words", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            candidates: [
+              { content: { parts: [{ text: "PAN 1,20\nTOTAL 1,20" }] } },
+            ],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    const response = await POST(
+      imageRequest("fake-bytes", {
+        url: "http://localhost/api/ocr?provider=gemini",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.text).toBe("PAN 1,20\nTOTAL 1,20");
+    expect(body.words).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: "PAN",
+          bbox: expect.objectContaining({ y0: 0 }),
+        }),
+        expect.objectContaining({
+          text: "TOTAL",
+          bbox: expect.objectContaining({ y0: 24 }),
+        }),
+      ]),
+    );
   });
 
   it("propagates a Google Vision API error", async () => {

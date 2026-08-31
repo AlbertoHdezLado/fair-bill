@@ -1,3 +1,4 @@
+import { geminiProvider } from "./gemini";
 import { googleVisionProvider } from "./google-vision";
 import { tesseractProvider } from "./tesseract";
 import type { OcrProvider } from "./types";
@@ -16,11 +17,16 @@ export {
 
 /**
  * Picks the OCR provider to use on the client. Defaults to Tesseract
- * (free, private, runs on-device); set NEXT_PUBLIC_OCR_PROVIDER=google-vision
- * to route through the server-side Google Vision route handler instead.
+ * (free, private, runs on-device); `gemini` and `google-vision` use the
+ * server-side OCR route instead.
  */
 export function getOcrProvider(): OcrProvider {
-  return process.env.NEXT_PUBLIC_OCR_PROVIDER === "google-vision"
-    ? googleVisionProvider
-    : tesseractProvider;
+  switch (process.env.NEXT_PUBLIC_OCR_PROVIDER) {
+    case "gemini":
+      return geminiProvider;
+    case "google-vision":
+      return googleVisionProvider;
+    default:
+      return tesseractProvider;
+  }
 }

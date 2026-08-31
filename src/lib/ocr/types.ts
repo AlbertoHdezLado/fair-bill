@@ -27,6 +27,6 @@ export type OcrProgressCallback = (progress: {
 }) => void;
 
 export interface OcrProvider {
-  id: "tesseract" | "google-vision";
+  id: "tesseract" | "google-vision" | "gemini";
   recognize(image: Blob, onProgress?: OcrProgressCallback): Promise<OcrResult>;
 }
