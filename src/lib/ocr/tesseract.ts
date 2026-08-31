@@ -1,26 +1,48 @@
 import { createWorker, type RecognizeResult } from "tesseract.js";
-import type { OcrProvider, OcrResult, OcrWord } from "./types";
+import type {
+  OcrProgressCallback,
+  OcrProvider,
+  OcrResult,
+  OcrWord,
+} from "./types";
 
 // Default provider: runs entirely on the client, free and private (the photo
 // never leaves the phone).
 
 export const tesseractProvider: OcrProvider = {
   id: "tesseract",
-  async recognize(image, onProgress) {
-    const worker = await createWorker("spa", undefined, {
-      logger: (message) => {
-        onProgress?.({ status: message.status, progress: message.progress });
-      },
-    });
-
-    try {
-      const result = await worker.recognize(image, {}, { blocks: true });
-      return toOcrResult(result);
-    } finally {
-      await worker.terminate();
-    }
-  },
+  recognize: (image, onProgress) => runTesseractRecognition(image, onProgress),
 };
+
+/**
+ * Same Tesseract recognition used by the client provider, exposed for
+ * server-side callers (e.g. the AI ticket pipeline) that hand it a Buffer
+ * instead of a Blob.
+ */
+export function recognizeWithTesseract(
+  image: Buffer | Blob,
+  onProgress?: OcrProgressCallback,
+): Promise<OcrResult> {
+  return runTesseractRecognition(image, onProgress);
+}
+
+async function runTesseractRecognition(
+  image: Buffer | Blob,
+  onProgress?: OcrProgressCallback,
+): Promise<OcrResult> {
+  const worker = await createWorker("spa", undefined, {
+    logger: (message) => {
+      onProgress?.({ status: message.status, progress: message.progress });
+    },
+  });
+
+  try {
+    const result = await worker.recognize(image, {}, { blocks: true });
+    return toOcrResult(result);
+  } finally {
+    await worker.terminate();
+  }
+}
 
 function toOcrResult(result: RecognizeResult): OcrResult {
   const words: OcrWord[] = [];

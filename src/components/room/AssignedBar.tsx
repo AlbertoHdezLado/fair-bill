@@ -175,6 +175,10 @@ function PersonBreakdown({
   readonly roomMessages: Messages["roomSplit"];
 }) {
   const [unassignedOpen, setUnassignedOpen] = useState(false);
+  const unassignedShareCents = Math.round(
+    unassignedSubtotalCents /
+      Math.max(personWithUnclaimed.participantCount, 1),
+  );
   return (
     <div className="flex flex-col gap-1 text-sm">
       {person.items.map((item) => (
@@ -226,12 +230,9 @@ function PersonBreakdown({
                   unassignedOpen ? "rotate-180 transition-transform" : "transition-transform"
                 }
               />
-              {roomMessages.unassignedProducts}
-            </span>
-            <span className="tabular-nums">
-              {formatCents(
-                Math.round(unassignedSubtotalCents / Math.max(personWithUnclaimed.participantCount, 1)),
-              )}
+              {roomMessages.unassignedProducts} {formatCents(unassignedSubtotalCents)} /{" "}
+              {personWithUnclaimed.participantCount} ={" "}
+              {formatCents(unassignedShareCents)}
             </span>
           </button>
           {unassignedOpen && (
@@ -248,19 +249,6 @@ function PersonBreakdown({
               ))}
             </div>
           )}
-          <div className="flex justify-between gap-2 border-t border-primary/20 pt-1 text-xs font-medium">
-            <span>
-              {roomMessages.dividedBetween.replace(
-                "{{count}}",
-                String(personWithUnclaimed.participantCount),
-              )}
-            </span>
-            <span className="tabular-nums">
-              {formatCents(
-                Math.round(unassignedSubtotalCents / Math.max(personWithUnclaimed.participantCount, 1)),
-              )}
-            </span>
-          </div>
         </div>
       )}
 
