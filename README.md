@@ -58,7 +58,7 @@ Crea un fichero `.env.local` en la raíz del proyecto:
 # Para usar Gemini en su lugar, descomenta y define ambas:
 # NEXT_PUBLIC_OCR_PROVIDER=gemini
 # GEMINI_API_KEY=<tu api key de Gemini>
-# GEMINI_MODEL=gemini-2.5-flash
+# GEMINI_MODEL=gemini-3.6-flash
 
 # O usa Google Cloud Vision:
 # NEXT_PUBLIC_OCR_PROVIDER=google-vision

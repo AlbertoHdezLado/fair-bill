@@ -121,9 +121,7 @@ describe("POST /api/ocr", () => {
 
   it("normalizes Gemini's line-based transcription into OCR words", async () => {
     vi.stubEnv("GEMINI_API_KEY", "test-key");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
+    const fetchMock = vi.fn(async () =>
         new Response(
           JSON.stringify({
             candidates: [
@@ -132,8 +130,8 @@ describe("POST /api/ocr", () => {
           }),
           { status: 200 },
         ),
-      ),
-    );
+      );
+    vi.stubGlobal("fetch", fetchMock);
 
     const response = await POST(
       imageRequest("fake-bytes", {
@@ -155,6 +153,10 @@ describe("POST /api/ocr", () => {
           bbox: expect.objectContaining({ y0: 24 }),
         }),
       ]),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("models/gemini-3.6-flash:generateContent"),
+      expect.anything(),
     );
   });
 
