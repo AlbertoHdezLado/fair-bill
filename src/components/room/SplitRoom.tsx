@@ -59,7 +59,6 @@ interface SplitRoomProps {
     shared: boolean,
     allParticipants: boolean,
   ) => void;
-  readonly tableLabel: string;
   readonly roomCode: string;
   readonly onToggleShare: () => void;
   readonly onFinish?: () => void;
@@ -117,7 +116,6 @@ export function SplitRoom({
   selfKey,
   onSaveBill,
   onSaveGroup,
-  tableLabel,
   roomCode,
   onToggleShare,
   onFinish,

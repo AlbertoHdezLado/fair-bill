@@ -230,13 +230,21 @@ function PersonBreakdown({
                   unassignedOpen ? "rotate-180 transition-transform" : "transition-transform"
                 }
               />
-              {roomMessages.unassignedProducts} {formatCents(unassignedSubtotalCents)} /{" "}
-              {personWithUnclaimed.participantCount} ={" "}
+              {roomMessages.unassignedProducts}{" "}
               {formatCents(unassignedShareCents)}
             </span>
           </button>
           {unassignedOpen && (
             <div className="flex flex-col gap-1 pl-1 text-muted-foreground">
+              <div className="flex justify-between gap-2">
+                <span>
+                  {formatCents(unassignedSubtotalCents)} /{" "}
+                  {personWithUnclaimed.participantCount}
+                </span>
+                <span className="tabular-nums">
+                  = {formatCents(unassignedShareCents)}
+                </span>
+              </div>
               {unassignedBreakdown.map((entry) => (
                 <div key={entry.key} className="flex justify-between gap-2">
                   <span className="truncate">

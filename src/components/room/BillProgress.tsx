@@ -16,8 +16,6 @@ interface BillProgressProps {
   readonly assignedItems: number;
   readonly totalItems: number;
   readonly onOpenTableBill: () => void;
-  readonly tableLabel: string;
-  readonly roomCode: string;
   readonly onToggleShare: () => void;
   readonly notifications?: ReactNode;
   readonly profile?: ReactNode;
@@ -30,8 +28,6 @@ export function BillProgress({
   assignedItems,
   totalItems,
   onOpenTableBill,
-  tableLabel,
-  roomCode,
   onToggleShare,
   notifications,
   profile,
@@ -58,12 +54,11 @@ export function BillProgress({
           <button
             type="button"
             onClick={onToggleShare}
-            aria-label={tableLabel}
-            title={tableLabel}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+            aria-label={messages.shareTitle}
+            title={messages.shareTitle}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary text-primary hover:bg-primary/10"
           >
-            <span className="font-bold">{roomCode}</span>
-            <Share2 aria-hidden="true" size={14} />
+            <Share2 aria-hidden="true" size={16} />
           </button>
           {profile}
           {notifications}

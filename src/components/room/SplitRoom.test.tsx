@@ -52,7 +52,6 @@ function renderBoard(claims: LocalClaims = {}, overrides = {}) {
       selfKey="p1"
       onSaveBill={vi.fn()}
       onSaveGroup={onSaveGroup}
-      tableLabel="Table AB12CD"
       roomCode="AB12CD"
       onToggleShare={vi.fn()}
       messages={defaultMessages}
@@ -514,7 +513,6 @@ function renderTree(claims: LocalClaims) {
       selfKey="p1"
       onSaveBill={vi.fn()}
       onSaveGroup={vi.fn()}
-      tableLabel="Table AB12CD"
       roomCode="AB12CD"
       onToggleShare={vi.fn()}
       messages={defaultMessages}

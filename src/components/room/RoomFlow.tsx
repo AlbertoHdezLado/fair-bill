@@ -457,7 +457,6 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         claims={claims}
         events={room.events ?? []}
         selfKey={self.id}
-        tableLabel={t.roomCode.replace("{{code}}", room.code)}
         roomCode={room.code}
         onToggleShare={() => setShowShare((prev) => !prev)}
         isOwner={self.isOwner}
