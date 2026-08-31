@@ -47,11 +47,18 @@ export function ItemRow({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see useMoneyField for rationale
     if (!quantityFocused) setQuantityText(String(item.quantity));
   }, [item.quantity, quantityFocused]);
-  const totalField = useMoneyField(itemTotalCents(item), (totalCents) => {
+  const totalCents = itemTotalCents(item);
+  const totalField = useMoneyField(totalCents, (totalCents) => {
     const unitPriceCents =
       item.quantity > 0 ? Math.round(totalCents / item.quantity) : totalCents;
     edit({ unitPriceCents });
   });
+
+  function editQuantity(quantity: number) {
+    const unitPriceCents =
+      quantity > 0 ? Math.round(totalCents / quantity) : totalCents;
+    edit({ quantity, unitPriceCents });
+  }
 
   const isEmpty = item.name === "";
   const isEdited = item.state === "editado";
@@ -152,7 +159,7 @@ export function ItemRow({
                     setQuantityText(value);
                     const parsed = Number.parseInt(value, 10);
                     if (Number.isFinite(parsed) && parsed >= 0)
-                      edit({ quantity: parsed });
+                      editQuantity(parsed);
                   }}
                   onBlur={() => {
                     setQuantityFocused(false);
@@ -160,7 +167,7 @@ export function ItemRow({
                     const quantity =
                       Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
                     setQuantityText(String(quantity));
-                    if (quantity !== item.quantity) edit({ quantity });
+                    if (quantity !== item.quantity) editQuantity(quantity);
                   }}
                   className={`w-full rounded-xl border bg-transparent px-2 py-2 text-[13px] ${inputBorder}`}
                 />
@@ -170,12 +177,17 @@ export function ItemRow({
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Total
                 </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  {...totalField}
-                  className={`w-full rounded-xl border bg-transparent px-2 py-2 text-right text-[13px] tabular-nums ${inputBorder}`}
-                />
+                <span className={`flex w-full items-center rounded-xl border bg-transparent ${inputBorder}`}>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    {...totalField}
+                    className="min-w-0 flex-1 bg-transparent px-2 py-2 text-right text-[13px] tabular-nums outline-none"
+                  />
+                  <span className="shrink-0 pr-2 text-[13px] tabular-nums text-muted-foreground">
+                    €
+                  </span>
+                </span>
               </label>
             </div>
 

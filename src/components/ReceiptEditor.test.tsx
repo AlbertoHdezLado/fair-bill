@@ -119,4 +119,33 @@ describe("ReceiptEditor", () => {
     const [item] = onItemsChange.mock.calls[0][0];
     expect(item.quantity).toBe(0);
   });
+
+  it("keeps the line total fixed when editing quantity", () => {
+    const onItemsChange = vi.fn();
+
+    render(
+      <ReceiptEditor
+        items={[{
+          id: "item-1",
+          name: "Café",
+          quantity: 1,
+          unitPriceCents: 300,
+          state: "editado",
+        }]}
+        extras={EMPTY_EXTRAS}
+        onItemsChange={onItemsChange}
+        onExtrasChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /editar café/i }));
+    expect(screen.getByText("€")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/uds\./i), {
+      target: { value: "3" },
+    });
+
+    const [item] = onItemsChange.mock.calls.at(-1)![0];
+    expect(item.quantity).toBe(3);
+    expect(item.unitPriceCents).toBe(100);
+  });
 });
