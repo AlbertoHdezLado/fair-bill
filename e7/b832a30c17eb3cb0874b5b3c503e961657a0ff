@@ -1,0 +1,19 @@
+src/components/board/IdentityPicker.tsx
+  s_c5e5af5b3ef799::t_51fbd8446d7900 109-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e7b832a30c17eb3cb0874b5b3c503e961657a0ff",
+  "prompts": {},
+  "sessions": {
+    "s_c5e5af5b3ef799": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "44edaeee-34e0-4ec8-9f72-e1e1d215196a",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
