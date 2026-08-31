@@ -25,7 +25,7 @@ interface AssignedBarProps {
   readonly onToggle: () => void;
   readonly unassignedBreakdown?: readonly UnassignedBreakdownEntry[];
   readonly unassignedSubtotalCents?: number;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
   readonly totalsMessages: Messages["totals"];
 }
 
@@ -93,7 +93,7 @@ export function AssignedBar({
                   unassignedBreakdown={unassignedBreakdown}
                   unassignedSubtotalCents={unassignedSubtotalCents}
                   messages={totalsMessages}
-                  boardMessages={messages}
+                  roomMessages={messages}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -165,14 +165,14 @@ function PersonBreakdown({
   unassignedBreakdown,
   unassignedSubtotalCents,
   messages,
-  boardMessages,
+  roomMessages,
 }: {
   readonly person: PersonSplit;
   readonly personWithUnclaimed: PersonSplit;
   readonly unassignedBreakdown: readonly UnassignedBreakdownEntry[];
   readonly unassignedSubtotalCents: number;
   readonly messages: Messages["totals"];
-  readonly boardMessages: Messages["board"];
+  readonly roomMessages: Messages["roomSplit"];
 }) {
   const [unassignedOpen, setUnassignedOpen] = useState(false);
   return (
@@ -189,7 +189,7 @@ function PersonBreakdown({
         <p className="text-muted-foreground">{messages.noItems}</p>
       )}
       <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1 text-base font-semibold">
-        <span>{boardMessages.yourProductsSubtotal}</span>
+        <span>{roomMessages.yourProductsSubtotal}</span>
         <span className="tabular-nums">
           {formatCents(person.subtotalCents)}
         </span>
@@ -226,7 +226,7 @@ function PersonBreakdown({
                   unassignedOpen ? "rotate-180 transition-transform" : "transition-transform"
                 }
               />
-              {boardMessages.unassignedProducts}
+              {roomMessages.unassignedProducts}
             </span>
             <span className="tabular-nums">
               {formatCents(
@@ -250,7 +250,7 @@ function PersonBreakdown({
           )}
           <div className="flex justify-between gap-2 border-t border-primary/20 pt-1 text-xs font-medium">
             <span>
-              {boardMessages.dividedBetween.replace(
+              {roomMessages.dividedBetween.replace(
                 "{{count}}",
                 String(personWithUnclaimed.participantCount),
               )}
@@ -265,7 +265,7 @@ function PersonBreakdown({
       )}
 
       <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-2 text-lg font-bold text-primary">
-        <span>{boardMessages.yourTotal}</span>
+        <span>{roomMessages.yourTotal}</span>
         <span className="tabular-nums">
           {formatCents(personWithUnclaimed.totalCents)}
         </span>

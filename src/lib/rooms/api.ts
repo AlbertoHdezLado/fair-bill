@@ -82,6 +82,7 @@ export async function saveClaim(
     units: number | null;
     groupIds: readonly string[];
     shared: boolean;
+    allParticipants: boolean;
   },
 ): Promise<RoomState> {
   return readState(

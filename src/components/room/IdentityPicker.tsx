@@ -15,7 +15,7 @@ interface IdentityPickerProps {
   readonly participants: readonly Participant[];
   readonly onSelect: (key: string) => void;
   readonly onAdd: (name: string) => void;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }
 
 export function IdentityPicker({

@@ -6,7 +6,7 @@ import { Bell, X } from "lucide-react";
 import type { Messages } from "@/i18n";
 import { backdropVariants, popVariants } from "@/lib/motion";
 
-export interface BoardNotification {
+export interface RoomNotification {
   readonly id: string;
   readonly text: string;
   readonly at: number;
@@ -16,11 +16,11 @@ export interface BoardNotification {
 }
 
 interface NotificationBellProps {
-  readonly notifications: readonly BoardNotification[];
+  readonly notifications: readonly RoomNotification[];
   readonly open: boolean;
   readonly onToggle: () => void;
   readonly onClose: () => void;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }
 
 export function NotificationBell({
@@ -159,7 +159,7 @@ function NotificationGroup({
   notifications,
 }: {
   readonly title: string;
-  readonly notifications: readonly BoardNotification[];
+  readonly notifications: readonly RoomNotification[];
 }) {
   if (notifications.length === 0) return null;
 

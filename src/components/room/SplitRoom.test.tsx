@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { defaultMessages } from "@/i18n";
 import { EMPTY_EXTRAS, type EditableItem } from "@/lib/receipt/editable";
 import type { LocalClaims } from "@/lib/local-claims";
-import { SplitBoard } from "./SplitBoard";
+import { SplitRoom } from "./SplitRoom";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 // jsdom does not implement ResizeObserver, used by BillProgress's sticky header.
 vi.stubGlobal(
@@ -40,7 +44,7 @@ const participants = [
 function renderBoard(claims: LocalClaims = {}, overrides = {}) {
   const onSaveGroup = vi.fn();
   render(
-    <SplitBoard
+    <SplitRoom
       items={items}
       extras={EMPTY_EXTRAS}
       participants={participants}
@@ -58,7 +62,7 @@ function renderBoard(claims: LocalClaims = {}, overrides = {}) {
   return { onSaveGroup };
 }
 
-describe("SplitBoard", () => {
+describe("SplitRoom", () => {
   it("shows how many units of each product are still unassigned", () => {
     renderBoard({
       p2: { i1: [{ owner: "p2", choice: { mode: "units", count: 1 } }] },
@@ -222,7 +226,7 @@ describe("SplitBoard", () => {
       p1: { i2: [{ owner: "p1", choice: { mode: "units", count: 1 } }] },
     });
 
-    const bar = screen.getByText(defaultMessages.board.yourTotal).closest("button")!;
+    const bar = screen.getByText(defaultMessages.roomSplit.yourTotal).closest("button")!;
 
     expect(bar.textContent).toMatch(/8,00/);
   });
@@ -240,7 +244,7 @@ describe("SplitBoard", () => {
       p1: { i2: [{ owner: "p1", choice: { mode: "units", count: 1 } }] },
     });
 
-    fireEvent.click(screen.getByText(defaultMessages.board.yourTotal));
+    fireEvent.click(screen.getByText(defaultMessages.roomSplit.yourTotal));
 
     expect(document.body.textContent).toMatch(/De dónde sale tu total/);
     expect(document.body.textContent).toMatch(/Resto de la sala/);
@@ -483,8 +487,8 @@ describe("SplitBoard", () => {
 });
 
 function renderTree(claims: LocalClaims) {
-  const board = (next: LocalClaims) => (
-    <SplitBoard
+  const roomView = (next: LocalClaims) => (
+    <SplitRoom
       items={items}
       extras={EMPTY_EXTRAS}
       participants={participants}
@@ -498,6 +502,6 @@ function renderTree(claims: LocalClaims) {
       messages={defaultMessages}
     />
   );
-  const view = render(board(claims));
-  return { rerender: (next: LocalClaims) => view.rerender(board(next)) };
+  const view = render(roomView(claims));
+  return { rerender: (next: LocalClaims) => view.rerender(roomView(next)) };
 }

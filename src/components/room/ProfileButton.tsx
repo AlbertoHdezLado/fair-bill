@@ -20,7 +20,7 @@ interface ProfileButtonProps {
   readonly selfKey?: string;
   readonly onSwitchIdentity?: (participantKey: string) => void;
   readonly onAddParticipant?: (name: string) => Promise<void>;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }
 
 export function ProfileButton({

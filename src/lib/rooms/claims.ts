@@ -1,7 +1,7 @@
 import type { LocalClaims } from "@/lib/local-claims";
 import type { RoomClaim } from "./types";
 
-/** Maps stored room claims onto the shape the split board already works with. */
+/** Maps stored room claims onto the shape the split room already works with. */
 export function toLocalClaims(claims: readonly RoomClaim[]): LocalClaims {
   const local: LocalClaims = {};
 
@@ -12,6 +12,7 @@ export function toLocalClaims(claims: readonly RoomClaim[]): LocalClaims {
       owner: claim.ownerId,
       groupId: claim.groupKey,
       shared: claim.shared,
+      allParticipants: claim.allParticipants,
       choice: {
         mode: "units",
         count: claim.units,

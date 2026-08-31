@@ -6,11 +6,11 @@ import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { ItemGroup } from "@/lib/local-claims";
 import { formatUnits, perPersonCents } from "./ProductCard";
-import type { BoardTab } from "./BillProgress";
+import type { RoomTab } from "./BillProgress";
 import type { Messages } from "@/i18n";
 
 interface ItemActionSheetProps {
-  readonly tab: BoardTab;
+  readonly tab: RoomTab;
   readonly item: EditableItem;
   readonly selfKey: string;
   readonly groups: readonly ItemGroup[];
@@ -26,8 +26,9 @@ interface ItemActionSheetProps {
     memberIds: readonly string[],
     units: number | null,
     shared: boolean,
+    allParticipants: boolean,
   ) => void;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }
 
 export function ItemActionSheet({
@@ -56,7 +57,14 @@ export function ItemActionSheet({
   const leaveGroup = (group: ItemGroup) => {
     const rest = group.memberIds.filter((member) => member !== selfKey);
     if (rest.length === 0) {
-      onSaveGroup(group.groupId, group.ownerId, [], null, group.shared);
+      onSaveGroup(
+        group.groupId,
+        group.ownerId,
+        [],
+        null,
+        group.shared,
+        group.allParticipants,
+      );
       return;
     }
     onSaveGroup(
@@ -65,6 +73,7 @@ export function ItemActionSheet({
       rest,
       (group.units / group.memberIds.length) * rest.length,
       group.shared,
+      group.allParticipants,
     );
   };
 
@@ -199,6 +208,7 @@ export function ItemActionSheet({
                         [...group.memberIds, selfKey],
                         group.units,
                         true,
+                        group.allParticipants,
                       )
                     }
                     className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
@@ -229,8 +239,22 @@ export function ItemActionSheet({
               group={editingGroup}
               remainingUnits={remainingUnits}
               nameOf={nameOf}
-              onSaveGroup={(groupId, ownerId, memberIds, units, shared) => {
-                onSaveGroup(groupId, ownerId, memberIds, units, shared);
+              onSaveGroup={(
+                groupId,
+                ownerId,
+                memberIds,
+                units,
+                shared,
+                allParticipants,
+              ) => {
+                onSaveGroup(
+                  groupId,
+                  ownerId,
+                  memberIds,
+                  units,
+                  shared,
+                  allParticipants,
+                );
                 setEditingGroupId(null);
               }}
               onLeave={() => {
@@ -264,8 +288,9 @@ function NewGroupForm({
     memberIds: readonly string[],
     units: number | null,
     shared: boolean,
+    allParticipants: boolean,
   ) => void;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }) {
   const [units, setUnits] = useState(1);
   const [pickingPeople, setPickingPeople] = useState(false);
@@ -279,13 +304,14 @@ function NewGroupForm({
       <SharePicker
         others={others}
         onCancel={() => setPickingPeople(false)}
-        onConfirm={(memberIds) => {
+        onConfirm={(memberIds, allParticipants) => {
           onSaveGroup(
             crypto.randomUUID(),
             selfKey,
             [selfKey, ...memberIds],
             capped,
             true,
+            allParticipants,
           );
           setPickingPeople(false);
         }}
@@ -310,7 +336,14 @@ function NewGroupForm({
           type="button"
           disabled={remainingUnits <= 0}
           onClick={() =>
-            onSaveGroup(crypto.randomUUID(), selfKey, [selfKey], capped, false)
+            onSaveGroup(
+              crypto.randomUUID(),
+              selfKey,
+              [selfKey],
+              capped,
+              false,
+              false,
+            )
           }
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-40"
         >
@@ -339,8 +372,11 @@ function SharePicker({
 }: {
   readonly others: readonly (readonly [string, string])[];
   readonly onCancel: () => void;
-  readonly onConfirm: (memberIds: readonly string[]) => void;
-  readonly messages: Messages["board"];
+  readonly onConfirm: (
+    memberIds: readonly string[],
+    allParticipants: boolean,
+  ) => void;
+  readonly messages: Messages["roomSplit"];
 }) {
   const [selectMode, setSelectMode] = useState<"none" | "select">("none");
   const [selected, setSelected] = useState<readonly string[]>([]);
@@ -363,7 +399,7 @@ function SharePicker({
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => onConfirm([])}
+            onClick={() => onConfirm(others.map(([key]) => key), true)}
             className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
           >
             {messages.everyone}
@@ -419,7 +455,7 @@ function SharePicker({
             </button>
             <button
               type="button"
-              onClick={() => onConfirm(selected)}
+              onClick={() => onConfirm(selected, false)}
               className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
             >
               {messages.confirm}
@@ -450,9 +486,10 @@ function GroupEditor({
     memberIds: readonly string[],
     units: number | null,
     shared: boolean,
+    allParticipants: boolean,
   ) => void;
   readonly onLeave: () => void;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }) {
   const [units, setUnits] = useState(group.units);
   const max = group.units + remainingUnits;
@@ -502,6 +539,7 @@ function GroupEditor({
               group.memberIds,
               capped,
               group.shared,
+              group.allParticipants,
             )
           }
           className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
@@ -522,7 +560,7 @@ function UnitStepper({
   readonly units: number;
   readonly max: number;
   readonly onChange: (units: number) => void;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }) {
   return (
     <div className="flex flex-col items-center gap-2">

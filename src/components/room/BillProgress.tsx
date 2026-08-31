@@ -8,7 +8,7 @@ import { formatCents } from "@/lib/money";
 import { backdropVariants, sheetVariants } from "@/lib/motion";
 import type { Messages } from "@/i18n";
 
-export type BoardTab = "remaining" | "shared" | "mine";
+export type RoomTab = "remaining" | "shared" | "mine";
 
 interface BillProgressProps {
   readonly assignedCents: number;
@@ -21,7 +21,7 @@ interface BillProgressProps {
   readonly onToggleShare: () => void;
   readonly notifications?: ReactNode;
   readonly profile?: ReactNode;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }
 
 export function BillProgress({
@@ -147,7 +147,7 @@ export function BillProgress({
                 <button
                   type="button"
                   onClick={() => router.push("/")}
-                  className="flex-1 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                  className="flex-1 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                 >
                   {messages.backHomeConfirm}
                 </button>
@@ -160,15 +160,15 @@ export function BillProgress({
   );
 }
 
-interface BoardTabsProps {
-  readonly tab: BoardTab;
-  readonly onTabChange: (tab: BoardTab) => void;
+interface RoomTabsProps {
+  readonly tab: RoomTab;
+  readonly onTabChange: (tab: RoomTab) => void;
   /** Bumps each time a product moves into that tab, to trigger a quick label animation. */
-  readonly pulses?: Readonly<Record<BoardTab, number>>;
-  readonly messages: Messages["board"];
+  readonly pulses?: Readonly<Record<RoomTab, number>>;
+  readonly messages: Messages["roomSplit"];
 }
 
-export function BoardTabs({ tab, onTabChange, pulses, messages }: BoardTabsProps) {
+export function RoomTabs({ tab, onTabChange, pulses, messages }: RoomTabsProps) {
   return (
     <div className="rounded-t-2xl border-x border-t border-primary/20 bg-surface p-1">
       <div
@@ -234,7 +234,7 @@ function Tab({
     >
       {active && (
         <motion.span
-          layoutId="board-tab-indicator"
+          layoutId="room-tab-indicator"
           transition={{ type: "spring", stiffness: 400, damping: 34 }}
           className={`absolute inset-0 rounded-full ${indicatorClass}`}
         />

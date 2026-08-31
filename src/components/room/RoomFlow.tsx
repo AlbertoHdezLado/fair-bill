@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { ReceiptScanner } from "@/components/capture/ReceiptScanner";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
-import { SplitBoard } from "@/components/board/SplitBoard";
-import { IdentityPicker } from "@/components/board/IdentityPicker";
+import { SplitRoom } from "@/components/room/SplitRoom";
+import { IdentityPicker } from "@/components/room/IdentityPicker";
 import { LoadingState } from "@/components/Spinner";
 import { ShareRoom } from "@/components/room/ShareRoom";
 import { PersonTotals } from "@/components/PersonTotals";
@@ -214,7 +214,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="rounded-2xl border border-border bg-surface px-5 py-3 text-sm font-medium shadow-sm transition-colors hover:border-primary"
+          className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700"
         >
           {t.backHome}
         </button>
@@ -269,7 +269,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
           }))}
           onSelect={selectExisting}
           onAdd={submitName}
-          messages={messages.board}
+          messages={messages.roomSplit}
         />
 
         {actionError && (
@@ -450,7 +450,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         </dialog>
       )}
 
-      <SplitBoard
+      <SplitRoom
         items={room.items}
         extras={room.extras}
         participants={participants}
@@ -512,7 +512,15 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
             })
             .catch(handleActionError);
         }}
-        onSaveGroup={(itemId, groupId, ownerId, memberIds, units, shared) => {
+        onSaveGroup={(
+          itemId,
+          groupId,
+          ownerId,
+          memberIds,
+          units,
+          shared,
+          allParticipants,
+        ) => {
           setActionError(null);
           // Aplica el cambio localmente al instante; el servidor confirma o revierte después.
           const remainingClaims = room.claims.filter(
@@ -529,6 +537,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
                     ownerId,
                     groupKey: groupId,
                     shared,
+                    allParticipants,
                     units,
                     groupIds: memberIds,
                   })),
@@ -542,6 +551,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
             units,
             groupIds: memberIds,
             shared,
+            allParticipants,
           })
             .then((next) => {
               setRoom(next);

@@ -48,6 +48,7 @@ describe("saveClaimRows", () => {
         units: 2,
         groupIds: ["p1", "p2"],
         shared: true,
+        allParticipants: false,
       }),
     ).resolves.toBeUndefined();
 

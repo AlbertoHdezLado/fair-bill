@@ -46,7 +46,9 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
     // 42703: Postgres undefined_column. PGRST204: PostgREST's schema cache
     // hasn't picked up the column yet (e.g. right after a migration).
     (error?.code === "42703" || error?.code === "PGRST204") &&
-    /(merchant_name|receipt_header|group_key|shared)/.test(error.message ?? "")
+    /(merchant_name|receipt_header|group_key|shared|all_participants)/.test(
+      error.message ?? "",
+    )
   );
 }
 

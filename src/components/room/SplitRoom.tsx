@@ -17,9 +17,9 @@ import {
 import { computeSplit } from "@/lib/split";
 import { backdropVariants, sheetVariants } from "@/lib/motion";
 import { AssignedBar } from "./AssignedBar";
-import { BillProgress, BoardTabs, type BoardTab } from "./BillProgress";
+import { BillProgress, RoomTabs, type RoomTab } from "./BillProgress";
 import { ItemActionSheet } from "./ItemActionSheet";
-import { NotificationBell, type BoardNotification } from "./NotificationBell";
+import { NotificationBell, type RoomNotification } from "./NotificationBell";
 import { ProfileButton } from "./ProfileButton";
 import { formatUnits, ProductCard } from "./ProductCard";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
@@ -37,7 +37,7 @@ interface Participant {
   readonly name: string;
 }
 
-interface SplitBoardProps {
+interface SplitRoomProps {
   readonly items: readonly EditableItem[];
   readonly extras: EditableExtras;
   readonly participants: readonly Participant[];
@@ -57,6 +57,7 @@ interface SplitBoardProps {
     memberIds: readonly string[],
     units: number | null,
     shared: boolean,
+    allParticipants: boolean,
   ) => void;
   readonly tableLabel: string;
   readonly roomCode: string;
@@ -74,11 +75,11 @@ interface SplitBoardProps {
   readonly messages: Messages;
 }
 
-function toBoardNotification(
+function toRoomNotification(
   event: RoomEvent,
   participants: readonly Participant[],
-  messages: Messages["board"],
-): BoardNotification {
+  messages: Messages["roomSplit"],
+): RoomNotification {
   const actor =
     participants.find((participant) => participant.key === event.actorId)?.name ??
     event.actorId ??
@@ -107,7 +108,7 @@ function toBoardNotification(
   };
 }
 
-export function SplitBoard({
+export function SplitRoom({
   items,
   extras,
   participants,
@@ -126,14 +127,14 @@ export function SplitBoard({
   onSwitchIdentity,
   onAddParticipant,
   messages,
-}: SplitBoardProps) {
-  const t = messages.board;
-  const [tab, setTab] = useState<BoardTab>("remaining");
+}: SplitRoomProps) {
+  const t = messages.roomSplit;
+  const [tab, setTab] = useState<RoomTab>("remaining");
   const [sheet, setSheet] = useState<{
     itemIds: readonly string[];
     groupId?: string;
   } | null>(null);
-  const [tabPulses, setTabPulses] = useState<Record<BoardTab, number>>({
+  const [tabPulses, setTabPulses] = useState<Record<RoomTab, number>>({
     remaining: 0,
     shared: 0,
     mine: 0,
@@ -148,7 +149,7 @@ export function SplitBoard({
   } | null>(null);
   const [originalImageOpen, setOriginalImageOpen] = useState(false);
   const [notifications, setNotifications] = useState<
-    readonly BoardNotification[]
+    readonly RoomNotification[]
   >([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -259,7 +260,7 @@ export function SplitBoard({
       return events
         .filter((event) => event.actorId !== selfKey)
         .map((event) => {
-          const next = toBoardNotification(event, participants, t);
+          const next = toRoomNotification(event, participants, t);
           const alreadyRead =
             previousById.get(next.id)?.read ?? readIds.has(next.id);
           return { ...next, read: alreadyRead };
@@ -270,7 +271,7 @@ export function SplitBoard({
   // Anima la etiqueta de la pestaña de destino cuando esta persona mueve un
   // producto: entra a "Compartido" o "Para mí" al reservarlo, y vuelve a
   // "Sin asignar" al salir de un grupo o soltarlo.
-  const pulseTab = (target: BoardTab) => {
+  const pulseTab = (target: RoomTab) => {
     setTabPulses((previous) => ({
       ...previous,
       [target]: previous[target] + 1,
@@ -304,9 +305,18 @@ export function SplitBoard({
     memberIds: readonly string[],
     units: number | null,
     shared: boolean,
+    allParticipants: boolean,
   ) => {
     maybePulseForGroupChange(itemId, groupId, memberIds, units, shared);
-    onSaveGroup(itemId, groupId, ownerId, memberIds, units, shared);
+    onSaveGroup(
+      itemId,
+      groupId,
+      ownerId,
+      memberIds,
+      units,
+      shared,
+      allParticipants,
+    );
     setSheet(null);
   };
 
@@ -320,6 +330,7 @@ export function SplitBoard({
     memberIds: readonly string[],
     units: number | null,
     shared: boolean,
+    allParticipants: boolean,
   ) => {
     let remaining = units ?? 0;
     let nextGroupId = groupId;
@@ -333,7 +344,15 @@ export function SplitBoard({
         pulseTab(shared ? "shared" : "mine");
         pulsed = true;
       }
-      onSaveGroup(item.id, nextGroupId, ownerId, memberIds, take, shared);
+      onSaveGroup(
+        item.id,
+        nextGroupId,
+        ownerId,
+        memberIds,
+        take,
+        shared,
+        allParticipants,
+      );
       nextGroupId = crypto.randomUUID();
       remaining -= take;
     }
@@ -399,7 +418,7 @@ export function SplitBoard({
     0,
   );
 
-  const emptyMessages: Record<BoardTab, string> = {
+  const emptyMessages: Record<RoomTab, string> = {
     remaining: items.length === 0 ? t.nothingRemaining : t.nothingLeft,
     shared: t.nothingShared,
     mine: t.nothingAssigned,
@@ -467,7 +486,7 @@ export function SplitBoard({
               }
               messages={t}
             />
-            <BoardTabs
+            <RoomTabs
               tab={tab}
               onTabChange={setTab}
               pulses={tabPulses}
@@ -573,7 +592,14 @@ export function SplitBoard({
             )}
             initialGroupId={sheet?.groupId}
             onClose={() => setSheet(null)}
-            onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>
+            onSaveGroup={(
+              groupId,
+              ownerId,
+              memberIds,
+              units,
+              shared,
+              allParticipants,
+            ) =>
               tab === "remaining"
                 ? distributeNewGroup(
                     sheetItems,
@@ -582,6 +608,7 @@ export function SplitBoard({
                     memberIds,
                     units,
                     shared,
+                    allParticipants,
                   )
                 : saveGroup(
                     primarySheetItem.id,
@@ -590,6 +617,7 @@ export function SplitBoard({
                     memberIds,
                     units,
                     shared,
+                    allParticipants,
                   )
             }
             messages={t}

@@ -153,7 +153,7 @@ export const messages = {
       markUnpaid: "Marcar como no pagado",
       markPaid: "He pagado",
     },
-    board: {
+    roomSplit: {
       whoAreYou: "¿Quién eres?",
       whoAreYouHint: "Elige tu nombre de la lista de la sala.",
       addUser: "No estoy en la lista",
@@ -381,7 +381,7 @@ export const messages = {
       markUnpaid: "Mark as unpaid",
       markPaid: "I paid",
     },
-    board: {
+    roomSplit: {
       whoAreYou: "Who are you?",
       whoAreYouHint: "Pick your name from the room list.",
       addUser: "I'm not on the list",

@@ -28,6 +28,8 @@ export interface ClaimEntry {
   readonly groupId?: string;
   /** A shared choice is open for other people to join; a private one is not. */
   readonly shared?: boolean;
+  /** The choice includes future room participants by default. */
+  readonly allParticipants?: boolean;
   readonly choice: ClaimChoice;
 }
 
@@ -238,6 +240,7 @@ export interface ItemGroup {
   readonly memberIds: readonly string[];
   readonly units: number;
   readonly shared: boolean;
+  readonly allParticipants: boolean;
 }
 
 /** Grupos que hay sobre una línea, sin duplicar la copia de cada miembro. */
@@ -261,6 +264,7 @@ export function itemGroups(
         memberIds,
         units: choiceTotalUnits(item, choice),
         shared: entry.shared ?? memberIds.length > 1,
+        allParticipants: entry.allParticipants ?? false,
       });
     }
   }

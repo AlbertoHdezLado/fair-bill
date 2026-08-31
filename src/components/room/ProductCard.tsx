@@ -24,7 +24,7 @@ interface ProductCardProps {
   readonly showGroups: boolean;
   readonly onSelect?: () => void;
   readonly footer?: ReactNode;
-  readonly messages: Messages["board"];
+  readonly messages: Messages["roomSplit"];
 }
 
 export function ProductCard({
