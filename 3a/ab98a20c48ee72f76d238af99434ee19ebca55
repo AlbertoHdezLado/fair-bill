@@ -1,0 +1,28 @@
+src/components/ItemRow.tsx
+  h_fed6a40af368f7 3,42-44,133,144-149,161,182-188,199,203-209
+src/components/ReceiptEditor.test.tsx
+  h_fed6a40af368f7 151-180
+src/components/ReceiptEditor.tsx
+  h_fed6a40af368f7 45-72,149-154,186-199,285-286,291-292,301,305-311,370-375
+src/components/room/CodeInput.tsx
+  h_fed6a40af368f7 102-108
+src/components/room/IdentityPicker.tsx
+  h_fed6a40af368f7 111
+src/components/room/ProfileButton.tsx
+  h_fed6a40af368f7 54-77,146-151,159,216-221,231
+src/components/room/RoomFlow.tsx
+  h_fed6a40af368f7 579,591-597,612-614,619-627,661
+src/components/room/RoomHome.tsx
+  h_fed6a40af368f7 324-329
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "3aab98a20c48ee72f76d238af99434ee19ebca55",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
