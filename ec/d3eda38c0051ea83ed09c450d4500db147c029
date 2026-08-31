@@ -1,0 +1,28 @@
+README.md
+  h_fed6a40af368f7 17-18,53,58-63
+src/app/api/ocr/route.test.ts
+  h_fed6a40af368f7 9-12,18-21,36-45,122-160
+src/app/api/ocr/route.ts
+  h_fed6a40af368f7 39-43,49-52,117-206
+src/components/room/ProductCard.tsx
+  h_fed6a40af368f7 70
+src/components/room/RoomFlow.tsx
+  h_fed6a40af368f7 5,577,580-589,600-638,644
+src/lib/ocr/gemini.ts
+  h_fed6a40af368f7 1-22
+src/lib/ocr/index.ts
+  h_fed6a40af368f7 1,20-21,24-31
+src/lib/ocr/types.ts
+  h_fed6a40af368f7 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ecd3eda38c0051ea83ed09c450d4500db147c029",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
