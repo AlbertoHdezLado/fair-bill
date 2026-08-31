@@ -1,0 +1,21 @@
+src/components/room/RoomFlow.tsx
+  s_cb834ac4c26233::t_6cba5e08ed6bb5 5-6,43,561-569,579,581-612,619-628,631-731
+src/i18n.ts
+  s_cb834ac4c26233::t_8f78719087e49d 44-47,268-271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "55f1de42da723e31959ca7f697c89f2e5819be66",
+  "prompts": {},
+  "sessions": {
+    "s_cb834ac4c26233": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "95d0901c-257d-4aaa-b5b6-f073641e8217",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
