@@ -1,0 +1,16 @@
+src/components/room/BillProgress.tsx
+  h_fed6a40af368f7 145
+src/components/room/RoomFlow.tsx
+  h_fed6a40af368f7 217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "05abb4ddffde6df2d334861cc926953bcc4e60c7",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
