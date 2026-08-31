@@ -1,0 +1,16 @@
+src/components/board/ItemActionSheet.tsx
+  h_fed6a40af368f7 503
+src/components/board/SplitBoard.tsx
+  h_fed6a40af368f7 421,477
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a7d490305960cff8ffa85f35df42ebd70f1dd731",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
