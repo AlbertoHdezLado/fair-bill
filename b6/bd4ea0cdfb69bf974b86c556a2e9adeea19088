@@ -1,0 +1,20 @@
+src/components/board/ItemActionSheet.tsx
+  h_fed6a40af368f7 3-4,51-54,82,226-228,279-298,326,359,432
+src/components/board/ProfileButton.tsx
+  h_fed6a40af368f7 41,61,93-95,107-124,126-141,143-156,220-226
+src/components/board/SplitBoard.test.tsx
+  h_fed6a40af368f7 87,271-272
+src/i18n.ts
+  h_fed6a40af368f7 184,209,404,429
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b6bd4ea0cdfb69bf974b86c556a2e9adeea19088",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
