@@ -226,7 +226,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                       }}
                       className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-60"
                     >
-                      <span className="min-w-0 truncate text-sm font-medium">
+                      <span className="min-w-0 truncate text-sm font-medium uppercase">
                         {room.merchantName || room.code}
                       </span>
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">

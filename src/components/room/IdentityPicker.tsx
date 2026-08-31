@@ -37,7 +37,7 @@ export function IdentityPicker({
   return (
     <motion.div
       variants={listStagger}
-      initial="hidden"
+      initial={false}
       animate="visible"
       className="flex flex-col gap-4"
     >
@@ -61,7 +61,7 @@ export function IdentityPicker({
                 key={participant.key}
                 layout
                 variants={fadeInUpVariants}
-                initial="hidden"
+                initial={false}
                 animate="visible"
                 exit="exit"
                 className={
@@ -88,7 +88,7 @@ export function IdentityPicker({
       )}
 
       <motion.div
-        initial={{ opacity: 0, height: 0 }}
+        initial={false}
         animate={{ opacity: 1, height: "auto" }}
         className="flex flex-col gap-2"
       >
