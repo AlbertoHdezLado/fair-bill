@@ -1,0 +1,31 @@
+src/components/board/SplitBoard.test.tsx
+  s_2153ea1bfd46fe::t_dc6fd3af966c30 49,492
+src/components/board/SplitBoard.tsx
+  s_2153ea1bfd46fe::t_fac4179f5125bf 47-51,117,143-148,155-165,170-174,428,606,618-629,646
+src/components/capture/ReceiptScanner.tsx
+  s_2153ea1bfd46fe::t_a8a2a4bb8e1f73 6,60-66
+src/i18n.ts
+  s_2153ea1bfd46fe::t_147486314bc0d2 44,72-73,264,292-293
+src/lib/ocr/scan.ts
+  s_2153ea1bfd46fe::t_6b606d8edc059f 21-32,72-77
+src/lib/receipt/parser.test.ts
+  s_2153ea1bfd46fe::t_7c38d39c1aece0 111-123
+src/lib/receipt/parser.ts
+  s_2153ea1bfd46fe::t_6858ea6e1a0c93 275-277,279,284-293
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "55fbc98f9d2ae8592a26f0c445dcf58b07471ad6",
+  "prompts": {},
+  "sessions": {
+    "s_2153ea1bfd46fe": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "c09a0596-d718-4032-b5fd-8a00decacc7c",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
