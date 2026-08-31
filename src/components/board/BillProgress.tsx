@@ -178,18 +178,21 @@ export function BoardTabs({ tab, onTabChange, pulses, messages }: BoardTabsProps
         <Tab
           label={messages.tabRemaining}
           active={tab === "remaining"}
+          tone="primary"
           pulseToken={pulses?.remaining}
           onClick={() => onTabChange("remaining")}
         />
         <Tab
           label={messages.tabShared}
           active={tab === "shared"}
+          tone="gold"
           pulseToken={pulses?.shared}
           onClick={() => onTabChange("shared")}
         />
         <Tab
           label={messages.tabMine}
           active={tab === "mine"}
+          tone="primary"
           pulseToken={pulses?.mine}
           onClick={() => onTabChange("mine")}
         />
@@ -201,14 +204,24 @@ export function BoardTabs({ tab, onTabChange, pulses, messages }: BoardTabsProps
 function Tab({
   label,
   active,
+  tone,
   pulseToken,
   onClick,
 }: {
   readonly label: string;
   readonly active: boolean;
+  readonly tone: "primary" | "gold";
   readonly pulseToken?: number;
   readonly onClick: () => void;
 }) {
+  const activeClass =
+    tone === "gold" ? "text-ink" : "text-primary-foreground";
+  const inactiveClass =
+    tone === "gold"
+      ? "text-gold hover:bg-gold/15"
+      : "text-primary hover:bg-primary/10";
+  const indicatorClass = tone === "gold" ? "bg-gold" : "bg-primary";
+
   return (
     <button
       type="button"
@@ -216,21 +229,34 @@ function Tab({
       aria-selected={active}
       onClick={onClick}
       className={`relative rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-        active ? "text-primary-foreground" : "text-primary hover:bg-primary/10"
+        active ? activeClass : inactiveClass
       }`}
     >
       {active && (
         <motion.span
           layoutId="board-tab-indicator"
           transition={{ type: "spring", stiffness: 400, damping: 34 }}
-          className="absolute inset-0 rounded-full bg-primary"
+          className={`absolute inset-0 rounded-full ${indicatorClass}`}
         />
       )}
+      <AnimatePresence>
+        {Boolean(pulseToken) && (
+          <motion.span
+            key={`flash-${pulseToken}`}
+            aria-hidden="true"
+            initial={{ opacity: 0.85, scale: 0.82 }}
+            animate={{ opacity: 0, scale: 1.75 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.75, ease: "easeOut" }}
+            className="pointer-events-none absolute inset-0 rounded-full bg-gold/45 ring-2 ring-gold"
+          />
+        )}
+      </AnimatePresence>
       <motion.span
         key={pulseToken ?? 0}
-        initial={pulseToken ? { scale: 1.4, color: "var(--gold)" } : false}
-        animate={{ scale: 1, color: "inherit" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        initial={pulseToken ? { scale: 1.35, y: -1 } : false}
+        animate={{ scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 520, damping: 18 }}
         className="relative inline-block"
       >
         {label}
