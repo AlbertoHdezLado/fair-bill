@@ -491,7 +491,7 @@ export function SplitRoom({
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
             {tab === "remaining"
-              ? remainingGroups.map(({ key, items: group, remainingUnits }) => (
+              ? remainingGroups.map(({ key, items: group, remainingUnits }, index) => (
                   <ProductCard
                     key={key}
                     item={group[0]}
@@ -503,6 +503,7 @@ export function SplitRoom({
                     )}
                     groups={[]}
                     showGroups={false}
+                    entryDelay={index * 0.05}
                     onSelect={() =>
                       setSheet({ itemIds: group.map((item) => item.id) })
                     }

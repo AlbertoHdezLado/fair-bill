@@ -21,6 +21,8 @@ interface ProductCardProps {
   readonly groups: readonly ProductCardGroup[];
   readonly isSelected?: boolean;
   readonly isMine?: boolean;
+  /** Delays the first appearance when this card is part of a newly loaded list. */
+  readonly entryDelay?: number;
   /** The "shared" and "for me" tabs list the groups behind the line. */
   readonly showGroups: boolean;
   readonly onSelect?: () => void;
@@ -36,6 +38,7 @@ export function ProductCard({
   groups,
   isSelected = false,
   isMine = false,
+  entryDelay,
   showGroups,
   onSelect,
   footer,
@@ -61,9 +64,16 @@ export function ProductCard({
   return (
     <motion.article
       layout="position"
-      initial={{ y: 8, scale: 0.985 }}
+      initial={
+        entryDelay === undefined ? false : { opacity: 0, y: 12, scale: 0.99 }
+      }
       animate={{ y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 430, damping: 34 }}
+      transition={{
+        type: "spring",
+        stiffness: 430,
+        damping: 34,
+        delay: entryDelay,
+      }}
       className={`w-full overflow-hidden rounded-xl border bg-background shadow-sm transition-[border-color,box-shadow,transform] duration-200 ${
         isMine
           ? "border-blue-500 shadow-[0_8px_20px_-16px_rgb(59_130_246)]"
