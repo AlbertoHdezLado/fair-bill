@@ -1,0 +1,16 @@
+src/components/ItemRow.tsx
+  h_fed6a40af368f7 50-51,57-62,162,170,180-190
+src/components/ReceiptEditor.test.tsx
+  h_fed6a40af368f7 122-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "55d68024ad90415f0ac62be51e61fa2a51b16c50",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
