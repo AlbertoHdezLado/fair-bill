@@ -1,0 +1,21 @@
+src/components/room/SplitRoom.test.tsx
+  s_4775fecea7a6e7::t_da1f497b4f4340 175-177,256-271
+src/components/room/SplitRoom.tsx
+  s_4775fecea7a6e7::t_536a13513aa1fd 546
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e8e0fc0fd3678b818c6b11bb801720965a02fa2e",
+  "prompts": {},
+  "sessions": {
+    "s_4775fecea7a6e7": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "355f9bd1-5511-44e0-aaec-735e53e9b7e3",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
