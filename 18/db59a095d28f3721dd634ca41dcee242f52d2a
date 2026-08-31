@@ -1,0 +1,29 @@
+src/components/capture/ReceiptScanner.tsx
+  s_cb01c5663448bf::t_ebc83d007573b3 87,92
+src/i18n.ts
+  s_490534e29a060f::t_5e73dbe9b5d836 94-95,322-323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "18db59a095d28f3721dd634ca41dcee242f52d2a",
+  "prompts": {},
+  "sessions": {
+    "s_490534e29a060f": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "00f28427-4347-45ac-a78e-337e3bf1a67b",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_cb01c5663448bf": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "9aa6a72e-49c5-498f-b614-9bd89c0461a1",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
