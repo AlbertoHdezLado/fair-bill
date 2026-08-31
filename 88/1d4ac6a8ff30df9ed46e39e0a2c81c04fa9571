@@ -1,0 +1,21 @@
+src/components/room/RoomHome.tsx
+  s_cb01c5663448bf::t_851af97908671a 39,42-43,81-88,101,103,150-151,159
+src/lib/ocr/scan.ts
+  s_cb01c5663448bf::t_3515bf01df0f30 5,20,97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "881d4ac6a8ff30df9ed46e39e0a2c81c04fa9571",
+  "prompts": {},
+  "sessions": {
+    "s_cb01c5663448bf": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "9aa6a72e-49c5-498f-b614-9bd89c0461a1",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
