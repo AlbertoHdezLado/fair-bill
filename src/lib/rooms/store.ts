@@ -28,6 +28,7 @@ interface ClaimRow {
   group_ids: string[] | null;
   group_key?: string | null;
   shared?: boolean | null;
+  all_participants?: boolean | null;
 }
 
 interface RoomEventRow {
@@ -105,7 +106,7 @@ export async function loadRoomState(
       .from("claims")
       .select(
         includeGroupKey
-          ? "item_id, participant_id, owner_id, units, group_ids, group_key, shared"
+          ? "item_id, participant_id, owner_id, units, group_ids, group_key, shared, all_participants"
           : "item_id, participant_id, owner_id, units, group_ids",
       )
       .eq("room_id", room.id) as unknown as PromiseLike<{
@@ -186,6 +187,7 @@ export async function loadRoomState(
       ownerId: row.owner_id,
       groupKey: row.group_key ?? row.owner_id,
       shared: row.shared ?? (row.group_ids ?? []).length > 1,
+      allParticipants: row.all_participants ?? false,
       units: Number(row.units),
       groupIds: row.group_ids ?? [],
     })),

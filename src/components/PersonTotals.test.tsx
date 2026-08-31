@@ -25,6 +25,7 @@ describe("PersonTotals", () => {
           tipCents: 0,
           discountCents: 0,
           totalCents: 1200,
+          participantCount: 1,
         }}
         currency="EUR"
         hasPaid={false}

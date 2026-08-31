@@ -5,7 +5,7 @@ export function isMissingGroupKeyColumnError(
 ): boolean {
   return (
     (error?.code === "42703" || error?.code === "PGRST204") &&
-    /(group_key|shared)/.test(error.message ?? "")
+    /(group_key|shared|all_participants)/.test(error.message ?? "")
   );
 }
 
@@ -18,6 +18,7 @@ export interface ClaimRowsInput {
   readonly units: number | null;
   readonly groupIds: readonly string[];
   readonly shared: boolean;
+  readonly allParticipants: boolean;
 }
 
 export async function saveClaimRows(
@@ -31,6 +32,7 @@ export async function saveClaimRows(
     units,
     groupIds,
     shared,
+    allParticipants,
   }: ClaimRowsInput,
 ): Promise<void> {
   const deleteResult = await supabase
@@ -68,6 +70,7 @@ export async function saveClaimRows(
     units,
     group_ids: [...groupIds],
     shared,
+    all_participants: allParticipants,
   }));
 
   const insertResult = await supabase.from("claims").insert(rows);
@@ -78,7 +81,9 @@ export async function saveClaimRows(
   }
 
   const legacyInsertResult = await supabase.from("claims").insert(
-    rows.map(({ group_key: _groupKey, shared: _shared, ...row }) => row),
+    rows.map(
+      ({ group_key: _groupKey, shared: _shared, all_participants: _allParticipants, ...row }) => row,
+    ),
   );
 
   if (legacyInsertResult.error) {

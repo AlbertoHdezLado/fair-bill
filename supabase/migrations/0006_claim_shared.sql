@@ -5,6 +5,9 @@
 alter table public.claims
   add column if not exists shared boolean not null default false;
 
+alter table public.claims
+  add column if not exists all_participants boolean not null default false;
+
 -- Los grupos existentes con más de un miembro solo pueden ser compartidos.
 update public.claims
 set shared = true

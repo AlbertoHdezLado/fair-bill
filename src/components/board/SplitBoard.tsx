@@ -571,7 +571,6 @@ export function SplitBoard({
                 participant.name,
               ]),
             )}
-            allParticipantIds={participants.map((participant) => participant.key)}
             initialGroupId={sheet?.groupId}
             onClose={() => setSheet(null)}
             onSaveGroup={(groupId, ownerId, memberIds, units, shared) =>

@@ -15,6 +15,8 @@ export interface RoomClaim {
   readonly groupKey: string;
   /** A shared group is open for other people to join; a private one is not. */
   readonly shared: boolean;
+  /** A group created for the whole room also includes participants added later. */
+  readonly allParticipants: boolean;
   readonly units: number;
   readonly groupIds: readonly string[];
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isValidRoomCode } from "@/lib/rooms/code";
+import { saveClaimRows } from "@/lib/rooms/claims-write";
 import { broadcastRoomUpdate, findRoom, loadRoomState } from "@/lib/rooms/store";
 import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
 
@@ -65,13 +66,51 @@ export async function POST(
   }
 
   // The first person through the door owns the room and defines the bill.
-  const { error } = await supabase.from("participants").insert({
-    room_id: room.id,
-    name,
-    is_owner: (count ?? 0) === 0,
-  });
+  const { data: participant, error } = await supabase
+    .from("participants")
+    .insert({
+      room_id: room.id,
+      name,
+      is_owner: (count ?? 0) === 0,
+    })
+    .select("id")
+    .single<{ id: string }>();
 
   if (error && error.code !== "23505") {
+    return NextResponse.json({ error: "Could not save" }, { status: 500 });
+  }
+  if (!participant) {
+    return NextResponse.json({ error: "Could not save" }, { status: 500 });
+  }
+
+  const { data: roomWideClaims, error: roomWideClaimsError } = await supabase
+    .from("claims")
+    .select("item_id, owner_id, group_key, units, group_ids, shared")
+    .eq("room_id", room.id)
+    .eq("all_participants", true);
+  if (roomWideClaimsError) {
+    return NextResponse.json({ error: "Could not save" }, { status: 500 });
+  }
+
+  const handledGroups = new Set<string>();
+  try {
+    for (const claim of roomWideClaims ?? []) {
+      const key = `${claim.item_id}:${claim.group_key}`;
+      if (handledGroups.has(key)) continue;
+      handledGroups.add(key);
+      await saveClaimRows(supabase, {
+        roomId: room.id,
+        itemId: claim.item_id,
+        ownerId: claim.owner_id,
+        groupKey: claim.group_key,
+        participantIds: [...(claim.group_ids ?? []), participant.id],
+        units: claim.units,
+        groupIds: [...(claim.group_ids ?? []), participant.id],
+        shared: true,
+        allParticipants: true,
+      });
+    }
+  } catch {
     return NextResponse.json({ error: "Could not save" }, { status: 500 });
   }
 

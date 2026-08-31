@@ -49,6 +49,8 @@ export interface PersonSplit {
   tipCents: number;
   discountCents: number;
   totalCents: number;
+  /** Número total de participantes de la sala. */
+  participantCount: number;
 }
 
 export interface SplitResult {
@@ -206,6 +208,7 @@ export function computeSplit({
     tipCents: tipShares[i],
     discountCents: discountShares[i],
     totalCents: subtotals[i] + taxShares[i] + tipShares[i] - discountShares[i],
+    participantCount: n,
   }));
 
   const grandTotalCents =

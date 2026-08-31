@@ -19,6 +19,7 @@ interface ClaimPayload {
   units?: unknown;
   groupIds?: unknown;
   shared?: unknown;
+  allParticipants?: unknown;
 }
 
 /**
@@ -42,6 +43,7 @@ export async function PUT(
   const participantIds = asUuidList(body?.participantIds);
   const groupIds = asUuidList(body?.groupIds) ?? [];
   const shared = body?.shared === true;
+  const allParticipants = body?.allParticipants === true;
   const units =
     body?.units === null
       ? null
@@ -69,6 +71,7 @@ export async function PUT(
       units,
       groupIds,
       shared,
+      allParticipants,
     });
   } catch {
     return NextResponse.json({ error: "Could not save" }, { status: 500 });
