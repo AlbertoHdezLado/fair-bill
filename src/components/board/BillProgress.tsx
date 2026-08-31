@@ -51,7 +51,6 @@ export function BillProgress({
           type="button"
           onClick={() => setConfirmHomeOpen(true)}
           aria-label={messages.backHomeTitle}
-          className="rounded-lg p-1 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <img src="/logo.svg" alt="fairBill" className="h-9 w-auto" />
         </button>
@@ -61,7 +60,7 @@ export function BillProgress({
             onClick={onToggleShare}
             aria-label={tableLabel}
             title={tableLabel}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/70 px-3 py-1.5 text-xs font-medium text-primary transition-[background-color,transform] hover:bg-primary/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
           >
             <span className="font-bold">{roomCode}</span>
             <Share2 aria-hidden="true" size={14} />
@@ -77,7 +76,7 @@ export function BillProgress({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent}
-          className="h-2.5 w-full overflow-hidden rounded-full bg-primary/15"
+          className="h-2 w-full overflow-hidden rounded-full bg-primary/20"
         >
           <motion.div
             className="h-full rounded-full bg-primary"
@@ -104,7 +103,7 @@ export function BillProgress({
         <button
           type="button"
           onClick={onOpenTableBill}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/70 px-3 py-1.5 text-xs font-medium text-primary transition-[background-color,transform] hover:bg-primary/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
         >
           <Receipt aria-hidden="true" size={14} />
           {messages.viewTableBill}

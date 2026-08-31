@@ -106,6 +106,12 @@ export function IdentityPicker({
               )
             }
             placeholder={messages.newUserPlaceholder}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && trimmed !== "" && !isDuplicate) {
+                onAdd(trimmed);
+                setName("");
+              }
+            }}
             className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
           <button
