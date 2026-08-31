@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Plus, X } from "lucide-react";
 import { ReceiptScanner } from "@/components/capture/ReceiptScanner";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
 import { SplitBoard } from "@/components/board/SplitBoard";
@@ -39,6 +40,7 @@ import {
 import { computeSplit } from "@/lib/split";
 import type { Messages } from "@/i18n";
 import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
+import { fadeInUpVariants, listStagger } from "@/lib/motion";
 
 interface RoomFlowProps {
   readonly code: string;
@@ -556,6 +558,15 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   );
 }
 
+interface NameRow {
+  readonly id: string;
+  readonly name: string;
+}
+
+function createNameRow(): NameRow {
+  return { id: crypto.randomUUID(), name: "" };
+}
+
 function BulkAddNames({
   onContinue,
   addingLabel,
@@ -565,42 +576,158 @@ function BulkAddNames({
   readonly addingLabel: string;
   readonly messages: Messages["room"];
 }) {
-  const [text, setText] = useState("");
+  const [rows, setRows] = useState<readonly NameRow[]>(() => [createNameRow()]);
   const [adding, setAdding] = useState(false);
+  const focusRowId = useRef<string | null>(null);
+  const inputRefs = useRef(new Map<string, HTMLInputElement>());
+
+  // Cada fila nueva recibe el foco para poder encadenar nombres sin tocar la pantalla.
+  useEffect(() => {
+    const id = focusRowId.current;
+    if (!id) return;
+    focusRowId.current = null;
+    inputRefs.current.get(id)?.focus();
+  }, [rows]);
+
+  const filled = rows
+    .map((row) => row.name.trim())
+    .filter((name) => name !== "");
+
+  const appendRow = () => {
+    const row = createNameRow();
+    focusRowId.current = row.id;
+    setRows((current) => [...current, row]);
+  };
+
+  const removeRow = (id: string) => {
+    setRows((current) => {
+      const next = current.filter((row) => row.id !== id);
+      return next.length === 0 ? [createNameRow()] : next;
+    });
+  };
+
+  const submit = (names: readonly string[]) => {
+    setAdding(true);
+    void onContinue(names);
+  };
 
   if (adding) {
     return <LoadingState label={addingLabel} />;
   }
 
   return (
-    <div className="flex flex-1 flex-col justify-center gap-5">
-      <div className="flex flex-col gap-1 text-center">
+    <motion.div
+      variants={listStagger}
+      initial="hidden"
+      animate="visible"
+      className="flex flex-1 flex-col justify-center gap-5"
+    >
+      <motion.div
+        variants={fadeInUpVariants}
+        className="flex flex-col gap-1 text-center"
+      >
         <p className="text-xl font-bold text-primary">{messages.bulkAddTitle}</p>
         <p className="text-sm text-muted-foreground">{messages.bulkAddHint}</p>
-      </div>
-      <textarea
-        autoFocus
-        rows={6}
-        value={text}
-        onChange={(e) => setText(e.target.value.toUpperCase())}
-        placeholder={messages.namePlaceholder}
-        className="min-h-32 w-full resize-none rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-      />
-      <button
-        type="button"
-        onClick={() => {
-          setAdding(true);
-          void onContinue(
-            text
-              .split("\n")
-              .map((line) => line.trim())
-              .filter((line) => line !== ""),
-          );
-        }}
-        className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        {messages.bulkAddContinue}
-      </button>
-    </div>
+      </motion.div>
+
+      <ul className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto p-1">
+        <AnimatePresence initial={false}>
+          {rows.map((row, index) => {
+            const trimmed = row.name.trim().toUpperCase();
+            const isDuplicate =
+              trimmed !== "" &&
+              rows.some(
+                (other, otherIndex) =>
+                  otherIndex < index &&
+                  other.name.trim().toUpperCase() === trimmed,
+              );
+
+            return (
+              <motion.li
+                key={row.id}
+                layout
+                variants={fadeInUpVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="flex items-center gap-2"
+              >
+                <input
+                  ref={(node) => {
+                    if (node) inputRefs.current.set(row.id, node);
+                    else inputRefs.current.delete(row.id);
+                  }}
+                  type="text"
+                  autoFocus={index === 0}
+                  value={row.name}
+                  maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+                  aria-invalid={isDuplicate}
+                  placeholder={messages.bulkAddNamePlaceholder.replace(
+                    "{{index}}",
+                    String(index + 1),
+                  )}
+                  onChange={(e) => {
+                    const value = e.target.value
+                      .toUpperCase()
+                      .slice(0, MAX_PARTICIPANT_NAME_LENGTH);
+                    setRows((current) =>
+                      current.map((item) =>
+                        item.id === row.id ? { ...item, name: value } : item,
+                      ),
+                    );
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    if (index === rows.length - 1) appendRow();
+                    else inputRefs.current.get(rows[index + 1].id)?.focus();
+                  }}
+                  className={`min-w-0 flex-1 rounded-2xl border-2 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:outline-none ${
+                    isDuplicate
+                      ? "border-gold"
+                      : "border-primary/40 focus:border-primary"
+                  }`}
+                />
+                <button
+                  type="button"
+                  aria-label={messages.bulkAddRemove}
+                  onClick={() => removeRow(row.id)}
+                  disabled={rows.length === 1 && row.name === ""}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full border border-primary/30 text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-40"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </motion.li>
+            );
+          })}
+        </AnimatePresence>
+      </ul>
+
+      <motion.div variants={fadeInUpVariants} className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={appendRow}
+          className="flex items-center justify-center gap-2 rounded-full border-2 border-dashed border-primary/40 px-5 py-3 text-sm font-medium text-primary hover:border-primary hover:bg-primary/10"
+        >
+          <Plus className="size-4" aria-hidden />
+          {messages.bulkAddAnother}
+        </button>
+        <button
+          type="button"
+          disabled={filled.length === 0}
+          onClick={() => submit(filled)}
+          className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+        >
+          {messages.bulkAddContinue}
+        </button>
+        <button
+          type="button"
+          onClick={() => submit([])}
+          className="rounded-full px-5 py-2 text-sm font-medium text-muted-foreground hover:text-primary"
+        >
+          {messages.bulkAddSkip}
+        </button>
+      </motion.div>
+    </motion.div>
   );
 }
