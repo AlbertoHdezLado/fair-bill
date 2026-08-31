@@ -2,6 +2,7 @@ import {
   getOcrProvider,
   preprocessReceiptImage,
   type ReceiptImageVariant,
+  type OcrProvider,
 } from "@/lib/ocr";
 import { parseReceipt } from "@/lib/receipt/parser";
 import {
@@ -16,6 +17,7 @@ export type ScanStage = "preprocessing" | "recognizing" | "parsing";
 export interface ScanOutcome {
   readonly items: EditableItem[];
   readonly extras: EditableExtras;
+  readonly providerId: OcrProvider["id"];
 }
 
 /**
@@ -92,6 +94,7 @@ export async function scanReceipt(
       discountCents: sumByKind(parsed.summary, "discount"),
       detectedTotalCents: parsed.detectedTotalCents,
     },
+    providerId: provider.id,
   };
 }
 

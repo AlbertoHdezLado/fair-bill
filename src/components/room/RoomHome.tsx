@@ -36,9 +36,11 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
   const [error, setError] = useState<string | null>(null);
   const [shakeSignal, setShakeSignal] = useState(0);
   const [merchantName, setMerchantName] = useState("");
-  const [createMode, setCreateMode] = useState<"upload" | "manual" | null>(
+  const [createMode, setCreateMode] = useState<"manual" | "tesseract" | null>(
     null,
   );
+  const [pendingCaptureForName, setPendingCaptureForName] =
+    useState<PendingCapture | null>(null);
   const [recentRooms, setRecentRooms] = useState<readonly RecentRoom[]>([]);
   const [scan, setScan] = useState<{
     stage: ScanStage;
@@ -76,7 +78,14 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
     void scanReceipt(file, (stage, progress) =>
       setScan({ stage, progress, previewUrl }),
     )
-      .then((outcome: ScanOutcome) => start(outcome))
+      .then((outcome: ScanOutcome) => {
+        if (outcome.providerId === "tesseract") {
+          setPendingCaptureForName(outcome);
+          setCreateMode("tesseract");
+          return;
+        }
+        start(outcome);
+      })
       .catch(() => {
         setError(messages.createError);
         setBusyLabel(null);
@@ -89,8 +98,9 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
 
   function confirmCreation() {
     if (createMode === "manual") start("manual");
-    else galleryInputRef.current?.click();
+    else if (pendingCaptureForName) start(pendingCaptureForName);
     setCreateMode(null);
+    setPendingCaptureForName(null);
   }
 
   // Mientras se crea o se entra en una sala el menú desaparece por completo.
@@ -137,8 +147,8 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => setCreateMode("upload")}
-            aria-label={captureMessages.uploadImageLabel}
+            onClick={() => galleryInputRef.current?.click()}
+            aria-label={captureMessages.uploadReceiptLabel}
             className="group relative flex w-full items-center gap-4 overflow-hidden rounded-xl bg-primary px-5 py-7 text-left text-primary-foreground shadow-[0_12px_24px_-18px_var(--primary)] ring-1 ring-inset ring-primary-foreground/15 transition-[background-color,box-shadow,transform] duration-200 hover:bg-primary-hover hover:shadow-[0_16px_28px_-18px_var(--primary)] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60 disabled:shadow-none"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15">
@@ -146,7 +156,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="text-lg font-semibold">
-                {captureMessages.uploadImage}
+                {captureMessages.uploadReceipt}
               </span>
             </span>
             <ArrowRight
