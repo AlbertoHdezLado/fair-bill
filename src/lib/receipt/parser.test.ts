@@ -251,6 +251,25 @@ describe("parseReceipt", () => {
     expect(result.detectedTotalCents).toBe(1250);
   });
 
+  it("ends the product section after a large vertical gap", () => {
+    const words = receiptWords(["1 Cerveza 2,50", "2 Patatas 4,00"]);
+    // An OCR-misread total looks like an ordinary priced line, but is printed
+    // well below the product list rather than on the next product row.
+    words.push({
+      text: "PAGO EFECTIVO 6,50",
+      confidence: 90,
+      bbox: { x0: 260, y0: 160, x1: 320, y1: 180 },
+    });
+
+    const result = parseReceipt(words);
+
+    expect(result.items).toHaveLength(2);
+    expect(result.detectedTotalCents).toBe(650);
+    expect(result.summary).toEqual([
+      expect.objectContaining({ kind: "total", amountCents: 650 }),
+    ]);
+  });
+
   it("parses a full four-section receipt, keeping only the product section", () => {
     const words = receiptWords([
       "BAR LA PLAZA",

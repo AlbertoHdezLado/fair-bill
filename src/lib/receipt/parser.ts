@@ -92,13 +92,24 @@ export function parseReceipt(words: OcrWord[]): ParsedReceipt {
   let summaryCounter = 0;
   let inTotalsSection = false;
   let seenFirstItem = false;
+  let previousLineBounds: OcrBoundingBox | null = null;
 
   for (const lineWords of groupedLines) {
+    const lineBounds = unionBoundingBox(lineWords);
     const raw = lineWords
       .map((w) => w.text)
       .join(" ")
       .trim();
     if (!raw) continue;
+
+    if (
+      seenFirstItem &&
+      previousLineBounds &&
+      hasLargeVerticalGap(previousLineBounds, lineBounds)
+    ) {
+      inTotalsSection = true;
+    }
+    previousLineBounds = lineBounds;
 
     const line = stripDatesAndTimes(raw);
     const keyword = detectKeyword(line);
@@ -348,6 +359,17 @@ function unionBoundingBox(words: OcrWord[]): OcrBoundingBox {
     }),
     { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity },
   );
+}
+
+function hasLargeVerticalGap(
+  previous: OcrBoundingBox,
+  current: OcrBoundingBox,
+): boolean {
+  const previousHeight = previous.y1 - previous.y0;
+  const currentHeight = current.y1 - current.y0;
+  const minimumGap = Math.max(24, Math.max(previousHeight, currentHeight) * 1.5);
+
+  return current.y0 - previous.y1 > minimumGap;
 }
 
 function detectKeyword(line: string): Exclude<ReceiptLineKind, "item"> | null {
