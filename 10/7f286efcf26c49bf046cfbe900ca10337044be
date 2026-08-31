@@ -1,0 +1,18 @@
+README.md
+  h_fed6a40af368f7 61
+src/app/api/ocr/route.test.ts
+  h_fed6a40af368f7 124,133-134,157-160
+src/app/api/ocr/route.ts
+  h_fed6a40af368f7 143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "107f286efcf26c49bf046cfbe900ca10337044be",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
