@@ -1,0 +1,14 @@
+src/components/ItemRow.tsx
+  h_fed6a40af368f7 66-70,179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f9e66883632f48035e95a43befe8e2c3e2cdcc07",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
