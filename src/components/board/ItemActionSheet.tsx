@@ -500,7 +500,7 @@ function GroupEditor({
           onClick={onLeave}
           className="rounded-full border border-red-600 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-600/10"
         >
-          {messages.leaveGroup}
+          {messages.removeClaim}
         </button>
         <button
           type="button"

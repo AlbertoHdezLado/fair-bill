@@ -418,7 +418,7 @@ export function SplitBoard({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex min-h-0 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <div className="sticky top-0 z-20 flex shrink-0 flex-col gap-3 bg-background pb-0 shadow-sm">
             <BillProgress
               assignedCents={assignedCents}
@@ -474,7 +474,7 @@ export function SplitBoard({
               messages={t}
             />
           </div>
-          <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
             {tab === "remaining"
               ? remainingGroups.map(({ key, items: group, remainingUnits }) => (
                   <ProductCard
