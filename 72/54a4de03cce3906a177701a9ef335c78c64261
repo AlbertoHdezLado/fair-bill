@@ -1,0 +1,18 @@
+src/components/room/BillProgress.tsx
+  h_fed6a40af368f7 78
+src/components/room/ProductCard.tsx
+  h_fed6a40af368f7 24-25,41,67-69,71-76
+src/components/room/SplitRoom.tsx
+  h_fed6a40af368f7 494,506
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7254a4de03cce3906a177701a9ef335c78c64261",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
