@@ -1,0 +1,22 @@
+src/components/room/AssignedBar.tsx
+  h_fed6a40af368f7 178-181,233-235
+src/lib/ai/analyzeTicket.test.ts
+  h_fed6a40af368f7 1-118
+src/lib/ai/analyzeTicket.ts
+  h_fed6a40af368f7 1-369
+src/lib/ai/types.ts
+  h_fed6a40af368f7 1-35
+src/lib/ocr/tesseract.ts
+  h_fed6a40af368f7 2-7,14,17-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "bf4d5ebc850fb87a64ea67859f26954157e9138e",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
