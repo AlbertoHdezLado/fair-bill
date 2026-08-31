@@ -1,0 +1,19 @@
+src/components/room/BillProgress.tsx
+  s_4775fecea7a6e7::t_5f9941e615788e 57-59,61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f2bd4d9d8500b92b36ad15eb91d5051877c5f246",
+  "prompts": {},
+  "sessions": {
+    "s_4775fecea7a6e7": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "355f9bd1-5511-44e0-aaec-735e53e9b7e3",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
