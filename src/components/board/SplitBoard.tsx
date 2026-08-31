@@ -44,8 +44,11 @@ interface SplitBoardProps {
   readonly claims: LocalClaims;
   readonly events?: readonly RoomEvent[];
   readonly selfKey: string;
-  readonly onItemsChange: (items: EditableItem[]) => void;
-  readonly onExtrasChange: (extras: EditableExtras) => void;
+  /** Persists the whole ticket (items + extras) at once, e.g. when the ticket editor is closed. */
+  readonly onSaveBill: (
+    items: readonly EditableItem[],
+    extras: EditableExtras,
+  ) => void;
   /** Creates, updates (`units`) or drops (`units === null`) one group of a line. */
   readonly onSaveGroup: (
     itemId: string,
@@ -111,8 +114,7 @@ export function SplitBoard({
   claims,
   events = [],
   selfKey,
-  onItemsChange,
-  onExtrasChange,
+  onSaveBill,
   onSaveGroup,
   tableLabel,
   roomCode,
@@ -138,16 +140,38 @@ export function SplitBoard({
   });
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
+  // Buffers edits made in the ticket editor locally; only persisted to the
+  // backend once the editor is closed, instead of on every keystroke.
+  const [ticketDraft, setTicketDraft] = useState<{
+    items: EditableItem[];
+    extras: EditableExtras;
+  } | null>(null);
   const [originalImageOpen, setOriginalImageOpen] = useState(false);
   const [notifications, setNotifications] = useState<
     readonly BoardNotification[]
   >([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+  const openTicketEditor = () => {
+    setTicketDraft({ items: items.map((item) => ({ ...item })), extras: { ...extras } });
+    setTableBillOpen(true);
+  };
+
+  const closeTicketEditor = () => {
+    if (ticketDraft) onSaveBill(ticketDraft.items, ticketDraft.extras);
+    setTicketDraft(null);
+    setTableBillOpen(false);
+  };
+
   useEffect(() => {
     // Muestra el ticket completo nada más entrar, solo a quien lo subió, y
     // solo la primera vez: una vez revisado queda marcado para no reaparecer.
     if (isOwner && !hasReviewedTicket(roomCode, selfKey)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- apertura automática una única vez al montar
+      setTicketDraft({
+        items: items.map((item) => ({ ...item })),
+        extras: { ...extras },
+      });
       // eslint-disable-next-line react-hooks/set-state-in-effect -- apertura automática una única vez al montar
       setTableBillOpen(true);
       markTicketReviewed(roomCode, selfKey);
@@ -401,7 +425,7 @@ export function SplitBoard({
               totalCents={totalCents}
               assignedItems={fullyAssignedCount}
               totalItems={items.length}
-              onOpenTableBill={() => setTableBillOpen(true)}
+              onOpenTableBill={openTicketEditor}
               tableLabel={tableLabel}
               roomCode={roomCode}
               onToggleShare={onToggleShare}
@@ -579,7 +603,7 @@ export function SplitBoard({
               exit="exit"
               type="button"
               aria-label={t.close}
-              onClick={() => setTableBillOpen(false)}
+              onClick={closeTicketEditor}
               className="absolute inset-0 bg-ink/70"
             />
             <motion.div
@@ -591,10 +615,18 @@ export function SplitBoard({
             >
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 <ReceiptEditor
-                  items={[...items]}
-                  extras={extras}
-                  onItemsChange={onItemsChange}
-                  onExtrasChange={onExtrasChange}
+                  items={ticketDraft?.items ?? []}
+                  extras={ticketDraft?.extras ?? extras}
+                  onItemsChange={(nextItems) =>
+                    setTicketDraft((prev) =>
+                      prev ? { ...prev, items: nextItems } : prev,
+                    )
+                  }
+                  onExtrasChange={(nextExtras) =>
+                    setTicketDraft((prev) =>
+                      prev ? { ...prev, extras: nextExtras } : prev,
+                    )
+                  }
                   messages={messages.receiptEditor}
                   itemRowMessages={messages.itemRow}
                 />
@@ -611,7 +643,7 @@ export function SplitBoard({
                 )}
                 <button
                   type="button"
-                  onClick={() => setTableBillOpen(false)}
+                  onClick={closeTicketEditor}
                   className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
                 >
                   {t.close}

@@ -18,6 +18,18 @@ export interface ScanOutcome {
   readonly extras: EditableExtras;
 }
 
+/**
+ * Thrown instead of a generic error when OCR ran without a technical failure
+ * but found nothing usable on the photo — the fix is a better photo, not a
+ * retry of the same one.
+ */
+export class LowQualityScanError extends Error {
+  constructor() {
+    super("low-quality-scan");
+    this.name = "LowQualityScanError";
+  }
+}
+
 const OCR_PASSES = 2;
 
 export async function scanReceipt(
@@ -56,6 +68,12 @@ export async function scanReceipt(
         : best,
     parsedResults[0],
   ).receipt;
+
+  // Nothing usable was found on any pass: OCR itself worked, the photo just
+  // didn't contain readable text (blur, glare, wrong crop…).
+  if (parsed.items.length === 0 && parsed.detectedTotalCents === null) {
+    throw new LowQualityScanError();
+  }
 
   return {
     items: parsed.items.map((item) => ({

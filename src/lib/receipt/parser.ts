@@ -272,16 +272,26 @@ function parseItemLine(
   const quantity = leadingQtyMatch ? parseQuantityToken(leadingQtyMatch[1]) : 1;
 
   // The leading quantity may itself look like a money token (e.g. "4,00"),
-  // so re-derive the price from whatever comes after it rather than trusting
-  // the whole-line price tokens (which would include the quantity itself).
+  // so re-derive the price(s) from whatever comes after it rather than
+  // trusting the whole-line price tokens (which would include the quantity
+  // itself).
   let totalCents = priceTokens.at(-1)!;
+  let unitPriceCents = Math.round(totalCents / quantity);
   if (leadingQtyMatch) {
     const remainderTokens = findMoneyTokens(
       line.slice(leadingQtyMatch[0].length),
     );
-    if (remainderTokens.length > 0) totalCents = remainderTokens.at(-1)!;
+    if (remainderTokens.length >= 2) {
+      // "qty name unitPrice consumedPrice": the consumed amount can be lower
+      // than qty * unitPrice (e.g. partially shared items), so it must be
+      // read directly rather than derived.
+      unitPriceCents = remainderTokens[0];
+      totalCents = remainderTokens.at(-1)!;
+    } else if (remainderTokens.length === 1) {
+      totalCents = remainderTokens[0];
+      unitPriceCents = Math.round(totalCents / quantity);
+    }
   }
-  const unitPriceCents = Math.round(totalCents / quantity);
 
   const strip = leadingQtyMatch ? [leadingQtyMatch[0]] : [];
   const name = stripMatchedTokens(line, strip).toUpperCase();

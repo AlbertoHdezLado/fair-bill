@@ -108,6 +108,19 @@ describe("parseReceipt", () => {
     expect(result.mismatch).toBe(true);
   });
 
+  it("reads unit price and consumed price separately when a line prints both", () => {
+    const words = receiptWords(["1,00 Cerveza 3,50 2,50"]);
+
+    const result = parseReceipt(words);
+
+    expect(result.items[0]).toMatchObject({
+      name: "CERVEZA",
+      quantity: 1,
+      unitPriceCents: 350,
+      totalCents: 250,
+    });
+  });
+
   it("separates tax, tip and discount from products", () => {
     const words = receiptWords([
       "1 Menu 10,00",

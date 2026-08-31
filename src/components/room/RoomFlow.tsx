@@ -307,8 +307,9 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
       <BulkAddNames
         onContinue={(names) => {
           setShowBulkAdd(false);
-          void addNames(names);
+          return addNames(names);
         }}
+        addingLabel={t.addingParticipants}
         messages={t}
       />
     );
@@ -501,20 +502,10 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
           });
           setResult(finalResult);
         }}
-        onItemsChange={(items) => {
+        onSaveBill={(items, extras) => {
           setActionError(null);
-          setRoom({ ...room, items });
-          void saveBill(code, items, room.extras)
-            .then((next) => {
-              setRoom(next);
-              setActionError(null);
-            })
-            .catch(handleActionError);
-        }}
-        onExtrasChange={(extras) => {
-          setActionError(null);
-          setRoom({ ...room, extras });
-          void saveBill(code, room.items, extras)
+          setRoom({ ...room, items: [...items], extras });
+          void saveBill(code, items, extras)
             .then((next) => {
               setRoom(next);
               setActionError(null);
@@ -567,12 +558,19 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
 
 function BulkAddNames({
   onContinue,
+  addingLabel,
   messages,
 }: {
-  readonly onContinue: (names: readonly string[]) => void;
+  readonly onContinue: (names: readonly string[]) => Promise<void>;
+  readonly addingLabel: string;
   readonly messages: Messages["room"];
 }) {
   const [text, setText] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  if (adding) {
+    return <LoadingState label={addingLabel} />;
+  }
 
   return (
     <div className="flex flex-1 flex-col justify-center gap-5">
@@ -590,14 +588,15 @@ function BulkAddNames({
       />
       <button
         type="button"
-        onClick={() =>
-          onContinue(
+        onClick={() => {
+          setAdding(true);
+          void onContinue(
             text
               .split("\n")
               .map((line) => line.trim())
               .filter((line) => line !== ""),
-          )
-        }
+          );
+        }}
         className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
       >
         {messages.bulkAddContinue}

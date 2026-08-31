@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { ImageUp, PencilLine } from "lucide-react";
-import { scanReceipt, type ScanStage } from "@/lib/ocr/scan";
+import { scanReceipt, LowQualityScanError, type ScanStage } from "@/lib/ocr/scan";
 import {
   EMPTY_EXTRAS,
   type EditableExtras,
@@ -57,9 +57,13 @@ export function ReceiptScanner({
       onScanned(outcome.items, outcome.extras);
     } catch (err) {
       setStage(null);
-      setScanError(
-        err instanceof Error ? err.message : messages.readReceiptError,
-      );
+      if (err instanceof LowQualityScanError) {
+        setScanError(messages.lowQualityScanError);
+      } else {
+        setScanError(
+          err instanceof Error ? err.message : messages.readReceiptError,
+        );
+      }
     }
   }
 

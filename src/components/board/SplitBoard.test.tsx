@@ -46,8 +46,7 @@ function renderBoard(claims: LocalClaims = {}, overrides = {}) {
       participants={participants}
       claims={claims}
       selfKey="p1"
-      onItemsChange={vi.fn()}
-      onExtrasChange={vi.fn()}
+      onSaveBill={vi.fn()}
       onSaveGroup={onSaveGroup}
       tableLabel="Table AB12CD"
       roomCode="AB12CD"
@@ -490,8 +489,7 @@ function renderTree(claims: LocalClaims) {
       participants={participants}
       claims={next}
       selfKey="p1"
-      onItemsChange={vi.fn()}
-      onExtrasChange={vi.fn()}
+      onSaveBill={vi.fn()}
       onSaveGroup={vi.fn()}
       tableLabel="Table AB12CD"
       roomCode="AB12CD"

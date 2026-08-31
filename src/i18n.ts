@@ -41,6 +41,7 @@ export const messages = {
       bulkAddTitle: "Añade a los demás",
       bulkAddHint: "Escribe los nombres de quienes van a repartir la cuenta. Podrán unirse más tarde si lo prefieres.",
       bulkAddContinue: "Continuar",
+      addingParticipants: "Añadiendo a los demás…",
       roomCode: "Sala {{code}}",
       shareTitle: "Únete a mi sala en fairBill",
       share: "Compartir",
@@ -68,6 +69,8 @@ export const messages = {
     },
     capture: {
       readReceiptError: "Error al leer el ticket",
+      lowQualityScanError:
+        "No se ha podido leer el ticket. Vuelve a hacer la foto con mejor luz y enfoque.",
       shareTitle: "Cuenta de fairBill",
       resetToStartLabel: "Volver al inicio",
       closeLabel: "Cerrar",
@@ -258,6 +261,7 @@ export const messages = {
       bulkAddTitle: "Add everyone else",
       bulkAddHint: "Type the names of everyone splitting the bill. They can also join later if you'd rather.",
       bulkAddContinue: "Continue",
+      addingParticipants: "Adding everyone else…",
       roomCode: "Room {{code}}",
       shareTitle: "Join my fairBill room",
       share: "Share",
@@ -285,6 +289,8 @@ export const messages = {
     },
     capture: {
       readReceiptError: "Could not read the receipt",
+      lowQualityScanError:
+        "Couldn't read the receipt. Retake the photo with better light and focus.",
       shareTitle: "fairBill split",
       resetToStartLabel: "Back to start",
       closeLabel: "Close",
