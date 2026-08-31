@@ -61,13 +61,13 @@ export function ItemRow({
   }
 
   const isEmpty = item.name === "";
-  const isEdited = item.state === "editado";
 
-  // Gold marks lines the user has touched; everything else stays blue.
-  const accentBorder = isEdited ? "border-gold" : "border-primary/45";
   const inputBorder = isEmpty
-    ? "border-border text-muted-foreground focus:outline-primary/60"
-    : `${accentBorder} focus:outline-primary/70`;
+    ? "border-primary/30 text-muted-foreground focus:outline-primary/60"
+    : "border-primary/45 focus:outline-primary/70";
+  const moneyInputBorder = isEmpty
+    ? "border-primary/30 text-muted-foreground focus-within:outline focus-within:outline-2 focus-within:outline-primary/60"
+    : "border-primary/45 focus-within:outline focus-within:outline-2 focus-within:outline-primary/70";
 
   const nameInputBorder = isEmpty
     ? `${inputBorder} placeholder:text-muted-foreground/70`
@@ -109,7 +109,6 @@ export function ItemRow({
   }
 
   return (
-    <>
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
         <button
           type="button"
@@ -177,7 +176,7 @@ export function ItemRow({
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Total
                 </span>
-                <span className={`flex w-full items-center rounded-xl border bg-transparent ${inputBorder}`}>
+                <span className={`flex w-full items-center rounded-xl border bg-transparent ${moneyInputBorder}`}>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -210,6 +209,5 @@ export function ItemRow({
           </div>
         </div>
       </div>
-    </>
   );
 }
