@@ -38,6 +38,7 @@ export function ProfileButton({
   const [saving, setSaving] = useState(false);
   const [newParticipantName, setNewParticipantName] = useState("");
   const [addingParticipant, setAddingParticipant] = useState(false);
+  const [view, setView] = useState<"rename" | "switch">("rename");
 
   const trimmed = name.trim();
   const otherParticipants = participants.filter(
@@ -57,6 +58,7 @@ export function ProfileButton({
         onClick={() => {
           setName(currentName);
           setError(null);
+          setView("rename");
           setOpen(true);
         }}
         aria-label={messages.profileLabel}
@@ -88,7 +90,9 @@ export function ProfileButton({
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-lg font-bold text-primary">
-                  {messages.changeNameTitle}
+                  {view === "switch"
+                    ? messages.switchParticipant
+                    : messages.changeNameTitle}
                 </p>
                 <button
                   type="button"
@@ -100,45 +104,56 @@ export function ProfileButton({
                 </button>
               </div>
 
-              <input
-                type="text"
-                autoFocus
-                value={name}
-                maxLength={MAX_PARTICIPANT_NAME_LENGTH}
-                onChange={(e) =>
-                  setName(
-                    e.target.value
-                      .toUpperCase()
-                      .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
-                  )
-                }
-                placeholder={messages.newUserPlaceholder}
-                className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              />
-              {error && <p className="text-xs text-gold">{error}</p>}
+              {view === "rename" && (
+                <>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={name}
+                    maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+                    onChange={(e) =>
+                      setName(
+                        e.target.value
+                          .toUpperCase()
+                          .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
+                      )
+                    }
+                    placeholder={messages.newUserPlaceholder}
+                    className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                  />
+                  {error && <p className="text-xs text-gold">{error}</p>}
 
-              <button
-                type="button"
-                disabled={trimmed === "" || saving}
-                onClick={() => {
-                  setSaving(true);
-                  setError(null);
-                  void onRename(trimmed)
-                    .then(() => setOpen(false))
-                    .catch(() => setError(messages.duplicateName))
-                    .finally(() => setSaving(false));
-                }}
-                className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              >
-                {saving && <Spinner size={16} />}
-                {messages.saveName}
-              </button>
+                  <button
+                    type="button"
+                    disabled={trimmed === "" || saving}
+                    onClick={() => {
+                      setSaving(true);
+                      setError(null);
+                      void onRename(trimmed)
+                        .then(() => setOpen(false))
+                        .catch(() => setError(messages.duplicateName))
+                        .finally(() => setSaving(false));
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                  >
+                    {saving && <Spinner size={16} />}
+                    {messages.saveName}
+                  </button>
 
-              {onSwitchIdentity && (
-                <div className="flex flex-col gap-2 border-t border-primary/20 pt-4">
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
-                    {messages.switchParticipant}
-                  </p>
+                  {onSwitchIdentity && (
+                    <button
+                      type="button"
+                      onClick={() => setView("switch")}
+                      className="rounded-full border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-600/10"
+                    >
+                      {messages.switchParticipant}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {view === "switch" && onSwitchIdentity && (
+                <div className="flex flex-col gap-3">
                   {otherParticipants.length > 0 && (
                     <ul className="grid grid-cols-2 gap-2">
                       {otherParticipants.map((participant) => (
@@ -202,6 +217,13 @@ export function ProfileButton({
                       )}
                     </div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setView("rename")}
+                    className="rounded-full border border-primary/50 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+                  >
+                    {messages.back}
+                  </button>
                 </div>
               )}
             </motion.div>

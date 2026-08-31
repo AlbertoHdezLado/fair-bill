@@ -84,7 +84,7 @@ describe("SplitBoard", () => {
     fireEvent.click(screen.getByText("CERVEZA"));
 
     expect(screen.getByRole("button", { name: "Para mí" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Compartir" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Share with..." })).toBeTruthy();
   });
 
   it("lists the shared groups of a product on the shared tab", () => {
@@ -268,7 +268,8 @@ describe("SplitBoard", () => {
     const { onSaveGroup } = renderBoard();
 
     fireEvent.click(screen.getByText("CERVEZA"));
-    fireEvent.click(screen.getByRole("button", { name: "Compartir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share with..." }));
+    fireEvent.click(screen.getByRole("button", { name: "Toda la sala" }));
 
     expect(onSaveGroup).toHaveBeenCalledWith(
       "i1",

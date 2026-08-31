@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { User, Users, X } from "lucide-react";
+import { useState } from "react";
+import { User, Users } from "lucide-react";
 import { formatCents } from "@/lib/money";
 import type { EditableItem } from "@/lib/receipt/editable";
 import type { ItemGroup } from "@/lib/local-claims";
@@ -48,6 +48,10 @@ export function ItemActionSheet({
     initialGroupId ?? null,
   );
   const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
+  const itemName = item.name || messages.unnamedItem;
+  const modalTitle = messages.quantityTitle
+    .replace("{{item}}", itemName)
+    .toUpperCase();
 
   // Salir deja intacta la parte de los demás, así que el grupo encoge justo lo
   // que era mío.
@@ -66,23 +70,6 @@ export function ItemActionSheet({
     );
   };
 
-  let quantityLine: ReactNode;
-  if (tab !== "remaining") {
-    quantityLine = (
-      <>
-        {formatUnits(item.quantity)} × {formatCents(item.unitPriceCents)}
-      </>
-    );
-  } else if (remainingUnits > 0) {
-    quantityLine = (
-      <>
-        {formatUnits(remainingUnits)} × {formatCents(item.unitPriceCents)}
-      </>
-    );
-  } else {
-    quantityLine = messages.allAssigned;
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
@@ -92,24 +79,7 @@ export function ItemActionSheet({
         className="absolute inset-0 bg-ink/70"
       />
       <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-primary">
-              {item.name || messages.unnamedItem}
-            </p>
-            <p className="text-xs tabular-nums text-muted-foreground">
-              {quantityLine}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={messages.close}
-            className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-          >
-            <X aria-hidden="true" size={20} />
-          </button>
-        </div>
+        <p className="truncate text-lg font-bold text-primary">{modalTitle}</p>
 
         {tab === "remaining" && (
           <NewGroupForm
@@ -253,19 +223,9 @@ export function ItemActionSheet({
             className="absolute inset-0 bg-ink/70"
           />
           <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
-            <div className="flex items-center justify-between gap-3">
-              <p className="min-w-0 truncate text-sm font-semibold text-primary">
-                {editingGroup.memberIds.map(nameOf).join(", ")}
-              </p>
-              <button
-                type="button"
-                onClick={() => setEditingGroupId(null)}
-                aria-label={messages.close}
-                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              >
-                <X aria-hidden="true" size={20} />
-              </button>
-            </div>
+            <p className="min-w-0 truncate text-sm font-semibold text-primary">
+              {editingGroup.memberIds.map(nameOf).join(", ")}
+            </p>
             <GroupEditor
               item={item}
               group={editingGroup}
@@ -316,6 +276,26 @@ function NewGroupForm({
     ([key]) => key !== selfKey,
   );
 
+  if (pickingPeople) {
+    return (
+      <SharePicker
+        others={others}
+        onCancel={() => setPickingPeople(false)}
+        onConfirm={(memberIds) => {
+          onSaveGroup(
+            crypto.randomUUID(),
+            selfKey,
+            [selfKey, ...memberIds],
+            capped,
+            true,
+          );
+          setPickingPeople(false);
+        }}
+        messages={messages}
+      />
+    );
+  }
+
   return (
     <section className="flex flex-col items-center gap-2 rounded-xl border border-primary/20 bg-surface p-3">
       <UnitStepper
@@ -343,30 +323,12 @@ function NewGroupForm({
           type="button"
           disabled={remainingUnits <= 0}
           onClick={() => setPickingPeople(true)}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border border-primary px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-40"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gold px-4 py-3 text-sm font-medium text-ink hover:bg-gold-hover disabled:opacity-40"
         >
           <Users aria-hidden="true" size={16} />
           {messages.shareUnits}
         </button>
       </div>
-
-      {pickingPeople && (
-        <SharePicker
-          others={others}
-          onCancel={() => setPickingPeople(false)}
-          onConfirm={(memberIds) => {
-            onSaveGroup(
-              crypto.randomUUID(),
-              selfKey,
-              [selfKey, ...memberIds],
-              capped,
-              true,
-            );
-            setPickingPeople(false);
-          }}
-          messages={messages}
-        />
-      )}
     </section>
   );
 }
@@ -394,7 +356,7 @@ function SharePicker({
   };
 
   return (
-    <div className="flex w-full flex-col gap-3 rounded-xl border border-primary/30 bg-background p-3">
+    <section className="flex w-full flex-col gap-3 rounded-xl border border-primary/20 bg-surface p-3">
       <p className="text-xs font-medium uppercase text-muted-foreground">
         {messages.shareWith}
       </p>
@@ -467,7 +429,7 @@ function SharePicker({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
