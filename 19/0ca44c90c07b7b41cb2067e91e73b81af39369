@@ -1,0 +1,14 @@
+src/components/board/BillProgress.tsx
+  h_fed6a40af368f7 181,188,195,207,213,217-224,232,239,242-254,257-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "190ca44c90c07b7b41cb2067e91e73b81af39369",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
