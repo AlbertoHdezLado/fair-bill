@@ -1,0 +1,14 @@
+src/lib/rooms/claims.test.ts
+  h_fed6a40af368f7 126,134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b9468ed9ce87b40420c33a03bd2853480565dca0",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
