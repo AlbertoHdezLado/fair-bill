@@ -8,23 +8,47 @@ import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
 import { backdropVariants, sheetVariants } from "@/lib/motion";
 import { Spinner } from "@/components/Spinner";
 
+interface Participant {
+  readonly key: string;
+  readonly name: string;
+}
+
 interface ProfileButtonProps {
   readonly currentName: string;
   readonly onRename: (name: string) => Promise<void>;
+  readonly participants?: readonly Participant[];
+  readonly selfKey?: string;
+  readonly onSwitchIdentity?: (participantKey: string) => void;
+  readonly onAddParticipant?: (name: string) => Promise<void>;
   readonly messages: Messages["board"];
 }
 
 export function ProfileButton({
   currentName,
   onRename,
+  participants = [],
+  selfKey,
+  onSwitchIdentity,
+  onAddParticipant,
   messages,
 }: ProfileButtonProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(currentName);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [newParticipantName, setNewParticipantName] = useState("");
+  const [addingParticipant, setAddingParticipant] = useState(false);
 
   const trimmed = name.trim();
+  const otherParticipants = participants.filter(
+    (participant) => participant.key !== selfKey,
+  );
+  const trimmedNewParticipant = newParticipantName.trim();
+  const isDuplicateParticipant = participants.some(
+    (participant) =>
+      participant.name.trim().toUpperCase() ===
+      trimmedNewParticipant.toUpperCase(),
+  );
 
   return (
     <>
@@ -60,7 +84,7 @@ export function ProfileButton({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/40 bg-background p-5 shadow-2xl"
+              className="relative flex max-h-[85vh] w-full max-w-sm flex-col gap-4 overflow-y-auto rounded-2xl border border-primary/40 bg-background p-5 shadow-2xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-lg font-bold text-primary">
@@ -109,6 +133,77 @@ export function ProfileButton({
                 {saving && <Spinner size={16} />}
                 {messages.saveName}
               </button>
+
+              {onSwitchIdentity && (
+                <div className="flex flex-col gap-2 border-t border-primary/20 pt-4">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    {messages.switchParticipant}
+                  </p>
+                  {otherParticipants.length > 0 && (
+                    <ul className="grid grid-cols-2 gap-2">
+                      {otherParticipants.map((participant) => (
+                        <li key={participant.key}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSwitchIdentity(participant.key);
+                              setOpen(false);
+                            }}
+                            className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-primary/40 bg-surface px-3 py-2 text-sm font-bold hover:border-primary hover:bg-primary/10"
+                          >
+                            <span className="min-w-0 truncate">
+                              {participant.name}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {onAddParticipant && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newParticipantName}
+                          maxLength={MAX_PARTICIPANT_NAME_LENGTH}
+                          onChange={(e) =>
+                            setNewParticipantName(
+                              e.target.value
+                                .toUpperCase()
+                                .slice(0, MAX_PARTICIPANT_NAME_LENGTH),
+                            )
+                          }
+                          placeholder={messages.newUserPlaceholder}
+                          className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          disabled={
+                            trimmedNewParticipant === "" ||
+                            isDuplicateParticipant ||
+                            addingParticipant
+                          }
+                          onClick={() => {
+                            setAddingParticipant(true);
+                            void onAddParticipant(trimmedNewParticipant)
+                              .then(() => setNewParticipantName(""))
+                              .finally(() => setAddingParticipant(false));
+                          }}
+                          className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                        >
+                          {messages.add}
+                        </button>
+                      </div>
+                      {isDuplicateParticipant && (
+                        <p className="text-xs text-gold">
+                          {messages.duplicateName}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           </div>
         )}

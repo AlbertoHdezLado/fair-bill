@@ -64,6 +64,10 @@ interface SplitBoardProps {
   /** Data URL of the scanned receipt photo, if this device captured it. */
   readonly receiptImageUrl?: string | null;
   readonly onRenameSelf?: (name: string) => Promise<void>;
+  /** Lets this device switch to acting as a different participant. */
+  readonly onSwitchIdentity?: (participantKey: string) => void;
+  /** Adds a brand new participant to the room without leaving the current identity. */
+  readonly onAddParticipant?: (name: string) => Promise<void>;
   readonly messages: Messages;
 }
 
@@ -117,6 +121,8 @@ export function SplitBoard({
   isOwner,
   receiptImageUrl,
   onRenameSelf,
+  onSwitchIdentity,
+  onAddParticipant,
   messages,
 }: SplitBoardProps) {
   const t = messages.board;
@@ -125,6 +131,11 @@ export function SplitBoard({
     itemIds: readonly string[];
     groupId?: string;
   } | null>(null);
+  const [tabPulses, setTabPulses] = useState<Record<BoardTab, number>>({
+    remaining: 0,
+    shared: 0,
+    mine: 0,
+  });
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
   const [originalImageOpen, setOriginalImageOpen] = useState(false);
@@ -232,6 +243,36 @@ export function SplitBoard({
     });
   }, [events, participants, selfKey, t, roomCode]);
 
+  // Anima la etiqueta de la pestaña de destino cuando esta persona mueve un
+  // producto: entra a "Compartido" o "Para mí" al reservarlo, y vuelve a
+  // "Sin asignar" al salir de un grupo o soltarlo.
+  const pulseTab = (target: BoardTab) => {
+    setTabPulses((previous) => ({
+      ...previous,
+      [target]: previous[target] + 1,
+    }));
+  };
+
+  const wasSelfInGroup = (itemId: string, groupId: string) => {
+    const group = (groupsByItem.get(itemId) ?? []).find(
+      (candidate) => candidate.groupId === groupId,
+    );
+    return group ? group.memberIds.includes(selfKey) : false;
+  };
+
+  const maybePulseForGroupChange = (
+    itemId: string,
+    groupId: string,
+    memberIds: readonly string[],
+    units: number | null,
+    shared: boolean,
+  ) => {
+    const wasIn = wasSelfInGroup(itemId, groupId);
+    const isIn = units !== null && units > 0 && memberIds.includes(selfKey);
+    if (!wasIn && isIn) pulseTab(shared ? "shared" : "mine");
+    else if (wasIn && !isIn) pulseTab("remaining");
+  };
+
   const saveGroup = (
     itemId: string,
     groupId: string,
@@ -240,6 +281,7 @@ export function SplitBoard({
     units: number | null,
     shared: boolean,
   ) => {
+    maybePulseForGroupChange(itemId, groupId, memberIds, units, shared);
     onSaveGroup(itemId, groupId, ownerId, memberIds, units, shared);
     setSheet(null);
   };
@@ -257,11 +299,16 @@ export function SplitBoard({
   ) => {
     let remaining = units ?? 0;
     let nextGroupId = groupId;
+    let pulsed = false;
     for (const item of targetItems) {
       if (remaining <= 0) break;
       const capacity = Math.max(0, item.quantity - assignedUnits(item, claims));
       const take = Math.min(remaining, capacity);
       if (take <= 0) continue;
+      if (!pulsed && memberIds.includes(selfKey) && take > 0) {
+        pulseTab(shared ? "shared" : "mine");
+        pulsed = true;
+      }
       onSaveGroup(item.id, nextGroupId, ownerId, memberIds, take, shared);
       nextGroupId = crypto.randomUUID();
       remaining -= take;
@@ -308,6 +355,26 @@ export function SplitBoard({
     }));
   }, [items, claims]);
 
+  // Lo que nadie ha marcado todavía, para mostrarlo repartido entre todos en
+  // el desplegable de "productos no asignados" del total.
+  const unassignedBreakdown = remainingGroups.map((group) => {
+    const first = group.items[0];
+    const subtotalCents = Math.round(group.remainingUnits * first.unitPriceCents);
+    return {
+      key: group.key,
+      name: first.name || t.unnamedItem,
+      remainingUnits: group.remainingUnits,
+      subtotalCents,
+      perPersonCents: Math.round(
+        subtotalCents / Math.max(participants.length, 1),
+      ),
+    };
+  });
+  const unassignedSubtotalCents = unassignedBreakdown.reduce(
+    (sum, group) => sum + group.subtotalCents,
+    0,
+  );
+
   const emptyMessages: Record<BoardTab, string> = {
     remaining: items.length === 0 ? t.nothingRemaining : t.nothingLeft,
     shared: t.nothingShared,
@@ -342,6 +409,13 @@ export function SplitBoard({
                 <ProfileButton
                   currentName={nameOf(selfKey)}
                   onRename={onRenameSelf ?? (async () => {})}
+                  participants={participants.map((p) => ({
+                    key: p.key,
+                    name: p.name,
+                  }))}
+                  selfKey={selfKey}
+                  onSwitchIdentity={onSwitchIdentity}
+                  onAddParticipant={onAddParticipant}
                   messages={t}
                 />
               }
@@ -369,7 +443,12 @@ export function SplitBoard({
               }
               messages={t}
             />
-            <BoardTabs tab={tab} onTabChange={setTab} messages={t} />
+            <BoardTabs
+              tab={tab}
+              onTabChange={setTab}
+              pulses={tabPulses}
+              messages={t}
+            />
           </div>
           <div className="min-h-0 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
             {tab === "remaining"
@@ -402,7 +481,11 @@ export function SplitBoard({
                         0,
                         item.quantity - assignedUnits(item, claims),
                       )}
-                      myUnits={claimedUnits(item, claims, selfKey)}
+                      myUnits={
+                        group.memberIds.includes(selfKey)
+                          ? group.units / group.memberIds.length
+                          : 0
+                      }
                       groups={
                         tab === "mine"
                           ? []
@@ -437,6 +520,8 @@ export function SplitBoard({
             selfKey={selfKey}
             open={breakdownOpen}
             onToggle={() => setBreakdownOpen((prev) => !prev)}
+            unassignedBreakdown={unassignedBreakdown}
+            unassignedSubtotalCents={unassignedSubtotalCents}
             messages={t}
             totalsMessages={messages.totals}
           />

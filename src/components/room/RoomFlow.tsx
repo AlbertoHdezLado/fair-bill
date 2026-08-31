@@ -75,6 +75,8 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const pendingName = useRef<string | null>(null);
   const hasAutoSavedDraft = useRef(false);
+  const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const bulkAddOfferedRef = useRef(false);
 
   // The receipt is scanned before the room exists; only the parsed bill crosses
   // the navigation boundary.
@@ -162,6 +164,11 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     window.localStorage.setItem(identityStorageKey(code), match.id);
     setSelfId(match.id);
     setJoining(false);
+    // Solo al creador de la sala se le ofrece rellenar de golpe al resto.
+    if (match.isOwner && !bulkAddOfferedRef.current) {
+      bulkAddOfferedRef.current = true;
+      setShowBulkAdd(true);
+    }
   }, [room, code]);
 
   useEffect(() => {
@@ -179,6 +186,22 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
       void client.removeChannel(channel);
     };
   }, [code, reload]);
+
+  useEffect(() => {
+    // El realtime a veces no se reengancha al volver de segundo plano
+    // (pantalla apagada, pestaña suspendida); forzamos una recarga al volver.
+    const handleBackToForeground = () => {
+      if (document.visibilityState === "visible") void reload();
+    };
+    document.addEventListener("visibilitychange", handleBackToForeground);
+    window.addEventListener("focus", handleBackToForeground);
+    window.addEventListener("pageshow", handleBackToForeground);
+    return () => {
+      document.removeEventListener("visibilitychange", handleBackToForeground);
+      window.removeEventListener("focus", handleBackToForeground);
+      window.removeEventListener("pageshow", handleBackToForeground);
+    };
+  }, [reload]);
 
   if (loading) {
     return <LoadingState label={t.loading} />;
@@ -255,6 +278,39 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
           </p>
         )}
       </div>
+    );
+  }
+
+  // Al creador de la sala se le ofrece, justo tras darse de alta, meter de
+  // golpe los nombres de los demás para ahorrar tiempo.
+  if (self.isOwner && showBulkAdd) {
+    const addNames = async (names: readonly string[]) => {
+      let currentRoom = room;
+      for (const rawName of names) {
+        const trimmed = rawName.trim().slice(0, MAX_PARTICIPANT_NAME_LENGTH);
+        if (trimmed === "") continue;
+        const exists = currentRoom.participants.some(
+          (participant) =>
+            participant.name.trim().toUpperCase() === trimmed.toUpperCase(),
+        );
+        if (exists) continue;
+        try {
+          currentRoom = await addParticipant(code, trimmed);
+        } catch {
+          // Un nombre repetido u otro fallo puntual no debe frenar al resto.
+        }
+      }
+      setRoom(currentRoom);
+    };
+
+    return (
+      <BulkAddNames
+        onContinue={(names) => {
+          setShowBulkAdd(false);
+          void addNames(names);
+        }}
+        messages={t}
+      />
     );
   }
 
@@ -410,6 +466,15 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
             setRoom(next);
           })
         }
+        onSwitchIdentity={(participantKey) => {
+          window.localStorage.setItem(identityStorageKey(code), participantKey);
+          setSelfId(participantKey);
+        }}
+        onAddParticipant={(name) =>
+          addParticipant(code, name).then((next) => {
+            setRoom(next);
+          })
+        }
         onFinish={() => {
           const finalResult = computeSplit({
             items: room.items.map((item) => ({
@@ -496,6 +561,47 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         messages={messages}
       />
       {actionError && <p className="text-center text-sm text-gold">{actionError}</p>}
+    </div>
+  );
+}
+
+function BulkAddNames({
+  onContinue,
+  messages,
+}: {
+  readonly onContinue: (names: readonly string[]) => void;
+  readonly messages: Messages["room"];
+}) {
+  const [text, setText] = useState("");
+
+  return (
+    <div className="flex flex-1 flex-col justify-center gap-5">
+      <div className="flex flex-col gap-1 text-center">
+        <p className="text-xl font-bold text-primary">{messages.bulkAddTitle}</p>
+        <p className="text-sm text-muted-foreground">{messages.bulkAddHint}</p>
+      </div>
+      <textarea
+        autoFocus
+        rows={6}
+        value={text}
+        onChange={(e) => setText(e.target.value.toUpperCase())}
+        placeholder={messages.namePlaceholder}
+        className="min-h-32 w-full resize-none rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+      />
+      <button
+        type="button"
+        onClick={() =>
+          onContinue(
+            text
+              .split("\n")
+              .map((line) => line.trim())
+              .filter((line) => line !== ""),
+          )
+        }
+        className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+      >
+        {messages.bulkAddContinue}
+      </button>
     </div>
   );
 }

@@ -9,12 +9,22 @@ import { backdropVariants, sheetVariants } from "@/lib/motion";
 import { formatUnits } from "./ProductCard";
 import type { Messages } from "@/i18n";
 
+export interface UnassignedBreakdownEntry {
+  readonly key: string;
+  readonly name: string;
+  readonly remainingUnits: number;
+  readonly subtotalCents: number;
+  readonly perPersonCents: number;
+}
+
 interface AssignedBarProps {
   readonly split: SplitResult;
   readonly splitWithUnclaimed: SplitResult;
   readonly selfKey: string;
   readonly open: boolean;
   readonly onToggle: () => void;
+  readonly unassignedBreakdown?: readonly UnassignedBreakdownEntry[];
+  readonly unassignedSubtotalCents?: number;
   readonly messages: Messages["board"];
   readonly totalsMessages: Messages["totals"];
 }
@@ -25,6 +35,8 @@ export function AssignedBar({
   selfKey,
   open,
   onToggle,
+  unassignedBreakdown = [],
+  unassignedSubtotalCents = 0,
   messages,
   totalsMessages,
 }: AssignedBarProps) {
@@ -78,6 +90,8 @@ export function AssignedBar({
                 <PersonBreakdown
                   person={me}
                   personWithUnclaimed={meWithUnclaimed ?? me}
+                  unassignedBreakdown={unassignedBreakdown}
+                  unassignedSubtotalCents={unassignedSubtotalCents}
                   messages={totalsMessages}
                   boardMessages={messages}
                 />
@@ -148,14 +162,19 @@ export function AssignedBar({
 function PersonBreakdown({
   person,
   personWithUnclaimed,
+  unassignedBreakdown,
+  unassignedSubtotalCents,
   messages,
   boardMessages,
 }: {
   readonly person: PersonSplit;
   readonly personWithUnclaimed: PersonSplit;
+  readonly unassignedBreakdown: readonly UnassignedBreakdownEntry[];
+  readonly unassignedSubtotalCents: number;
   readonly messages: Messages["totals"];
   readonly boardMessages: Messages["board"];
 }) {
+  const [unassignedOpen, setUnassignedOpen] = useState(false);
   const claimedShareByItemId = new Map(
     person.items.map((item) => [item.itemId, item.shareCents]),
   );
@@ -182,7 +201,7 @@ function PersonBreakdown({
       {person.items.length === 0 && (
         <p className="text-muted-foreground">{messages.noItems}</p>
       )}
-      <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1">
+      <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1 text-base font-semibold">
         <span>{boardMessages.yourProductsSubtotal}</span>
         <span className="tabular-nums">
           {formatCents(person.subtotalCents)}
@@ -213,7 +232,49 @@ function PersonBreakdown({
           cents={-personWithUnclaimed.discountCents}
         />
       )}
-      <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1 font-bold">
+
+      {unassignedBreakdown.length > 0 && (
+        <div className="mt-1 flex flex-col gap-1 border-t border-primary/20 pt-1">
+          <button
+            type="button"
+            onClick={() => setUnassignedOpen((prev) => !prev)}
+            aria-expanded={unassignedOpen}
+            className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            <span className="flex items-center gap-1">
+              <ChevronUp
+                aria-hidden="true"
+                size={14}
+                className={
+                  unassignedOpen
+                    ? "transition-transform"
+                    : "rotate-180 transition-transform"
+                }
+              />
+              {boardMessages.unassignedProducts}
+            </span>
+            <span className="tabular-nums">
+              {formatCents(unassignedSubtotalCents)}
+            </span>
+          </button>
+          {unassignedOpen && (
+            <div className="flex flex-col gap-1 pl-1 text-muted-foreground">
+              {unassignedBreakdown.map((entry) => (
+                <div key={entry.key} className="flex justify-between gap-2">
+                  <span className="truncate">
+                    {entry.name} ×{formatUnits(entry.remainingUnits)}
+                  </span>
+                  <span className="tabular-nums">
+                    {formatCents(entry.subtotalCents)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-2 text-lg font-bold text-primary">
         <span>{boardMessages.globalTotal}</span>
         <span className="tabular-nums">
           {formatCents(personWithUnclaimed.totalCents)}

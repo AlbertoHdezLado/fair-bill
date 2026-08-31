@@ -163,10 +163,12 @@ export function BillProgress({
 interface BoardTabsProps {
   readonly tab: BoardTab;
   readonly onTabChange: (tab: BoardTab) => void;
+  /** Bumps each time a product moves into that tab, to trigger a quick label animation. */
+  readonly pulses?: Readonly<Record<BoardTab, number>>;
   readonly messages: Messages["board"];
 }
 
-export function BoardTabs({ tab, onTabChange, messages }: BoardTabsProps) {
+export function BoardTabs({ tab, onTabChange, pulses, messages }: BoardTabsProps) {
   return (
     <div className="rounded-t-2xl border-x border-t border-primary/20 bg-surface p-1">
       <div
@@ -176,16 +178,19 @@ export function BoardTabs({ tab, onTabChange, messages }: BoardTabsProps) {
         <Tab
           label={messages.tabRemaining}
           active={tab === "remaining"}
+          pulseToken={pulses?.remaining}
           onClick={() => onTabChange("remaining")}
         />
         <Tab
           label={messages.tabShared}
           active={tab === "shared"}
+          pulseToken={pulses?.shared}
           onClick={() => onTabChange("shared")}
         />
         <Tab
           label={messages.tabMine}
           active={tab === "mine"}
+          pulseToken={pulses?.mine}
           onClick={() => onTabChange("mine")}
         />
       </div>
@@ -196,10 +201,12 @@ export function BoardTabs({ tab, onTabChange, messages }: BoardTabsProps) {
 function Tab({
   label,
   active,
+  pulseToken,
   onClick,
 }: {
   readonly label: string;
   readonly active: boolean;
+  readonly pulseToken?: number;
   readonly onClick: () => void;
 }) {
   return (
@@ -219,7 +226,15 @@ function Tab({
           className="absolute inset-0 rounded-full bg-primary"
         />
       )}
-      <span className="relative">{label}</span>
+      <motion.span
+        key={pulseToken ?? 0}
+        initial={pulseToken ? { scale: 1.4, color: "var(--gold)" } : false}
+        animate={{ scale: 1, color: "inherit" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative inline-block"
+      >
+        {label}
+      </motion.span>
     </button>
   );
 }

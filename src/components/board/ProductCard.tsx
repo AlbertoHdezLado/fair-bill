@@ -56,7 +56,7 @@ export function ProductCard({
 
   return (
     <article
-      className={`relative w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
+      className={`w-full overflow-hidden rounded-xl border-2 bg-background shadow-sm ${
         isMine ? "border-gold" : "border-primary/45"
       }`}
     >
