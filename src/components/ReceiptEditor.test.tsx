@@ -149,6 +149,29 @@ describe("ReceiptEditor", () => {
     expect(item.unitPriceCents).toBe(100);
   });
 
+  it("keeps the product row visible while editing it", () => {
+    render(
+      <ReceiptEditor
+        items={[{
+          id: "item-1",
+          name: "Café",
+          quantity: 1,
+          unitPriceCents: 300,
+          state: "editado",
+        }]}
+        extras={EMPTY_EXTRAS}
+        onItemsChange={vi.fn()}
+        onExtrasChange={vi.fn()}
+      />,
+    );
+
+    const editButton = screen.getByRole("button", { name: /editar café/i });
+    fireEvent.click(editButton);
+
+    expect(editButton.isConnected).toBe(true);
+    expect(screen.getByText("3,00 €")).toBeTruthy();
+  });
+
   it("advances through a line with Enter and closes after confirming its total", () => {
     render(
       <ReceiptEditor

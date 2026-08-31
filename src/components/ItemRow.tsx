@@ -86,9 +86,8 @@ export function ItemRow({
     onOpenChange?.(true);
   };
 
-  if (!isEditing) {
-    return (
-      <div className="flex items-center gap-2 py-2 text-[13px]">
+  const line = (
+    <div className="flex items-center gap-2 py-2 text-[13px]">
         <span className="w-8 shrink-0 text-center font-mono text-muted-foreground">
           {item.quantity}
         </span>
@@ -107,11 +106,16 @@ export function ItemRow({
         >
           <Pencil aria-hidden="true" size={11} />
         </button>
-      </div>
-    );
+    </div>
+  );
+
+  if (!isEditing) {
+    return line;
   }
 
   return (
+    <>
+      {line}
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
         <button
           type="button"
@@ -194,7 +198,7 @@ export function ItemRow({
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Total
                 </span>
-                <span className={`flex w-full items-center rounded-xl border bg-transparent ${moneyInputBorder}`}>
+                <span className={`flex w-full items-center overflow-hidden rounded-xl border bg-transparent ${moneyInputBorder}`}>
                   <input
                     ref={totalInputRef}
                     type="text"
@@ -235,5 +239,6 @@ export function ItemRow({
           </div>
         </div>
       </div>
+    </>
   );
 }
