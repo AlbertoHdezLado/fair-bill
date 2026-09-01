@@ -1,0 +1,71 @@
+README.md
+  s_6a9f1f208571f3::t_7a93e5aa542f60 1
+next-env.d.ts
+  s_6a9f1f208571f3::t_c8e97102c3fa81 3-4
+public/icon.svg
+  s_6a9f1f208571f3::t_d4eeb58c8a8b99 2-4
+public/logo.svg
+  s_6a9f1f208571f3::t_a250e49de3107b 2-4
+src/app/api/rooms/[code]/claims/route.ts
+  s_6a9f1f208571f3::t_34215b8b912294 64-75,98-128,131-132
+src/app/globals.css
+  s_6a9f1f208571f3::t_7b2817b2afeac5 4-6,9-11,13-15,17-22,24-32,37-39,41-46,48-52,73-76
+src/app/layout.tsx
+  s_6a9f1f208571f3::t_b66db307340f71 25,30,42-43
+src/app/manifest.ts
+  s_6a9f1f208571f3::t_f11a6f2d8eaf61 5-6,11-12
+src/components/ItemRow.tsx
+  s_6a9f1f208571f3::t_82f94093de4948 227
+src/components/PersonTotals.tsx
+  s_6a9f1f208571f3::t_ecae280917f6f9 52
+src/components/ReceiptEditor.test.tsx
+  s_6a9f1f208571f3::t_483011aaca5a9d 29,55,65,71,74,92,101
+src/components/ReceiptEditor.tsx
+  s_6a9f1f208571f3::t_ffd58a62e4a0d0 44-76,244,246,254-257,274-276,278-292,294-295,308-315
+src/components/capture/ReceiptScanner.tsx
+  s_6a9f1f208571f3::t_060a8869e152ba 150
+src/components/room/AssignedBar.tsx
+  s_6a9f1f208571f3::t_30a09b781a79a3 223
+src/components/room/BillProgress.tsx
+  s_6a9f1f208571f3::t_367c3dbd579660 51,216
+src/components/room/IdentityPicker.tsx
+  s_6a9f1f208571f3::t_4d193fbbbe8079 131
+src/components/room/ItemActionSheet.tsx
+  s_6a9f1f208571f3::t_80d939d00c9831 363,444,595
+src/components/room/NotificationBell.tsx
+  s_6a9f1f208571f3::t_0c74e31272fe29 177
+src/components/room/ProfileButton.tsx
+  s_6a9f1f208571f3::t_6067e3e2720f44 154,238
+src/components/room/RoomFlow.tsx
+  s_6a9f1f208571f3::t_5e38390bfbbe9a 50,55,213,276,339,563
+src/components/room/RoomHome.tsx
+  s_6a9f1f208571f3::t_3eedf12fd99cf4 180,304
+src/components/room/SplitRoom.test.tsx
+  s_6a9f1f208571f3::t_a5b0b8951ae6f6 113-120,314-347,475,495
+src/components/room/SplitRoom.tsx
+  s_6a9f1f208571f3::t_749b92dc2e30d8 9,24,94-106,150,191-193,214,461-464,507,509-545,578-581,591,597-606,689,771-821
+src/i18n.ts
+  s_6a9f1f208571f3::t_68fa5eaf544a0d 52,60,64,67-68,71,80,164,211-212,248,294,306,309-310,313-314,322,405,452-453,489
+src/lib/rooms/recent-rooms.ts
+  s_6a9f1f208571f3::t_e92f187afa44dd 3
+src/lib/rooms/review-state.ts
+  s_6a9f1f208571f3::t_df1c11ff0badae 8,12
+src/lib/rooms/types.ts
+  s_6a9f1f208571f3::t_93ccc1a031bb46 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9de2b0f6632a2426fc4daf9b52d389fe59b45fc4",
+  "prompts": {},
+  "sessions": {
+    "s_6a9f1f208571f3": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "17cdb2ae-da9f-44da-9045-32e082fbce20",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
