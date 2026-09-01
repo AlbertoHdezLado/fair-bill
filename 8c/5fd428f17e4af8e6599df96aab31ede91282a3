@@ -1,0 +1,14 @@
+src/components/room/ItemActionSheet.tsx
+  h_fed6a40af368f7 95,277,285,304-306,369-388
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8c5fd428f17e4af8e6599df96aab31ede91282a3",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
