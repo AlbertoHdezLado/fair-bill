@@ -26,7 +26,7 @@ interface ReceiptScannerProps {
 const FAKE_PROGRESS_CAP = 95;
 const FAKE_PROGRESS_INTERVAL_MS = 300;
 const FAKE_PROGRESS_STEP_RATIO = 0.05;
-const MESSAGE_INTERVAL_MS = 4000;
+const MESSAGE_INTERVAL_MS = 3000;
 
 export function ReceiptScanner({
   onScanned,
@@ -70,7 +70,15 @@ export function ReceiptScanner({
       setProgress((p) => p + (FAKE_PROGRESS_CAP - p) * FAKE_PROGRESS_STEP_RATIO);
     }, FAKE_PROGRESS_INTERVAL_MS);
     messageTimerRef.current = setInterval(() => {
-      setMessageIndex((i) => (i + 1) % messages.scanningSteps.length);
+      setMessageIndex((i) => {
+        const next = i + 1;
+        // Stop advancing once past the last step; the overlay then shows the final message.
+        if (next >= messages.scanningSteps.length) {
+          if (messageTimerRef.current) clearInterval(messageTimerRef.current);
+          messageTimerRef.current = null;
+        }
+        return Math.min(next, messages.scanningSteps.length);
+      });
     }, MESSAGE_INTERVAL_MS);
   }
 

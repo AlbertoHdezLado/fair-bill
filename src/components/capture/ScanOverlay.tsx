@@ -49,7 +49,7 @@ export function ScanOverlay({
           {messages.readingReceipt}
         </p>
         <p className="text-xs text-muted-foreground">
-          {messages.scanningSteps[messageIndex % messages.scanningSteps.length]}
+          {messages.scanningSteps[messageIndex] ?? messages.almostDone}
         </p>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
           <motion.div
