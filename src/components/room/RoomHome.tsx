@@ -8,7 +8,7 @@ import { ScanOverlay } from "@/components/capture/ScanOverlay";
 import { LoadingState } from "@/components/Spinner";
 import { CodeInput } from "@/components/room/CodeInput";
 import { createRoom } from "@/lib/rooms/api";
-import { scanReceipt, type ScanOutcome, type ScanStage } from "@/lib/ocr/scan";
+import { scanReceipt, type ScanOutcome } from "@/lib/ocr/scan";
 import { isValidRoomCode, normalizeRoomCode } from "@/lib/rooms/code";
 import {
   setPendingCapture,
@@ -43,16 +43,32 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
     useState<PendingCapture | null>(null);
   const [recentRooms, setRecentRooms] = useState<readonly RecentRoom[]>([]);
   const [scan, setScan] = useState<{
-    stage: ScanStage;
     progress: number;
+    messageIndex: number;
     previewUrl: string;
   } | null>(null);
   const busy = busyLabel !== null || scan !== null;
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const messageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura puntual al montar
     setRecentRooms(getRecentRooms());
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (messageTimerRef.current) clearInterval(messageTimerRef.current);
+    };
+  }, []);
+
+  function stopFakeProgress() {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    if (messageTimerRef.current) clearInterval(messageTimerRef.current);
+    progressTimerRef.current = null;
+    messageTimerRef.current = null;
+  }
 
   function start(capture: PendingCapture, establishment = merchantName) {
     setBusyLabel(messages.creatingRoom);
@@ -71,14 +87,37 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
   function scanAndStart(file: File) {
     const previewUrl = URL.createObjectURL(file);
     setError(null);
-    setScan({ stage: "preprocessing", progress: 0, previewUrl });
+    setScan({ progress: 0, messageIndex: 0, previewUrl });
+    stopFakeProgress();
+    // Simulated progress that always keeps moving, independent of the real
+    // OCR timing, so it never looks stuck while waiting on the server/Gemini.
+    progressTimerRef.current = setInterval(() => {
+      setScan((current) =>
+        current === null
+          ? current
+          : { ...current, progress: current.progress + (95 - current.progress) * 0.05 },
+      );
+    }, 300);
+    messageTimerRef.current = setInterval(() => {
+      setScan((current) =>
+        current === null
+          ? current
+          : {
+              ...current,
+              messageIndex:
+                (current.messageIndex + 1) % captureMessages.scanningSteps.length,
+            },
+      );
+    }, 4000);
     void fileToPreviewDataUrl(file)
       .then(setPendingReceiptImage)
       .catch(() => {});
-    void scanReceipt(file, (stage, progress) =>
-      setScan({ stage, progress, previewUrl }),
-    )
+    void scanReceipt(file, () => {})
       .then((outcome: ScanOutcome) => {
+        stopFakeProgress();
+        setScan((current) =>
+          current === null ? current : { ...current, progress: 100 },
+        );
         if (outcome.providerId === "tesseract") {
           setPendingCaptureForName(outcome);
           setCreateMode("tesseract");
@@ -91,6 +130,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
         setBusyLabel(null);
       })
       .finally(() => {
+        stopFakeProgress();
         setScan(null);
         URL.revokeObjectURL(previewUrl);
       });
@@ -346,8 +386,8 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
         {scan && (
           <ScanOverlay
             key="scan-overlay"
-            stage={scan.stage}
             progress={scan.progress}
+            messageIndex={scan.messageIndex}
             previewUrl={scan.previewUrl}
             messages={captureMessages}
           />

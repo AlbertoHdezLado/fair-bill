@@ -1,21 +1,19 @@
 "use client";
 
-"use client";
-
 import { motion } from "motion/react";
-import type { ScanStage } from "@/lib/ocr/scan";
 import type { Messages } from "@/i18n";
 
 interface ScanOverlayProps {
-  readonly stage: ScanStage;
+  /** 0-100, always advancing regardless of the real OCR progress. */
   readonly progress: number;
+  readonly messageIndex: number;
   readonly previewUrl: string | null;
   readonly messages: Messages["capture"];
 }
 
 export function ScanOverlay({
-  stage,
   progress,
+  messageIndex,
   previewUrl,
   messages,
 }: ScanOverlayProps) {
@@ -51,16 +49,14 @@ export function ScanOverlay({
           {messages.readingReceipt}
         </p>
         <p className="text-xs text-muted-foreground">
-          {stage === "preprocessing" && messages.preprocessing}
-          {stage === "recognizing" && messages.recognizing}
-          {stage === "parsing" && messages.parsing}
+          {messages.scanningSteps[messageIndex % messages.scanningSteps.length]}
         </p>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
           <motion.div
             className="h-full rounded-full bg-primary"
             initial={{ width: 0 }}
             animate={{
-              width: `${stage === "recognizing" ? Math.round(progress * 100) : stage === "parsing" ? 100 : 8}%`,
+              width: `${Math.round(progress)}%`,
             }}
             transition={{ duration: 0.3 }}
           />

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { ImageUp, PencilLine } from "lucide-react";
-import { scanReceipt, LowQualityScanError, type ScanStage } from "@/lib/ocr/scan";
+import { scanReceipt, LowQualityScanError } from "@/lib/ocr/scan";
 import {
   EMPTY_EXTRAS,
   type EditableExtras,
@@ -20,6 +20,14 @@ interface ReceiptScannerProps {
   readonly messages: Messages["capture"];
 }
 
+// Simulated progress that always keeps moving, independent of the real OCR
+// timing: fast at first, then slower as it approaches the cap, so it never
+// looks stuck while waiting on the server/Gemini.
+const FAKE_PROGRESS_CAP = 95;
+const FAKE_PROGRESS_INTERVAL_MS = 300;
+const FAKE_PROGRESS_STEP_RATIO = 0.05;
+const MESSAGE_INTERVAL_MS = 4000;
+
 export function ReceiptScanner({
   onScanned,
   onImageCaptured,
@@ -27,15 +35,44 @@ export function ReceiptScanner({
 }: ReceiptScannerProps) {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [stage, setStage] = useState<ScanStage | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const messageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (messageTimerRef.current) clearInterval(messageTimerRef.current);
+    };
+  }, []);
+
+  function stopFakeProgress() {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    if (messageTimerRef.current) clearInterval(messageTimerRef.current);
+    progressTimerRef.current = null;
+    messageTimerRef.current = null;
+  }
+
+  function startFakeProgress() {
+    stopFakeProgress();
+    setProgress(0);
+    setMessageIndex(0);
+    progressTimerRef.current = setInterval(() => {
+      setProgress((p) => p + (FAKE_PROGRESS_CAP - p) * FAKE_PROGRESS_STEP_RATIO);
+    }, FAKE_PROGRESS_INTERVAL_MS);
+    messageTimerRef.current = setInterval(() => {
+      setMessageIndex((i) => (i + 1) % messages.scanningSteps.length);
+    }, MESSAGE_INTERVAL_MS);
+  }
 
   function handleFileSelected(file: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -48,15 +85,19 @@ export function ReceiptScanner({
   }
 
   async function scan(file: File) {
+    setScanning(true);
+    startFakeProgress();
     try {
-      const outcome = await scanReceipt(file, (nextStage, nextProgress) => {
-        setStage(nextStage);
-        setProgress(nextProgress);
-      });
-      setStage(null);
+      const outcome = await scanReceipt(file, () => {});
+      stopFakeProgress();
+      setProgress(100);
+      // Brief pause so the 100% fill is visible before the overlay closes.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setScanning(false);
       onScanned(outcome.items, outcome.extras);
     } catch (err) {
-      setStage(null);
+      stopFakeProgress();
+      setScanning(false);
       if (err instanceof LowQualityScanError) {
         setScanError(messages.lowQualityScanError);
       } else {
@@ -66,6 +107,7 @@ export function ReceiptScanner({
       }
     }
   }
+
 
   return (
     <div className="flex flex-col gap-3">
@@ -111,11 +153,11 @@ export function ReceiptScanner({
       )}
 
       <AnimatePresence>
-        {stage && (
+        {scanning && (
           <ScanOverlay
             key="scan-overlay"
-            stage={stage}
             progress={progress}
+            messageIndex={messageIndex}
             previewUrl={previewUrl}
             messages={messages}
           />
