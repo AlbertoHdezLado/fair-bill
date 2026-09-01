@@ -70,6 +70,22 @@ export function choiceUnits(item: EditableItem, choice: ClaimChoice): number {
   }
 }
 
+/** Unidades que una persona ha marcado en una línea, separadas en propias y compartidas. */
+export function claimedUnitsBySharing(
+  item: EditableItem,
+  claims: LocalClaims,
+  participantKey: string,
+): { forMe: number; shared: number } {
+  let forMe = 0;
+  let shared = 0;
+  for (const entry of entriesFor(claims, participantKey, item.id)) {
+    const units = choiceUnits(item, entry.choice);
+    if (entry.shared) shared += units;
+    else forMe += units;
+  }
+  return { forMe, shared };
+}
+
 /** Todas las elecciones que afectan a una persona en una línea. */
 export function entriesFor(
   claims: LocalClaims,

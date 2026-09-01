@@ -19,7 +19,10 @@ interface ProductCardProps {
   readonly remainingUnits: number;
   readonly myUnits: number;
   readonly groups: readonly ProductCardGroup[];
-  readonly isSelected?: boolean;
+  /** Units this person has claimed for themselves alone (shows the blue "for me" badge). */
+  readonly forMeUnits?: number;
+  /** Units this person shares with others (shows the yellow "shared" badge). */
+  readonly sharedUnits?: number;
   readonly isMine?: boolean;
   /** Delays the first appearance when this card is part of a newly loaded list. */
   readonly entryDelay?: number;
@@ -36,7 +39,8 @@ export function ProductCard({
   remainingUnits,
   myUnits,
   groups,
-  isSelected = false,
+  forMeUnits = 0,
+  sharedUnits = 0,
   isMine = false,
   entryDelay,
   showGroups,
@@ -61,6 +65,21 @@ export function ProductCard({
     quantityLine = messages.allAssigned;
   }
 
+  const badges = (
+    <>
+      {forMeUnits > 0 && (
+        <span className="rounded-full border border-blue-500 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
+          {formatUnits(forMeUnits)}x {messages.forMe}
+        </span>
+      )}
+      {sharedUnits > 0 && (
+        <span className="rounded-full border border-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
+          {formatUnits(sharedUnits)}x {messages.tabShared}
+        </span>
+      )}
+    </>
+  );
+
   return (
     <motion.article
       layout="position"
@@ -77,7 +96,7 @@ export function ProductCard({
       className={`w-full overflow-hidden rounded-xl border bg-background shadow-sm transition-[border-color,box-shadow,transform] duration-200 ${
         isMine
           ? "border-blue-500 shadow-[0_8px_20px_-16px_rgb(59_130_246)]"
-          : isSelected
+          : forMeUnits > 0 || sharedUnits > 0
           ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
           : "border-primary/35 hover:border-primary/65 hover:shadow-[0_8px_20px_-18px_var(--primary)]"
       }`}
@@ -94,11 +113,7 @@ export function ProductCard({
             </span>
             <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
               <span>{quantityLine}</span>
-              {isSelected && (
-                <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                  {messages.selected}
-                </span>
-              )}
+              {badges}
             </span>
           </span>
         </button>
@@ -110,11 +125,7 @@ export function ProductCard({
             </span>
             <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
               <span>{quantityLine}</span>
-              {isSelected && (
-                <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                  {messages.selected}
-                </span>
-              )}
+              {badges}
             </span>
           </span>
         </div>
