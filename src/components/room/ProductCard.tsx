@@ -76,7 +76,7 @@ export function ProductCard({
         </span>
       )}
       {sharedUnits > 0 && (
-        <span className="rounded-full border border-gold-text bg-gold-soft px-1.5 py-0.5 text-[10px] font-semibold text-gold-text">
+        <span className="rounded-full border border-gold-foreground bg-gold-soft px-1.5 py-0.5 text-[10px] font-semibold text-gold-foreground">
           {formatUnits(sharedUnits)}x {messages.tabShared}
         </span>
       )}
