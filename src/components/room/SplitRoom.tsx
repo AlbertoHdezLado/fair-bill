@@ -496,7 +496,6 @@ export function SplitRoom({
                     key={key}
                     item={group[0]}
                     remainingUnits={remainingUnits}
-                    isSelected={group.some((item) => assignedUnits(item, claims) > 0)}
                     myUnits={group.reduce(
                       (sum, item) => sum + claimedUnits(item, claims, selfKey),
                       0,
