@@ -141,7 +141,7 @@ export function ProductCard({
           {groups.map((group) => (
             <div
               key={group.groupId}
-              className="flex max-w-full flex-wrap items-center gap-1 rounded-lg px-2 py-1 bg-primary/5"
+              className="flex max-w-full flex-wrap items-center gap-1 rounded-lg px-2 py-1"
             >
               {group.memberNames.map((name) => (
                 <span
