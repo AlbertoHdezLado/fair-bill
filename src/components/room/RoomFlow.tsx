@@ -620,7 +620,10 @@ function BulkAddNames({
                 if (event.key !== "Enter") return;
                 event.preventDefault();
                 if (index === names.length - 1) {
-                  continueWithNames();
+                  setNames((current) => [...current, ""]);
+                  requestAnimationFrame(() => {
+                    nameInputRefs.current[index + 1]?.focus();
+                  });
                 } else {
                   nameInputRefs.current[index + 1]?.focus();
                 }
