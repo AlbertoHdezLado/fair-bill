@@ -1,0 +1,31 @@
+src/components/room/ProductCard.tsx
+  s_566750e056d2be::t_c443cb5f5d5cde 22-25,42-43,68-82,99,116,128
+src/components/room/SplitRoom.tsx
+  s_0b430a7240da18::t_831e892b51cffb 9,500-509
+src/lib/local-claims.ts
+  s_0b430a7240da18::t_1f2b7f06e572ee 73-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c47bee24ff0460de586be3660913c21d7f9f0e28",
+  "prompts": {},
+  "sessions": {
+    "s_0b430a7240da18": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f743d9ed-54aa-4770-beda-750ec5ea17b6",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    },
+    "s_566750e056d2be": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "d30acc6a-61c6-48a3-8708-4b2d83bcb7ba",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
