@@ -1,0 +1,19 @@
+src/i18n.ts
+  s_a9d16f2a3a978e::t_5d83f82dc0c624 191,421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "26db2d595a3b331bba4d8263076cfc23a91817e3",
+  "prompts": {},
+  "sessions": {
+    "s_a9d16f2a3a978e": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "ddec60e5-4340-4b68-8d3b-36f5644ddf33",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
