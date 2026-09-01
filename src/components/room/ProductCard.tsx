@@ -68,7 +68,7 @@ export function ProductCard({
   const badges = (
     <>
       {forMeUnits > 0 && (
-        <span className="rounded-full border border-blue-500 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
+        <span className="rounded-full border border-primary bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
           {formatUnits(forMeUnits)}x {messages.forMe}
         </span>
       )}
@@ -95,7 +95,7 @@ export function ProductCard({
       }}
       className={`w-full overflow-hidden rounded-xl border bg-background shadow-sm transition-[border-color,box-shadow,transform] duration-200 ${
         isMine
-          ? "border-blue-500 shadow-[0_8px_20px_-16px_rgb(59_130_246)]"
+          ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
           : forMeUnits > 0 || sharedUnits > 0
           ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
           : "border-primary/35 hover:border-primary/65 hover:shadow-[0_8px_20px_-18px_var(--primary)]"
