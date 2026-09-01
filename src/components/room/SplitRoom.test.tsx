@@ -104,6 +104,7 @@ describe("SplitRoom", () => {
     });
 
     fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
+    fireEvent.click(screen.getByText("CERVEZA"));
 
     expect(screen.getAllByText("LUIS").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Unirme al grupo" })).toBeTruthy();

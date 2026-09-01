@@ -51,6 +51,9 @@ export function ItemActionSheet({
   const editingGroup = myGroups.find((group) => group.groupId === editingGroupId);
   const itemName = item.name || messages.unnamedItem;
   const modalTitle = itemName.toUpperCase();
+  // En "Shared" no hay listado detrás al que volver, así que cerrar la
+  // edición cierra la ficha entera en vez de dejar una pantalla vacía.
+  const closeEditing = tab === "shared" ? onClose : () => setEditingGroupId(null);
 
   // Salir deja intacta la parte de los demás, así que el grupo encoge justo lo
   // que era mío.
@@ -142,85 +145,62 @@ export function ItemActionSheet({
           </section>
         )}
 
-        {tab === "shared" && (
-          <section className="flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
-              {messages.sharedGroupsTitle}
-            </p>
-            {groups.length === 0 && (
+        {tab === "shared" && !editingGroup && (() => {
+          // Fuera de mi grupo, la ficha abre directo sobre ese grupo, sin
+          // pasar por ningún listado intermedio.
+          const targetGroup =
+            groups.find((group) => group.groupId === editingGroupId) ??
+            groups[0];
+          if (!targetGroup) {
+            return (
               <p className="text-sm text-muted-foreground">
                 {messages.noGroups}
               </p>
-            )}
-            {groups.map((group) => {
-              const includesSelf = group.memberIds.includes(selfKey);
-              const rowClassName = `flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
-                includesSelf
-                  ? "border-gold bg-gold/15"
-                  : "border-primary/20 bg-surface"
-              }`;
-              const groupInfo = (
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">
-                    {group.memberIds.map(nameOf).join(", ")}
-                  </p>
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    {messages.groupUnits.replace(
-                      "{{count}}",
-                      formatUnits(group.units),
-                    )}
-                    {" · "}
-                    {messages.perPerson.replace(
-                      "{{amount}}",
-                      formatCents(
-                        perPersonCents(
-                          item,
-                          group.units,
-                          group.memberIds.length,
-                        ),
+            );
+          }
+          return (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-surface px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">
+                  {targetGroup.memberIds.map(nameOf).join(", ")}
+                </p>
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {messages.groupUnits.replace(
+                    "{{count}}",
+                    formatUnits(targetGroup.units),
+                  )}
+                  {" · "}
+                  {messages.perPerson.replace(
+                    "{{amount}}",
+                    formatCents(
+                      perPersonCents(
+                        item,
+                        targetGroup.units,
+                        targetGroup.memberIds.length,
                       ),
-                    )}
-                  </p>
-                </div>
-              );
-
-              if (includesSelf) {
-                return (
-                  <button
-                    key={group.groupId}
-                    type="button"
-                    onClick={() => setEditingGroupId(group.groupId)}
-                    className={`${rowClassName} text-left`}
-                  >
-                    {groupInfo}
-                  </button>
-                );
-              }
-
-              return (
-                <div key={group.groupId} className={rowClassName}>
-                  {groupInfo}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSaveGroup(
-                        group.groupId,
-                        group.ownerId,
-                        [...group.memberIds, selfKey],
-                        group.units,
-                        true,
-                        group.allParticipants,
-                      )
-                    }
-                    className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
-                  >
-                    {messages.joinShared}
-                  </button>
-                </div>
-              );
-            })}
-          </section>
-        )}
+                    ),
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  onSaveGroup(
+                    targetGroup.groupId,
+                    targetGroup.ownerId,
+                    [...targetGroup.memberIds, selfKey],
+                    targetGroup.units,
+                    true,
+                    targetGroup.allParticipants,
+                  )
+                }
+                className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
+              >
+                {messages.joinShared}
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {editingGroup && (
@@ -228,7 +208,7 @@ export function ItemActionSheet({
           <button
             type="button"
             aria-label={messages.close}
-            onClick={() => setEditingGroupId(null)}
+            onClick={closeEditing}
             className="absolute inset-0 bg-ink/70"
           />
           <div className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-2xl border border-primary/40 bg-background p-4 shadow-2xl sm:rounded-2xl">
@@ -256,11 +236,11 @@ export function ItemActionSheet({
                   shared,
                   allParticipants,
                 );
-                setEditingGroupId(null);
+                closeEditing();
               }}
               onLeave={() => {
                 leaveGroup(editingGroup);
-                setEditingGroupId(null);
+                closeEditing();
               }}
               messages={messages}
             />
