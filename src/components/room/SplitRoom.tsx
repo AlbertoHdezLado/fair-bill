@@ -136,6 +136,8 @@ export function SplitRoom({
 }: SplitRoomProps) {
   const t = messages.roomSplit;
   const [tab, setTab] = useState<RoomTab>("remaining");
+  // Sweep-in animation should only play once, on the initial mount, not on every tab switch.
+  const [hasPlayedEntryAnimation, setHasPlayedEntryAnimation] = useState(false);
   const [sheet, setSheet] = useState<{
     itemIds: readonly string[];
     groupId?: string;
@@ -184,6 +186,12 @@ export function SplitRoom({
       setTableBillOpen(true);
       markTicketReviewed(roomCode, selfKey);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- marca hecha la animación una única vez al montar
+    setHasPlayedEntryAnimation(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
 
@@ -535,7 +543,7 @@ export function SplitRoom({
                       sharedUnits={bySharing.shared}
                       groups={[]}
                       showGroups={false}
-                      entryDelay={index * 0.05}
+                      entryDelay={hasPlayedEntryAnimation ? undefined : index * 0.05}
                       onSelect={() =>
                         setSheet({ itemIds: group.map((item) => item.id) })
                       }
