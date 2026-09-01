@@ -92,6 +92,7 @@ export function ItemActionSheet({
           <NewGroupForm
             item={item}
             selfKey={selfKey}
+            groups={groups}
             remainingUnits={remainingUnits}
             participantNames={participantNames}
             onSaveGroup={onSaveGroup}
@@ -273,6 +274,7 @@ export function ItemActionSheet({
 function NewGroupForm({
   item,
   selfKey,
+  groups,
   remainingUnits,
   participantNames,
   onSaveGroup,
@@ -280,6 +282,7 @@ function NewGroupForm({
 }: {
   readonly item: EditableItem;
   readonly selfKey: string;
+  readonly groups: readonly ItemGroup[];
   readonly remainingUnits: number;
   readonly participantNames: Readonly<Record<string, string>>;
   readonly onSaveGroup: (
@@ -297,6 +300,9 @@ function NewGroupForm({
   const capped = Math.min(units, remainingUnits);
   const others = Object.entries(participantNames).filter(
     ([key]) => key !== selfKey,
+  );
+  const existingSharedGroup = groups.find(
+    (group) => group.shared && !group.memberIds.includes(selfKey),
   );
 
   if (pickingPeople) {
@@ -360,6 +366,26 @@ function NewGroupForm({
           {messages.shareUnits}
         </button>
       </div>
+      {existingSharedGroup && (
+        <button
+          type="button"
+          disabled={remainingUnits <= 0}
+          onClick={() =>
+            onSaveGroup(
+              existingSharedGroup.groupId,
+              existingSharedGroup.ownerId,
+              [...existingSharedGroup.memberIds, selfKey],
+              existingSharedGroup.units + capped,
+              true,
+              existingSharedGroup.allParticipants,
+            )
+          }
+          className="flex w-full items-center justify-center gap-2 rounded-full border border-gold px-4 py-3 text-sm font-medium text-gold disabled:opacity-40"
+        >
+          <Users aria-hidden="true" size={16} />
+          {messages.joinExistingGroup}
+        </button>
+      )}
     </section>
   );
 }
