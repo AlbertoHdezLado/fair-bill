@@ -6,7 +6,6 @@ import {
   assignedUnits,
   buildSplitClaims,
   claimedUnits,
-  claimedUnitsBySharing,
   itemGroups,
   type LocalClaims,
 } from "@/lib/local-claims";
@@ -497,16 +496,7 @@ export function SplitRoom({
                     key={key}
                     item={group[0]}
                     remainingUnits={remainingUnits}
-                    forMeUnits={group.reduce(
-                      (sum, item) =>
-                        sum + claimedUnitsBySharing(item, claims, selfKey).forMe,
-                      0,
-                    )}
-                    sharedUnits={group.reduce(
-                      (sum, item) =>
-                        sum + claimedUnitsBySharing(item, claims, selfKey).shared,
-                      0,
-                    )}
+                    isSelected={group.some((item) => assignedUnits(item, claims) > 0)}
                     myUnits={group.reduce(
                       (sum, item) => sum + claimedUnits(item, claims, selfKey),
                       0,

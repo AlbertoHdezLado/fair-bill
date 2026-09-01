@@ -149,7 +149,7 @@ async function recognizeWithGemini(request: Request) {
           {
             parts: [
               {
-                text: "Transcribe this Spanish restaurant receipt exactly, preserving one receipt line per output line. Return only the transcription.",
+                text: "Transcribe this Spanish restaurant receipt exactly, preserving one receipt line per output line. Receipt item lines usually include both a unit price and a total price. Preserve both prices; when distinguishing them, the total price is the amount furthest to the right on the receipt line. Return only the transcription.",
               },
               {
                 inline_data: {

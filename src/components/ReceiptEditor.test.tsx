@@ -169,7 +169,7 @@ describe("ReceiptEditor", () => {
     fireEvent.click(editButton);
 
     expect(editButton.isConnected).toBe(true);
-    expect(screen.getByText("3,00 €")).toBeTruthy();
+    expect(screen.getAllByText("3,00 €").length).toBeGreaterThan(0);
   });
 
   it("advances through a line with Enter and closes after confirming its total", () => {

@@ -158,6 +158,11 @@ describe("POST /api/ocr", () => {
       expect.stringContaining("models/gemini-3.6-flash:generateContent"),
       expect.anything(),
     );
+    const [, requestOptions] = fetchMock.mock.calls[0];
+    const requestBody = JSON.parse(requestOptions.body as string);
+    expect(requestBody.contents[0].parts[0].text).toContain(
+      "total price is the amount furthest to the right",
+    );
   });
 
   it("propagates a Google Vision API error", async () => {
