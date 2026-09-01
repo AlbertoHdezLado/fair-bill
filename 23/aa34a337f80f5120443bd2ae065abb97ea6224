@@ -1,0 +1,14 @@
+src/components/room/ProductCard.tsx
+  h_fed6a40af368f7 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "23aa34a337f80f5120443bd2ae065abb97ea6224",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
