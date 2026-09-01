@@ -136,13 +136,22 @@ export function ProductCard({
           {groups.map((group) => (
             <div
               key={group.groupId}
-              className={`inline-flex max-w-full items-center rounded-lg px-2 py-1 text-xs ${
+              className={`flex max-w-full flex-wrap items-center gap-1 rounded-lg px-2 py-1 ${
                 group.includesSelf ? "bg-gold/15" : "bg-primary/5"
               }`}
             >
-              <span className="min-w-0 truncate whitespace-nowrap">
-                {group.memberNames.join(", ")}
-              </span>
+              {group.memberNames.map((name) => (
+                <span
+                  key={name}
+                  className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${
+                    group.includesSelf
+                      ? "border-gold bg-gold/15 text-gold"
+                      : "border-primary bg-primary/10 text-primary"
+                  }`}
+                >
+                  {name}
+                </span>
+              ))}
             </div>
           ))}
         </div>

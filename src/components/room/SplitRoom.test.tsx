@@ -189,7 +189,7 @@ describe("SplitRoom", () => {
 
     const card = screen.getByText(/CERVEZA/).closest("article")!;
 
-    expect(card.textContent).toMatch(/ANA, LUIS/);
+    expect(card.textContent).toMatch(/ANALUIS/);
     expect(card.textContent).toMatch(/2 uds\./);
     expect(card.textContent).toMatch(/2,50\s?€ por persona/);
   });
@@ -420,13 +420,13 @@ describe("SplitRoom", () => {
 
     expect(mineCard.textContent).not.toMatch(/Quedan|Todo asignado/);
     expect(mineCard.textContent).toMatch(/ANA1 uds\./);
-    expect(mineCard.textContent).not.toMatch(/ANA, LUIS/);
+    expect(mineCard.textContent).not.toMatch(/ANALUIS/);
 
     fireEvent.click(screen.getByRole("tab", { name: "Compartido" }));
 
     const sharedCard = screen.getByText(/CERVEZA/).closest("article")!;
 
-    expect(sharedCard.textContent).toMatch(/ANA, LUIS2 uds\./);
+    expect(sharedCard.textContent).toMatch(/ANALUIS2 uds\./);
   });
 
   it("shrinks the group by the leaving member's share", () => {
