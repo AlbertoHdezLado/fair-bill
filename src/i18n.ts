@@ -49,7 +49,7 @@ export const messages = {
       bulkAddSkip: "Ahora no",
       addingParticipants: "Añadiendo a los demás…",
       roomCode: "Sala {{code}}",
-      shareTitle: "Únete a mi sala en fairBill",
+      shareTitle: "Únete a mi sala en reasypt",
       share: "Compartir",
       qrAlt: "Código QR de la sala",
       offline: "Sin conexión — la sala no se actualizará hasta que vuelvas.",
@@ -57,18 +57,18 @@ export const messages = {
       steps: [
         {
           title: "Sube el ticket",
-          detail: "Haz una foto o elige una imagen y la leemos por ti.",
+          detail: "Haz una foto o elige una imagen y la escaneamos por ti.",
         },
         {
           title: "Comparte el código",
-          detail: "Pásalo a los demás para que entren en la misma sala.",
+          detail: "Compártelo con todos los participantes.",
         },
         {
-          title: "Cada uno marca lo suyo",
-          detail: "Tocad los productos que habéis consumido.",
+          title: "Selecciona tus productos",
+          detail: "Asignad los productos que habéis consumido.",
         },
         {
-          title: "Cuadrad la cuenta",
+          title: "Revisa la cuenta",
           detail: "Cada uno ve al momento cuánto le toca pagar.",
         },
       ],
@@ -77,7 +77,7 @@ export const messages = {
       readReceiptError: "Error al leer el ticket",
       lowQualityScanError:
         "No se ha podido leer el ticket. Vuelve a hacer la foto con mejor luz y enfoque.",
-      shareTitle: "Cuenta de fairBill",
+      shareTitle: "Cuenta de reasypt",
       resetToStartLabel: "Volver al inicio",
       closeLabel: "Cerrar",
       resetTitle: "¿Volver al inicio?",
@@ -161,6 +161,7 @@ export const messages = {
       markPaid: "He pagado",
     },
     roomSplit: {
+      you: "tú",
       whoAreYou: "¿Quién eres?",
       whoAreYouHint: "Elige tu nombre de la lista de la sala.",
       addUser: "No estoy en la lista",
@@ -207,6 +208,8 @@ export const messages = {
       groupChangedBy:
         "{{actor}} cambió {{item}}: ahora {{units}} uds. entre {{people}} personas.",
       groupRemovedBy: "{{actor}} dejó {{item}}: ya no estás en el grupo.",
+      groupMemberJoined: "{{member}} se unió al grupo de {{item}}.",
+      groupMemberLeft: "{{member}} salió del grupo de {{item}}.",
       dismissAlert: "Descartar aviso",
       notifications: "Avisos",
       notificationsUnread: "Avisos, {{count}} sin leer",
@@ -242,6 +245,7 @@ export const messages = {
       removeSelection: "Quitar mi selección",
       unnamedItem: "(sin nombre)",
       finish: "Ver el reparto final",
+      finalSummaryTitle: "Reparto final",
       yourProductsSubtotal: "Subtotal de tus productos",
       globalTotal: "Total global",
       unassignedProducts: "PRODUCTOS NO ASIGNADOS",
@@ -287,7 +291,7 @@ export const messages = {
       bulkAddSkip: "Not now",
       addingParticipants: "Adding everyone else…",
       roomCode: "Room {{code}}",
-      shareTitle: "Join my fairBill room",
+      shareTitle: "Join my reasypt room",
       share: "Share",
       qrAlt: "Room QR code",
       offline: "Offline — the room won't update until you're back.",
@@ -299,15 +303,15 @@ export const messages = {
         },
         {
           title: "Share the code",
-          detail: "Send it around so everyone joins the same room.",
+          detail: "Share it with all participants.",
         },
         {
-          title: "Everyone picks their own",
-          detail: "Tap the items you actually had.",
+          title: "Select your products",
+          detail: "Assign the products you consumed.",
         },
         {
-          title: "Settle up",
-          detail: "Each person instantly sees what they owe.",
+          title: "Review the bill",
+          detail: "Each person immediately sees how much they have to pay.",
         },
       ],
     },
@@ -315,7 +319,7 @@ export const messages = {
       readReceiptError: "Could not read the receipt",
       lowQualityScanError:
         "Couldn't read the receipt. Retake the photo with better light and focus.",
-      shareTitle: "fairBill split",
+      shareTitle: "reasypt split",
       resetToStartLabel: "Back to start",
       closeLabel: "Close",
       resetTitle: "Start over?",
@@ -398,6 +402,7 @@ export const messages = {
       markPaid: "I paid",
     },
     roomSplit: {
+      you: "you",
       whoAreYou: "Who are you?",
       whoAreYouHint: "Pick your name from the room list.",
       addUser: "I'm not on the list",
@@ -444,6 +449,8 @@ export const messages = {
       groupChangedBy:
         "{{actor}} changed {{item}}: now {{units}} units between {{people}} people.",
       groupRemovedBy: "{{actor}} changed {{item}}: you're no longer in the group.",
+      groupMemberJoined: "{{member}} joined the {{item}} group.",
+      groupMemberLeft: "{{member}} left the {{item}} group.",
       dismissAlert: "Dismiss alert",
       notifications: "Alerts",
       notificationsUnread: "Alerts, {{count}} unread",
@@ -479,6 +486,7 @@ export const messages = {
       removeSelection: "Remove my selection",
       unnamedItem: "(unnamed)",
       finish: "See the final split",
+      finalSummaryTitle: "Final split",
       yourProductsSubtotal: "Your products subtotal",
       globalTotal: "Global total",
       unassignedProducts: "UNASSIGNED PRODUCTS",

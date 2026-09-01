@@ -177,7 +177,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
           className="flex flex-col items-center gap-3 text-center"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="fairBill" className="h-12 w-auto" />
+          <img src="/logo.svg" alt="reasypt" className="h-12 w-auto" />
         </motion.header>
 
         <motion.section
@@ -301,7 +301,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 role="alert"
-                className="text-center text-sm text-gold"
+                className="text-center text-sm text-gold-text"
               >
                 {error}
               </motion.p>

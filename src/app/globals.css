@@ -1,50 +1,55 @@
 @import "tailwindcss";
 
 /*
- * Brand palette: two colors only — a mid-dark blue (readable both on light
- * surfaces and on black) and gold for accents/edited state. Everything else
- * is a near-black ink or a near-white paper derived from the blue, so the UI
- * reads as high-contrast monochrome with two brand hits.
+ * Brand palette (fixed hues, tuned per theme):
+ * blue #2563EB / deep blue #0F172A / yellow #FACC15 / support yellow #FDE047
+ * / celeste #38BDF8. Only these plus red (destructive actions) are used.
  */
 :root {
-  --primary: #1b4e8c;
-  --primary-hover: #163f73;
-  --primary-foreground: #f4f7fb;
+  --brand-blue-deep: #0f172a;
+  --brand-yellow-support: #fde047;
+  --brand-celeste: #38bdf8;
 
-  --gold: #9a7414;
-  --gold-hover: #7e5e0f;
-  --gold-foreground: #fdf8e9;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-foreground: #f8fafc;
 
-  --ink: #0b1b2e;
-  --paper: #f4f7fb;
+  --gold: #facc15;
+  --gold-hover: var(--brand-yellow-support);
+  --gold-foreground: #0f172a;
+  --gold-soft: #fef3c7;
+  /* Readable amber for gold used as body text on a light surface. */
+  --gold-text: color-mix(in srgb, var(--gold) 55%, var(--brand-blue-deep) 45%);
 
-  /* Surfaces are never pure white: always tinted with the brand blue. */
-  --background: color-mix(in srgb, var(--primary) 10%, #ffffff);
-  --surface: color-mix(in srgb, var(--primary) 4%, #ffffff);
-  --foreground: var(--ink);
-  --border: color-mix(in srgb, var(--primary) 30%, #ffffff);
-  --muted-foreground: color-mix(in srgb, var(--ink) 62%, var(--background));
+  /* Fixed anchors (not theme-flipped): dark ink for scrims/text-on-gold, light paper for the QR card. */
+  --ink: var(--brand-blue-deep);
+  --paper: #f8fafc;
+
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --foreground: #0f172a;
+  --border: #e2e8f0;
+  --muted-foreground: #475569;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Same hue, lightened so it keeps contrast against a near-black page. */
-    --primary: #5c9be0;
-    --primary-hover: #7db0e8;
-    --primary-foreground: #06121f;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --primary-foreground: var(--brand-blue-deep);
 
-    --gold: #e3c35a;
-    --gold-hover: #eed37a;
-    --gold-foreground: #1a1405;
+    --gold: #facc15;
+    --gold-hover: var(--brand-yellow-support);
+    --gold-foreground: var(--brand-blue-deep);
+    --gold-soft: #fde68a;
+    /* Already high-contrast on a dark surface: no darkening needed. */
+    --gold-text: var(--gold);
 
-    --ink: #06121f;
-    --paper: #eaf1f8;
-
-    --background: color-mix(in srgb, var(--primary) 10%, var(--ink));
-    --surface: color-mix(in srgb, var(--primary) 16%, var(--ink));
-    --foreground: var(--paper);
-    --border: color-mix(in srgb, var(--primary) 36%, var(--ink));
-    --muted-foreground: color-mix(in srgb, var(--paper) 62%, var(--background));
+    --background: #0b1220;
+    --surface: #111827;
+    --foreground: #f8fafc;
+    --border: #1f2937;
+    --muted-foreground: #cbd5e1;
   }
 }
 
@@ -65,6 +70,10 @@
   --color-gold: var(--gold);
   --color-gold-hover: var(--gold-hover);
   --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-text: var(--gold-text);
+
+  --color-celeste: var(--brand-celeste);
 
   --font-sans: var(--font-app-sans);
   --font-mono: var(--font-app-mono);

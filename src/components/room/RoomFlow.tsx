@@ -47,12 +47,12 @@ interface RoomFlowProps {
 
 /** Remembers, per room, which participant this device is. */
 function identityStorageKey(code: string): string {
-  return `fairBill.identity.${code}`;
+  return `reasypt.identity.${code}`;
 }
 
 /** Compressed copy of the scanned photo, kept only on the device that captured it. */
 function receiptImageStorageKey(code: string): string {
-  return `fairBill.receiptImage.${code}`;
+  return `reasypt.receiptImage.${code}`;
 }
 
 export function RoomFlow({ code, messages }: RoomFlowProps) {
@@ -210,7 +210,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   if (error || !room) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <p className="text-sm text-gold">{error ?? t.notFound}</p>
+        <p className="text-sm text-gold-text">{error ?? t.notFound}</p>
         <button
           type="button"
           onClick={() => router.push("/")}
@@ -273,7 +273,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         />
 
         {actionError && (
-          <p role="alert" className="text-center text-sm text-gold">
+          <p role="alert" className="text-center text-sm text-gold-text">
             {actionError}
           </p>
         )}
@@ -336,7 +336,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         <div className="flex flex-col gap-6">
           <ShareRoom code={room.code} messages={t} />
           {actionError && (
-            <p role="alert" className="text-center text-sm text-gold">
+            <p role="alert" className="text-center text-sm text-gold-text">
               {actionError}
             </p>
           )}
@@ -560,7 +560,7 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
         }}
         messages={messages}
       />
-      {actionError && <p className="text-center text-sm text-gold">{actionError}</p>}
+      {actionError && <p className="text-center text-sm text-gold-text">{actionError}</p>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-# fairBill — divide la cuenta del restaurante
+# reasypt — divide la cuenta del restaurante
 
 PWA para escanear un ticket de restaurante (OCR), repartir los artículos entre los
 participantes y calcular cuánto debe pagar cada uno, con IVA, propina y descuentos

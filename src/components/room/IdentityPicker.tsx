@@ -128,7 +128,7 @@ export function IdentityPicker({
           </button>
         </div>
         {isDuplicate && (
-          <p className="text-xs text-gold">{messages.duplicateName}</p>
+          <p className="text-xs text-gold-text">{messages.duplicateName}</p>
         )}
       </motion.div>
     </motion.div>

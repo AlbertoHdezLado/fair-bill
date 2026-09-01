@@ -1,6 +1,6 @@
 /** Small local cache of the last rooms this device visited, for quick re-entry. */
 
-const STORAGE_KEY = "fairBill.recentRooms";
+const STORAGE_KEY = "reasypt.recentRooms";
 const MAX_ENTRIES = 5;
 
 export interface RecentRoom {

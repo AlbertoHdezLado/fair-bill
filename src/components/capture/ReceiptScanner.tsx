@@ -147,7 +147,7 @@ export function ReceiptScanner({
       </div>
 
       {scanError && (
-        <p role="alert" className="text-center text-sm text-gold">
+        <p role="alert" className="text-center text-sm text-gold-text">
           {scanError}
         </p>
       )}

@@ -48,7 +48,7 @@ export function BillProgress({
           onClick={() => setConfirmHomeOpen(true)}
           aria-label={messages.backHomeTitle}
         >
-          <img src="/logo.svg" alt="fairBill" className="h-9 w-auto" />
+          <img src="/logo.svg" alt="reasypt" className="h-9 w-auto" />
         </button>
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -213,7 +213,7 @@ function Tab({
     tone === "gold" ? "text-ink" : "text-primary-foreground";
   const inactiveClass =
     tone === "gold"
-      ? "text-gold hover:bg-gold/15"
+      ? "text-gold-text hover:bg-gold-soft"
       : "text-primary hover:bg-primary/10";
   const indicatorClass = tone === "gold" ? "bg-gold" : "bg-primary";
 

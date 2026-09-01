@@ -23,7 +23,8 @@ export interface RoomClaim {
 
 export interface RoomEvent {
   readonly id: string;
-  readonly kind: "group_changed" | "group_removed";
+  readonly kind: "group_changed" | "group_removed" | "member_joined" | "member_left";
+  /** For member_joined/member_left, the participant who joined or left. */
   readonly actorId: string | null;
   readonly itemName: string;
   readonly units: number | null;

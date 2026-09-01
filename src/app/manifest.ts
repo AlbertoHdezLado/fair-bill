@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "fairBill",
-    short_name: "fairBill",
+    name: "reasypt",
+    short_name: "reasypt",
     description: "Escanea el ticket y que cada uno marque lo que ha consumido.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#e8eef7",
-    theme_color: "#1b4e8c",
+    background_color: "#f8fafc",
+    theme_color: "#2563eb",
     icons: [
       {
         src: "/icon-192.png",

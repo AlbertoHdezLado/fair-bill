@@ -26,7 +26,7 @@ describe("ReceiptEditor", () => {
     );
 
     expect(screen.getByText("5,00 €")).toBeTruthy();
-    expect(screen.getByRole("dialog").textContent).toMatch(/5,00 €|5,00/);
+    expect(screen.getByRole("status").textContent).toMatch(/5,00 €|5,00/);
   });
 
   it("allows correcting the detected receipt total", () => {
@@ -52,7 +52,7 @@ describe("ReceiptEditor", () => {
     });
   });
 
-  it("opens a modal when the receipt total is missing", () => {
+  it("shows a toast when the receipt total is missing", () => {
     render(
       <ReceiptEditor
         items={[]}
@@ -62,16 +62,16 @@ describe("ReceiptEditor", () => {
       />,
     );
 
-    expect(screen.getByRole("dialog").textContent).toMatch(
+    expect(screen.getByRole("status").textContent).toMatch(
       /no se detectó el total/i,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /cerrar aviso/i }));
 
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("opens a modal when the detected total does not match", () => {
+  it("shows a toast when the detected total does not match", () => {
     render(
       <ReceiptEditor
         items={[
@@ -89,7 +89,7 @@ describe("ReceiptEditor", () => {
       />,
     );
 
-    expect(screen.getByRole("dialog").textContent).toMatch(
+    expect(screen.getByRole("status").textContent).toMatch(
       /no cuadra con las líneas/i,
     );
 
@@ -98,7 +98,7 @@ describe("ReceiptEditor", () => {
       screen.getByRole("button", { name: /ver aviso de desajuste/i }),
     );
 
-    expect(screen.getByRole("dialog")).not.toBeNull();
+    expect(screen.getByRole("status")).not.toBeNull();
   });
 
   it("adds a new item without forcing quantity to 1", () => {

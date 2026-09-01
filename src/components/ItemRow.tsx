@@ -224,7 +224,7 @@ export function ItemRow({
               <button
                 type="button"
                 onClick={onRemove}
-                className="flex-1 rounded-full border border-ink px-3 py-2 text-sm font-medium text-ink hover:bg-ink/10"
+                className="flex-1 rounded-full border border-red-600 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-600/10"
               >
                 Eliminar
               </button>

@@ -41,6 +41,39 @@ export function ReceiptEditor({
   const [isTotalWarningOpen, setIsTotalWarningOpen] = useState(
     extras.detectedTotalCents === null || hasMismatch,
   );
+  const totalRowRef = useRef<HTMLDivElement>(null);
+  const totalWarningTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  function triggerTotalWarning() {
+    setIsTotalWarningOpen(true);
+    totalRowRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    if (totalWarningTimeoutRef.current)
+      clearTimeout(totalWarningTimeoutRef.current);
+    totalWarningTimeoutRef.current = setTimeout(
+      () => setIsTotalWarningOpen(false),
+      5000,
+    );
+  }
+
+  function closeTotalWarning() {
+    if (totalWarningTimeoutRef.current)
+      clearTimeout(totalWarningTimeoutRef.current);
+    setIsTotalWarningOpen(false);
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- dispara el toast inicial calculado desde las props
+    if (isTotalWarningOpen) triggerTotalWarning();
+    return () => {
+      if (totalWarningTimeoutRef.current)
+        clearTimeout(totalWarningTimeoutRef.current);
+    };
+    // Solo se dispara al montar, según el estado inicial calculado arriba.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const extraFieldRefs = useRef<(HTMLInputElement | null)[]>([]);
   const extraFields: ReadonlyArray<{
@@ -208,9 +241,9 @@ export function ReceiptEditor({
             {hasMismatch && (
               <button
                 type="button"
-                onClick={() => setIsTotalWarningOpen(true)}
+                onClick={triggerTotalWarning}
                 aria-label={messages.openMismatchWarning}
-                className="rounded text-gold hover:text-gold-hover"
+                className="rounded text-gold-text hover:text-gold-hover"
               >
                 <TriangleAlert aria-hidden="true" size={18} />
               </button>
@@ -218,7 +251,10 @@ export function ReceiptEditor({
             {formatCents(subtotalCents)}
           </span>
         </div>
-        <div className="flex items-center justify-between border-t-2 border-primary/50 px-1 py-3 font-semibold">
+        <div
+          ref={totalRowRef}
+          className="flex items-center justify-between border-t-2 border-primary/50 px-1 py-3 font-semibold"
+        >
           <span>Total</span>
           <TotalField
             cents={extras.detectedTotalCents ?? grandTotalCents}
@@ -235,31 +271,28 @@ export function ReceiptEditor({
 
       {isTotalWarningOpen && (
         <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="total-warning-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-4 top-4 z-50 mx-auto flex max-w-sm items-start gap-3 rounded-xl border border-border bg-background p-4 shadow-xl sm:inset-x-auto sm:right-4"
         >
-          <div className="w-full max-w-sm rounded-lg border border-border bg-background p-5 shadow-xl">
-            <div className="flex items-start justify-between gap-3">
-              <h2
-                id="total-warning-title"
-                className="text-lg font-bold text-primary"
-              >
-                {hasMismatch ? messages.mismatchTitle : messages.missingTotalTitle}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsTotalWarningOpen(false)}
-                aria-label={messages.closeWarning}
-                className="-mr-1 -mt-1 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-              >
-                <X aria-hidden="true" size={20} />
-              </button>
-            </div>
+          <TriangleAlert
+            aria-hidden="true"
+            size={18}
+            className={`mt-0.5 shrink-0 ${
+              hasMismatch ? "text-gold-text" : "text-primary"
+            }`}
+          />
+          <div className="min-w-0 flex-1">
             <p
-              className={`mt-3 text-xs ${
-                hasMismatch ? "text-gold" : "text-muted-foreground"
+              className={`text-sm font-bold ${
+                hasMismatch ? "text-gold-text" : "text-primary"
+              }`}
+            >
+              {hasMismatch ? messages.mismatchTitle : messages.missingTotalTitle}
+            </p>
+            <p
+              className={`mt-1 text-xs ${
+                hasMismatch ? "text-gold-text" : "text-muted-foreground"
               }`}
             >
               {hasMismatch
@@ -272,6 +305,14 @@ export function ReceiptEditor({
                 : messages.missingTotal}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={closeTotalWarning}
+            aria-label={messages.closeWarning}
+            className="-mr-1 -mt-1 shrink-0 rounded p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+          >
+            <X aria-hidden="true" size={18} />
+          </button>
         </div>
       )}
     </div>

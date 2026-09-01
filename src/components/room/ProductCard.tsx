@@ -24,6 +24,8 @@ interface ProductCardProps {
   /** Units this person shares with others (shows the yellow "shared" badge). */
   readonly sharedUnits?: number;
   readonly isMine?: boolean;
+  /** In the "shared" tab, highlights the card border when the group includes the current person. */
+  readonly includesSelf?: boolean;
   /** Delays the first appearance when this card is part of a newly loaded list. */
   readonly entryDelay?: number;
   /** The "shared" and "for me" tabs list the groups behind the line. */
@@ -42,6 +44,7 @@ export function ProductCard({
   forMeUnits = 0,
   sharedUnits = 0,
   isMine = false,
+  includesSelf = false,
   entryDelay,
   showGroups,
   onSelect,
@@ -73,7 +76,7 @@ export function ProductCard({
         </span>
       )}
       {sharedUnits > 0 && (
-        <span className="rounded-full border border-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
+        <span className="rounded-full border border-gold bg-gold-soft px-1.5 py-0.5 text-[10px] font-semibold text-gold-text">
           {formatUnits(sharedUnits)}x {messages.tabShared}
         </span>
       )}
@@ -96,6 +99,8 @@ export function ProductCard({
       className={`w-full overflow-hidden rounded-xl border bg-background shadow-sm transition-[border-color,box-shadow,transform] duration-200 ${
         isMine
           ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
+          : includesSelf
+          ? "border-gold shadow-[0_8px_20px_-16px_var(--gold)]"
           : forMeUnits > 0 || sharedUnits > 0
           ? "border-primary shadow-[0_8px_20px_-16px_var(--primary)]"
           : "border-primary/35 hover:border-primary/65 hover:shadow-[0_8px_20px_-18px_var(--primary)]"
@@ -136,18 +141,12 @@ export function ProductCard({
           {groups.map((group) => (
             <div
               key={group.groupId}
-              className={`flex max-w-full flex-wrap items-center gap-1 rounded-lg px-2 py-1 ${
-                group.includesSelf ? "bg-gold/15" : "bg-primary/5"
-              }`}
+              className="flex max-w-full flex-wrap items-center gap-1 rounded-lg px-2 py-1"
             >
               {group.memberNames.map((name) => (
                 <span
                   key={name}
-                  className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${
-                    group.includesSelf
-                      ? "border-gold bg-gold/15 text-gold"
-                      : "border-primary bg-primary/10 text-primary"
-                  }`}
+                  className="rounded-full border border-primary bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
                 >
                   {name}
                 </span>

@@ -5,11 +5,11 @@
  */
 
 function ticketReviewedKey(code: string, participantId: string): string {
-  return `fairBill.ticketReviewed.${code}.${participantId}`;
+  return `reasypt.ticketReviewed.${code}.${participantId}`;
 }
 
 function readEventsKey(code: string, participantId: string): string {
-  return `fairBill.readEvents.${code}.${participantId}`;
+  return `reasypt.readEvents.${code}.${participantId}`;
 }
 
 export function hasReviewedTicket(code: string, participantId: string): boolean {

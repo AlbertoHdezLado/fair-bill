@@ -220,7 +220,7 @@ function PersonBreakdown({
             type="button"
             onClick={() => setUnassignedOpen((prev) => !prev)}
             aria-expanded={unassignedOpen}
-            className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            className="flex items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
           >
             <span className="flex items-center gap-1">
               <ChevronDown

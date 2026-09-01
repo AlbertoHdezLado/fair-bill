@@ -6,6 +6,7 @@ import {
   assignedUnits,
   buildSplitClaims,
   claimedUnits,
+  claimedUnitsBySharing,
   itemGroups,
   type LocalClaims,
 } from "@/lib/local-claims";
@@ -20,6 +21,7 @@ import { AssignedBar } from "./AssignedBar";
 import { BillProgress, RoomTabs, type RoomTab } from "./BillProgress";
 import { ItemActionSheet } from "./ItemActionSheet";
 import { NotificationBell, type RoomNotification } from "./NotificationBell";
+import { PersonTotals } from "@/components/PersonTotals";
 import { ProfileButton } from "./ProfileButton";
 import { formatUnits, ProductCard } from "./ProductCard";
 import { ReceiptEditor } from "@/components/ReceiptEditor";
@@ -61,7 +63,6 @@ interface SplitRoomProps {
   ) => void;
   readonly roomCode: string;
   readonly onToggleShare: () => void;
-  readonly onFinish?: () => void;
   /** The first person to open the room; the full receipt is shown to them automatically. */
   readonly isOwner?: boolean;
   /** Data URL of the scanned receipt photo, if this device captured it. */
@@ -90,11 +91,19 @@ function toRoomNotification(
       ? messages.groupRemovedBy
           .replace("{{actor}}", actor)
           .replace("{{item}}", itemName)
-      : messages.groupChangedBy
-          .replace("{{actor}}", actor)
-          .replace("{{item}}", itemName)
-          .replace("{{units}}", formatUnits(event.units ?? 0))
-          .replace("{{people}}", String(event.peopleCount ?? 0));
+      : event.kind === "member_joined"
+        ? messages.groupMemberJoined
+            .replace("{{member}}", actor)
+            .replace("{{item}}", itemName)
+        : event.kind === "member_left"
+          ? messages.groupMemberLeft
+              .replace("{{member}}", actor)
+              .replace("{{item}}", itemName)
+          : messages.groupChangedBy
+              .replace("{{actor}}", actor)
+              .replace("{{item}}", itemName)
+              .replace("{{units}}", formatUnits(event.units ?? 0))
+              .replace("{{people}}", String(event.peopleCount ?? 0));
 
   return {
     id: event.id,
@@ -118,7 +127,6 @@ export function SplitRoom({
   onSaveGroup,
   roomCode,
   onToggleShare,
-  onFinish,
   isOwner,
   receiptImageUrl,
   onRenameSelf,
@@ -139,6 +147,7 @@ export function SplitRoom({
   });
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [tableBillOpen, setTableBillOpen] = useState(false);
+  const [finalOpen, setFinalOpen] = useState(false);
   // Buffers edits made in the ticket editor locally; only persisted to the
   // backend once the editor is closed, instead of on every keystroke.
   const [ticketDraft, setTicketDraft] = useState<{
@@ -179,7 +188,9 @@ export function SplitRoom({
   }, []);
 
   const nameOf = (key: string) =>
-    participants.find((participant) => participant.key === key)?.name ?? key;
+    key === selfKey
+      ? t.you.toUpperCase()
+      : (participants.find((participant) => participant.key === key)?.name ?? key);
 
   const groupsByItem = useMemo(() => {
     const map = new Map<string, ReturnType<typeof itemGroups>>();
@@ -200,6 +211,7 @@ export function SplitRoom({
   const fullyAssignedCount = items.filter(
     (item) => assignedUnits(item, claims) >= item.quantity,
   ).length;
+  const allAssigned = items.length > 0 && fullyAssignedCount === items.length;
 
   const split = computeSplit({
     items: items.map((item) => ({
@@ -446,7 +458,10 @@ export function SplitRoom({
               onToggleShare={onToggleShare}
               profile={
                 <ProfileButton
-                  currentName={nameOf(selfKey)}
+                  currentName={
+                    participants.find((participant) => participant.key === selfKey)
+                      ?.name ?? selfKey
+                  }
                   onRename={onRenameSelf ?? (async () => {})}
                   participants={participants.map((p) => ({
                     key: p.key,
@@ -489,26 +504,45 @@ export function SplitRoom({
               messages={t}
             />
           </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
+          <div className="grid min-h-0 flex-initial auto-rows-min items-start grid-cols-[repeat(auto-fill,minmax(220px,1fr))] content-start gap-2 overflow-y-auto rounded-b-2xl border-x border-b border-primary/20 bg-surface p-2">
             {tab === "remaining"
-              ? remainingGroups.map(({ key, items: group, remainingUnits }, index) => (
-                  <ProductCard
-                    key={key}
-                    item={group[0]}
-                    remainingUnits={remainingUnits}
-                    myUnits={group.reduce(
-                      (sum, item) => sum + claimedUnits(item, claims, selfKey),
-                      0,
-                    )}
-                    groups={[]}
-                    showGroups={false}
-                    entryDelay={index * 0.05}
-                    onSelect={() =>
-                      setSheet({ itemIds: group.map((item) => item.id) })
-                    }
-                    messages={t}
-                  />
-                ))
+              ? remainingGroups.map(({ key, items: group, remainingUnits }, index) => {
+                  const bySharing = group.reduce(
+                    (sum, item) => {
+                      const { forMe, shared } = claimedUnitsBySharing(
+                        item,
+                        claims,
+                        selfKey,
+                      );
+                      return {
+                        forMe: sum.forMe + forMe,
+                        shared: sum.shared + shared,
+                      };
+                    },
+                    { forMe: 0, shared: 0 },
+                  );
+
+                  return (
+                    <ProductCard
+                      key={key}
+                      item={group[0]}
+                      remainingUnits={remainingUnits}
+                      myUnits={group.reduce(
+                        (sum, item) => sum + claimedUnits(item, claims, selfKey),
+                        0,
+                      )}
+                      forMeUnits={bySharing.forMe}
+                      sharedUnits={bySharing.shared}
+                      groups={[]}
+                      showGroups={false}
+                      entryDelay={index * 0.05}
+                      onSelect={() =>
+                        setSheet({ itemIds: group.map((item) => item.id) })
+                      }
+                      messages={t}
+                    />
+                  );
+                })
               : visibleItems.flatMap((item) => {
                   const groups = groupsForTab(item.id);
 
@@ -541,7 +575,10 @@ export function SplitRoom({
                               },
                             ]
                       }
-                              isMine={tab === "mine"}
+                      isMine={tab === "mine"}
+                      includesSelf={
+                        tab === "shared" && group.memberIds.includes(selfKey)
+                      }
                       showGroups={true}
                       onSelect={() =>
                         setSheet({ itemIds: [item.id], groupId: group.groupId })
@@ -551,13 +588,22 @@ export function SplitRoom({
                   ));
                 })}
             {(tab === "remaining" ? remainingGroups.length === 0 : visibleItems.length === 0) && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}
               </p>
             )}
           </div>
         </div>
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col gap-2">
+          {allAssigned && (
+            <button
+              type="button"
+              onClick={() => setFinalOpen(true)}
+              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+            >
+              {t.finish}
+            </button>
+          )}
           <AssignedBar
             split={split}
             splitWithUnclaimed={splitWithUnclaimed}
@@ -640,7 +686,7 @@ export function SplitRoom({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-2xl"
+              className="relative flex h-full max-h-full w-full max-w-md flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-2xl"
             >
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 <ReceiptEditor
@@ -718,6 +764,57 @@ export function SplitRoom({
               >
                 {t.close}
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {finalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
+            <motion.button
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              type="button"
+              aria-label={t.close}
+              onClick={() => setFinalOpen(false)}
+              className="absolute inset-0 bg-ink/70"
+            />
+            <motion.div
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="relative flex h-full max-h-full w-full max-w-md flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-2xl"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <h2 className="mb-3 text-lg font-bold text-primary">
+                  {t.finalSummaryTitle}
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {split.people.map((person) => (
+                    <PersonTotals
+                      key={person.participantId}
+                      person={person}
+                      currency="EUR"
+                      hasPaid={false}
+                      isOwn={person.participantId === selfKey}
+                      messages={messages.totals}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="shrink-0 border-t border-primary/20 p-4">
+                <button
+                  type="button"
+                  onClick={() => setFinalOpen(false)}
+                  className="w-full rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                >
+                  {messages.capture.backToSplit}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

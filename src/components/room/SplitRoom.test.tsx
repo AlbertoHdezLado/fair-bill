@@ -110,6 +110,14 @@ describe("SplitRoom", () => {
     expect(screen.getByRole("button", { name: "Unirme al grupo" })).toBeTruthy();
   });
 
+  it("keeps the shared tab label readable on hover", () => {
+    renderBoard();
+
+    expect(screen.getByRole("tab", { name: "Compartido" }).className).toContain(
+      "hover:text-ink",
+    );
+  });
+
   it("shows a pencil icon in the edit button for a shared group", () => {
     renderBoard({
       p1: {
@@ -303,6 +311,40 @@ describe("SplitRoom", () => {
     );
   });
 
+  it("offers joining an existing group inside the share picker", () => {
+    const { onSaveGroup } = renderBoard({
+      p2: {
+        i1: [
+          {
+            owner: "p2",
+            shared: true,
+            choice: { mode: "units", count: 2, group: ["p2"] },
+          },
+        ],
+      },
+    });
+
+    fireEvent.click(screen.getByText("CERVEZA"));
+
+    expect(
+      screen.queryByRole("button", { name: "Unirse a grupo existente" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Share with..." }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Unirse a grupo existente" }),
+    );
+
+    expect(onSaveGroup).toHaveBeenCalledWith(
+      "i1",
+      "p2",
+      "p2",
+      ["p2", "p1"],
+      3,
+      true,
+    );
+  });
+
   it("joins an existing group without changing its units", () => {
     const { onSaveGroup } = renderBoard({
       p2: {
@@ -430,7 +472,7 @@ describe("SplitRoom", () => {
     expect(sharedCard.textContent).toMatch(/ANALUIS2 uds\./);
   });
 
-  it("shrinks the group by the leaving member's share", () => {
+  it("keeps the group's total units so the rest absorb the leaving member's share", () => {
     const shared = {
       owner: "p1",
       choice: { mode: "units" as const, count: 2, group: ["p1", "p2"] },
@@ -450,7 +492,7 @@ describe("SplitRoom", () => {
       "p1",
       "p1",
       ["p2"],
-      1,
+      2,
       true,
     );
   });

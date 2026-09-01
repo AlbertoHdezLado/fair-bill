@@ -151,7 +151,7 @@ export function ProfileButton({
                     }}
                     className="min-w-0 flex-1 rounded-2xl border-2 border-primary/40 bg-surface px-4 py-3 text-sm font-medium uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   />
-                  {error && <p className="text-xs text-gold">{error}</p>}
+                  {error && <p className="text-xs text-gold-text">{error}</p>}
 
                   <button
                     type="button"
@@ -235,7 +235,7 @@ export function ProfileButton({
                         </button>
                       </div>
                       {isDuplicateParticipant && (
-                        <p className="text-xs text-gold">
+                        <p className="text-xs text-gold-text">
                           {messages.duplicateName}
                         </p>
                       )}

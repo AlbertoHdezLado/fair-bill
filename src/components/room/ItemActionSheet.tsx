@@ -360,7 +360,7 @@ function NewGroupForm({
               existingSharedGroup.allParticipants,
             )
           }
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-gold px-4 py-3 text-sm font-medium text-gold disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-full border border-gold px-4 py-3 text-sm font-medium text-gold-text disabled:opacity-40"
         >
           <Users aria-hidden="true" size={16} />
           {messages.joinExistingGroup}
@@ -441,7 +441,7 @@ function SharePicker({
                     onClick={() => toggle(key)}
                     className={`flex min-h-12 w-full items-center justify-center rounded-2xl border px-3 py-2 text-sm font-bold ${
                       isSelected
-                        ? "border-gold bg-gold/15"
+                        ? "border-gold bg-gold-soft"
                         : "border-primary/40 bg-surface hover:border-primary"
                     }`}
                   >
@@ -592,7 +592,7 @@ function UnitStepper({
         type="button"
         disabled={units >= max || max <= 0}
         onClick={() => onChange(max)}
-        className="rounded-full border border-gold px-3 py-1 text-xs text-gold disabled:opacity-40"
+        className="rounded-full border border-gold px-3 py-1 text-xs text-gold-text disabled:opacity-40"
       >
         {messages.takeAll}
       </button>

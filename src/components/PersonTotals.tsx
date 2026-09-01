@@ -49,7 +49,7 @@ export function PersonTotals({
           <div
             key={item.itemId}
             className={`flex justify-between gap-2 font-medium ${
-              item.hasUnclaimedShare ? "text-gold" : "text-foreground"
+              item.hasUnclaimedShare ? "text-gold-text" : "text-foreground"
             }`}
           >
             <span className="truncate">

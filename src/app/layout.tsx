@@ -22,12 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const messages = await getRequestMessages();
 
   return {
-    title: "fairBill",
+    title: "reasypt",
     description: messages.metadata.description,
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
-      title: "fairBill",
+      title: "reasypt",
     },
   };
 }
@@ -39,8 +39,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#1b4e8c" },
-    { media: "(prefers-color-scheme: dark)", color: "#06121f" },
+    { media: "(prefers-color-scheme: light)", color: "#2563eb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
   ],
 };
 

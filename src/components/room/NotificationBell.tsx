@@ -174,7 +174,7 @@ function NotificationGroup({
             key={notification.id}
             role="alert"
             className={`rounded-xl px-2 py-1.5 text-xs ${
-              notification.read ? "bg-primary/5" : "bg-gold/15"
+              notification.read ? "bg-primary/5" : "bg-gold-soft"
             }`}
           >
             <p>{notification.text}</p>
