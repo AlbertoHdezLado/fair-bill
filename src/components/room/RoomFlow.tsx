@@ -9,8 +9,6 @@ import { SplitRoom } from "@/components/room/SplitRoom";
 import { IdentityPicker } from "@/components/room/IdentityPicker";
 import { LoadingState } from "@/components/Spinner";
 import { ShareRoom } from "@/components/room/ShareRoom";
-import { PersonTotals } from "@/components/PersonTotals";
-import { buildSplitClaims } from "@/lib/local-claims";
 import {
   addParticipant,
   fetchRoom,
@@ -30,13 +28,11 @@ import {
   ROOM_UPDATED_EVENT,
   roomChannelName,
 } from "@/lib/supabase/realtime";
-import type { SplitResult } from "@/lib/split";
 import {
   EMPTY_EXTRAS,
   type EditableExtras,
   type EditableItem,
 } from "@/lib/receipt/editable";
-import { computeSplit } from "@/lib/split";
 import type { Messages } from "@/i18n";
 import { MAX_PARTICIPANT_NAME_LENGTH } from "@/lib/input-limits";
 
@@ -71,7 +67,6 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
     extras: EditableExtras;
   } | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const [result, setResult] = useState<SplitResult | null>(null);
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const pendingName = useRef<string | null>(null);
   const hasAutoSavedDraft = useRef(false);
@@ -392,30 +387,6 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
   }));
   const claims = toLocalClaims(room.claims);
 
-  if (result) {
-    return (
-      <div className="flex flex-col gap-3">
-        {result.people.map((person) => (
-          <PersonTotals
-            key={person.participantId}
-            person={person}
-            currency="EUR"
-            hasPaid={false}
-            isOwn={person.participantId === self.id}
-            messages={messages.totals}
-          />
-        ))}
-        <button
-          type="button"
-          onClick={() => setResult(null)}
-          className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary/10"
-        >
-          {messages.capture.backToSplit}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {showShare && (
@@ -475,32 +446,6 @@ export function RoomFlow({ code, messages }: RoomFlowProps) {
             setRoom(next);
           })
         }
-        onFinish={() => {
-          const finalResult = computeSplit({
-            items: room.items.map((item) => ({
-              id: item.id,
-              name: item.name,
-              quantity: item.quantity,
-              unitPriceCents: item.unitPriceCents,
-            })),
-            claims: buildSplitClaims(
-              room.items,
-              room.participants.map((participant) => participant.id),
-              claims,
-            ),
-            participants: room.participants.map((participant) => ({
-              id: participant.id,
-              name: participant.name,
-            })),
-            extras: {
-              taxCents: room.extras.taxCents,
-              tipCents: room.extras.tipCents + room.extras.serviceCents,
-              discountCents: room.extras.discountCents,
-            },
-            distributeUnclaimed: true,
-          });
-          setResult(finalResult);
-        }}
         onSaveBill={(items, extras) => {
           setActionError(null);
           setRoom({ ...room, items: [...items], extras });
