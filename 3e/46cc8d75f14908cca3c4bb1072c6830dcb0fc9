@@ -1,0 +1,19 @@
+src/components/room/ProductCard.tsx
+  s_81e07c24f2e8dd::t_c2f6f46c3014af 74,79,119,121,131,133,149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "3e46cc8d75f14908cca3c4bb1072c6830dcb0fc9",
+  "prompts": {},
+  "sessions": {
+    "s_81e07c24f2e8dd": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "2ff1410b-b863-439b-baa4-a22888ba10bc",
+        "model": "unknown"
+      },
+      "human_author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
