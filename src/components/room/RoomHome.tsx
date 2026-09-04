@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, ImageUp, PencilLine, X } from "lucide-react";
+import { ArrowRight, ImageUp, PencilLine } from "lucide-react";
 import { ScanOverlay } from "@/components/capture/ScanOverlay";
 import { LoadingState } from "@/components/Spinner";
 import { CodeInput } from "@/components/room/CodeInput";
@@ -16,11 +16,7 @@ import {
   type PendingCapture,
 } from "@/lib/rooms/pending-capture";
 import { fileToPreviewDataUrl } from "@/lib/receipt/image";
-import {
-  forgetRoom,
-  getRecentRooms,
-  type RecentRoom,
-} from "@/lib/rooms/recent-rooms";
+import { getRecentRooms, type RecentRoom } from "@/lib/rooms/recent-rooms";
 import { fadeInUpVariants, listStagger } from "@/lib/motion";
 import type { Messages } from "@/i18n";
 
@@ -255,7 +251,7 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                 {recentRooms.map((room) => (
                   <li
                     key={room.code}
-                    className="flex items-center gap-2 rounded-xl border border-border bg-surface pr-2 transition-colors hover:border-primary/50"
+                    className="rounded-xl border border-border bg-surface transition-colors hover:border-primary/50"
                   >
                     <button
                       type="button"
@@ -264,28 +260,14 @@ export function RoomHome({ messages, captureMessages }: RoomHomeProps) {
                         setBusyLabel(messages.joiningRoom);
                         router.push(`/room/${room.code}`);
                       }}
-                      className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-60"
+                      className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-60"
                     >
                       <span className="min-w-0 truncate text-sm font-medium uppercase">
                         {room.merchantName || room.code}
                       </span>
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                        {room.code}
+                        {new Date(room.visitedAt).toLocaleDateString()}
                       </span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      aria-label={messages.forgetRoomLabel}
-                      onClick={() => {
-                        forgetRoom(room.code);
-                        setRecentRooms((prev) =>
-                          prev.filter((entry) => entry.code !== room.code),
-                        );
-                      }}
-                      className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
-                    >
-                      <X aria-hidden="true" size={16} />
                     </button>
                   </li>
                 ))}
