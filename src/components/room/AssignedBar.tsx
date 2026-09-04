@@ -220,7 +220,7 @@ function PersonBreakdown({
             type="button"
             onClick={() => setUnassignedOpen((prev) => !prev)}
             aria-expanded={unassignedOpen}
-            className="flex items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-yellow-500"
+            className="flex items-center justify-between gap-2 text-sm font-medium uppercase tracking-wide text-yellow-500"
           >
             <span className="flex items-center gap-1">
               <ChevronDown
@@ -232,9 +232,11 @@ function PersonBreakdown({
               />
               {roomMessages.unassignedProducts}
             </span>
-            <span className="tabular-nums">
-              {formatCents(unassignedShareCents)}
-            </span>
+            {!unassignedOpen && (
+              <span className="tabular-nums">
+                {formatCents(unassignedShareCents)}
+              </span>
+            )}
           </button>
           {unassignedOpen && (
             <div className="flex flex-col gap-1 pl-1 text-yellow-500">
@@ -249,12 +251,11 @@ function PersonBreakdown({
                 </div>
               ))}
               <div className="flex justify-between gap-2">
-                <span>
-                  {formatCents(unassignedSubtotalCents)} /{" "}
-                  {personWithUnclaimed.participantCount}
-                </span>
+                <span>{roomMessages.pricePerPerson}</span>
                 <span className="tabular-nums">
-                  = {formatCents(unassignedShareCents)}
+                  {formatCents(unassignedSubtotalCents)} /{" "}
+                  {personWithUnclaimed.participantCount} ={" "}
+                  {formatCents(unassignedShareCents)}
                 </span>
               </div>
             </div>
