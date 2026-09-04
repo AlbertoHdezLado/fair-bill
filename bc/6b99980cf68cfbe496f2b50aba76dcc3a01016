@@ -1,0 +1,16 @@
+src/components/room/AssignedBar.tsx
+  h_fed6a40af368f7 223,235-239,254,256-258
+src/i18n.ts
+  h_fed6a40af368f7 255,500
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "bc6b99980cf68cfbe496f2b50aba76dcc3a01016",
+  "prompts": {},
+  "humans": {
+    "h_fed6a40af368f7": {
+      "author": "Alberto Hernández Lado <albertohljob@gmail.com>"
+    }
+  }
+}
