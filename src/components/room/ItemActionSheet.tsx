@@ -28,6 +28,15 @@ interface ItemActionSheetProps {
     shared: boolean,
     allParticipants: boolean,
   ) => void;
+  /** Joining an existing group updates just that group, unlike a new claim which may spread across merged lines. */
+  readonly onJoinGroup: (
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
+    shared: boolean,
+    allParticipants: boolean,
+  ) => void;
   readonly messages: Messages["roomSplit"];
 }
 
@@ -41,6 +50,7 @@ export function ItemActionSheet({
   initialGroupId,
   onClose,
   onSaveGroup,
+  onJoinGroup,
   messages,
 }: ItemActionSheetProps) {
   const myGroups = groups.filter((group) => group.memberIds.includes(selfKey));
@@ -55,26 +65,73 @@ export function ItemActionSheet({
   // edición cierra la ficha entera en vez de dejar una pantalla vacía.
   const closeEditing = tab === "shared" ? onClose : () => setEditingGroupId(null);
 
-  // Salir deja intacta la parte de los demás, así que el grupo encoge justo lo
-  // que era mío.
+  // Fuera de mi grupo y en "shared" solo hay un grupo por carta, así que unirse
+  // es un sí/no, no un selector.
+  if (tab === "shared" && !editingGroup) {
+    const targetGroup =
+      groups.find((group) => group.groupId === editingGroupId) ?? groups[0];
+    if (targetGroup) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label={messages.close}
+            onClick={onClose}
+            className="absolute inset-0 bg-ink/70"
+          />
+          <div className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/40 bg-background p-5 shadow-2xl">
+            <p className="text-lg font-bold text-primary">
+              {messages.joinSharedTitle}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {messages.joinSharedDescription
+                .replace("{{item}}", itemName)
+                .replace(
+                  "{{members}}",
+                  targetGroup.memberIds.map(nameOf).join(", "),
+                )}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+              >
+                {messages.joinSharedCancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSaveGroup(
+                    targetGroup.groupId,
+                    targetGroup.ownerId,
+                    [...targetGroup.memberIds, selfKey],
+                    targetGroup.units,
+                    true,
+                    targetGroup.allParticipants,
+                  );
+                  onClose();
+                }}
+                className="flex-1 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+              >
+                {messages.joinShared}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Salir solo cambia quién se reparte las unidades, no la cantidad total
+  // reclamada por el grupo.
   const leaveGroup = (group: ItemGroup) => {
     const rest = group.memberIds.filter((member) => member !== selfKey);
-    if (rest.length === 0) {
-      onSaveGroup(
-        group.groupId,
-        group.ownerId,
-        [],
-        null,
-        group.shared,
-        group.allParticipants,
-      );
-      return;
-    }
     onSaveGroup(
       group.groupId,
       group.ownerId,
       rest,
-      (group.units / group.memberIds.length) * rest.length,
+      rest.length === 0 ? null : group.units,
       group.shared,
       group.allParticipants,
     );
@@ -99,6 +156,7 @@ export function ItemActionSheet({
             remainingUnits={remainingUnits}
             participantNames={participantNames}
             onSaveGroup={onSaveGroup}
+            onJoinGroup={onJoinGroup}
             messages={messages}
           />
         )}
@@ -145,62 +203,9 @@ export function ItemActionSheet({
           </section>
         )}
 
-        {tab === "shared" && !editingGroup && (() => {
-          // Fuera de mi grupo, la ficha abre directo sobre ese grupo, sin
-          // pasar por ningún listado intermedio.
-          const targetGroup =
-            groups.find((group) => group.groupId === editingGroupId) ??
-            groups[0];
-          if (!targetGroup) {
-            return (
-              <p className="text-sm text-muted-foreground">
-                {messages.noGroups}
-              </p>
-            );
-          }
-          return (
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-surface px-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">
-                  {targetGroup.memberIds.map(nameOf).join(", ")}
-                </p>
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  {messages.groupUnits.replace(
-                    "{{count}}",
-                    formatUnits(targetGroup.units),
-                  )}
-                  {" · "}
-                  {messages.perPerson.replace(
-                    "{{amount}}",
-                    formatCents(
-                      perPersonCents(
-                        item,
-                        targetGroup.units,
-                        targetGroup.memberIds.length,
-                      ),
-                    ),
-                  )}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  onSaveGroup(
-                    targetGroup.groupId,
-                    targetGroup.ownerId,
-                    [...targetGroup.memberIds, selfKey],
-                    targetGroup.units,
-                    true,
-                    targetGroup.allParticipants,
-                  )
-                }
-                className="shrink-0 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary-hover"
-              >
-                {messages.joinShared}
-              </button>
-            </div>
-          );
-        })()}
+        {tab === "shared" && !editingGroup && (
+          <p className="text-sm text-muted-foreground">{messages.noGroups}</p>
+        )}
       </div>
 
       {editingGroup && (
@@ -258,6 +263,7 @@ function NewGroupForm({
   remainingUnits,
   participantNames,
   onSaveGroup,
+  onJoinGroup,
   messages,
 }: {
   readonly item: EditableItem;
@@ -273,17 +279,73 @@ function NewGroupForm({
     shared: boolean,
     allParticipants: boolean,
   ) => void;
+  readonly onJoinGroup: (
+    groupId: string,
+    ownerId: string,
+    memberIds: readonly string[],
+    units: number | null,
+    shared: boolean,
+    allParticipants: boolean,
+  ) => void;
   readonly messages: Messages["roomSplit"];
 }) {
   const [units, setUnits] = useState(1);
   const [pickingPeople, setPickingPeople] = useState(false);
+  const [pickingGroupToJoin, setPickingGroupToJoin] = useState(false);
   const capped = Math.min(units, remainingUnits);
   const others = Object.entries(participantNames).filter(
     ([key]) => key !== selfKey,
   );
-  const existingSharedGroup = groups.find(
+  const nameOf = (key: string) => participantNames[key] ?? key;
+  // Solo se puede unir a grupos donde todavía no está, para no duplicarse.
+  const joinableGroups = groups.filter(
     (group) => group.shared && !group.memberIds.includes(selfKey),
   );
+
+  if (pickingGroupToJoin) {
+    return (
+      <section className="flex w-full flex-col gap-2 rounded-xl border border-primary/20 bg-surface p-3">
+        <p className="text-xs font-medium uppercase text-muted-foreground">
+          {messages.chooseGroupTitle}
+        </p>
+        {joinableGroups.map((group) => (
+          <button
+            key={group.groupId}
+            type="button"
+            onClick={() => {
+              onJoinGroup(
+                group.groupId,
+                group.ownerId,
+                [...group.memberIds, selfKey],
+                group.units,
+                true,
+                group.allParticipants,
+              );
+              setPickingGroupToJoin(false);
+            }}
+            className="rounded-lg border border-primary/20 bg-background px-3 py-2 text-left"
+          >
+            <p className="truncate text-sm font-semibold">
+              {group.memberIds.map(nameOf).join(", ")}
+            </p>
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {messages.groupUnits.replace(
+                "{{count}}",
+                formatUnits(group.units),
+              )}
+            </p>
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setPickingGroupToJoin(false)}
+          className="text-xs text-muted-foreground underline"
+        >
+          {messages.joinSharedCancel}
+        </button>
+      </section>
+    );
+  }
 
   if (pickingPeople) {
     return (
@@ -346,20 +408,11 @@ function NewGroupForm({
           {messages.shareUnits}
         </button>
       </div>
-      {existingSharedGroup && (
+      {joinableGroups.length > 0 && (
         <button
           type="button"
           disabled={remainingUnits <= 0}
-          onClick={() =>
-            onSaveGroup(
-              existingSharedGroup.groupId,
-              existingSharedGroup.ownerId,
-              [...existingSharedGroup.memberIds, selfKey],
-              existingSharedGroup.units + capped,
-              true,
-              existingSharedGroup.allParticipants,
-            )
-          }
+          onClick={() => setPickingGroupToJoin(true)}
           className="flex w-full items-center justify-center gap-2 rounded-full border border-gold px-4 py-3 text-sm font-medium text-gold-text disabled:opacity-40"
         >
           <Users aria-hidden="true" size={16} />

@@ -71,12 +71,12 @@ export function ProductCard({
   const badges = (
     <>
       {forMeUnits > 0 && (
-        <span className="rounded-full border border-primary bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+        <span className="ml-2 rounded-full border border-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary">
           {formatUnits(forMeUnits)}x {messages.forMe}
         </span>
       )}
       {sharedUnits > 0 && (
-        <span className="rounded-full border border-gold bg-gold-soft px-1.5 py-0.5 text-[10px] font-semibold text-gold-foreground">
+        <span className="ml-2 rounded-full border border-gold px-1.5 py-0.5 text-[10px] font-semibold text-gold-text">
           {formatUnits(sharedUnits)}x {messages.tabShared}
         </span>
       )}
@@ -116,9 +116,9 @@ export function ProductCard({
             <span className="block truncate font-semibold">
               {item.name || messages.unnamedItem}
             </span>
-            <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+            <span className="mt-0.5 flex w-full items-center gap-1 text-xs tabular-nums text-muted-foreground">
               <span>{quantityLine}</span>
-              {badges}
+              <span className="ml-auto flex items-center">{badges}</span>
             </span>
           </span>
         </button>
@@ -128,9 +128,9 @@ export function ProductCard({
             <span className="block truncate font-semibold">
               {item.name || messages.unnamedItem}
             </span>
-            <span className="mt-0.5 flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+            <span className="mt-0.5 flex w-full items-center gap-1 text-xs tabular-nums text-muted-foreground">
               <span>{quantityLine}</span>
-              {badges}
+              <span className="ml-auto flex items-center">{badges}</span>
             </span>
           </span>
         </div>
@@ -146,7 +146,7 @@ export function ProductCard({
               {group.memberNames.map((name) => (
                 <span
                   key={name}
-                  className="rounded-full border border-primary bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+                  className="rounded-full border border-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-600 dark:text-yellow-400"
                 >
                   {name}
                 </span>

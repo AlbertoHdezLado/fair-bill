@@ -70,7 +70,11 @@ export function choiceUnits(item: EditableItem, choice: ClaimChoice): number {
   }
 }
 
-/** Unidades que una persona ha marcado en una línea, separadas en propias y compartidas. */
+/**
+ * Unidades que una persona ha marcado en una línea, separadas en propias y
+ * compartidas. `shared` es el total de unidades del grupo (todas las que se
+ * comparten), no la parte proporcional que le toca a esta persona.
+ */
 export function claimedUnitsBySharing(
   item: EditableItem,
   claims: LocalClaims,
@@ -79,9 +83,8 @@ export function claimedUnitsBySharing(
   let forMe = 0;
   let shared = 0;
   for (const entry of entriesFor(claims, participantKey, item.id)) {
-    const units = choiceUnits(item, entry.choice);
-    if (entry.shared) shared += units;
-    else forMe += units;
+    if (entry.shared) shared += choiceTotalUnits(item, entry.choice);
+    else forMe += choiceUnits(item, entry.choice);
   }
   return { forMe, shared };
 }

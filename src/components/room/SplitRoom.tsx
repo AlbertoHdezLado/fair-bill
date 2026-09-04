@@ -671,6 +671,27 @@ export function SplitRoom({
                     allParticipants,
                   )
             }
+            onJoinGroup={(
+              groupId,
+              ownerId,
+              memberIds,
+              units,
+              shared,
+              allParticipants,
+            ) =>
+              // A diferencia de una elección nueva, unirse actualiza un grupo
+              // ya existente en su propia línea: no hay que repartirlo entre
+              // varias líneas fusionadas.
+              saveGroup(
+                primarySheetItem.id,
+                groupId,
+                ownerId,
+                memberIds,
+                units,
+                shared,
+                allParticipants,
+              )
+            }
             messages={t}
           />
         )}
